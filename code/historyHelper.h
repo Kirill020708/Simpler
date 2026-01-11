@@ -16,29 +16,69 @@
 
 #endif /* MOVE */
 
+
+#ifndef MOVEGEN
+#define MOVEGEN
+
+#include "moveGeneration.h"
+
+#endif /* MOVEGEN */
+
 struct HistoryHelper {
-    int historyScore[2][64][64];
+    int historyScore[2][64][64][2][2];
     int maxHistoryScore = 511;
 
     void clear() {
         for (int i = 0; i < 2; i++)
             for (int j = 0; j < 64; j++)
                 for (int k = 0; k < 64; k++)
-                    historyScore[i][j][k] = 0;
+	                for (int k1 = 0; k1 < 2; k1++)
+	                	for (int k2 = 0; k2 < 2; k2++)
+                    		historyScore[i][j][k][k1][k2] = 0; 
     }
 
-    inline void update(int color, Move move, int score) {
+    inline void update(int color, Board& board, Move move, int score) {
         if (score < -maxHistoryScore)
             score = -maxHistoryScore;
         if (score > maxHistoryScore)
             score = maxHistoryScore; // clamp
 
-        historyScore[color][move.getStartSquare()][move.getTargetSquare()] +=
-            score - historyScore[color][move.getStartSquare()][move.getTargetSquare()] * abs(score) / maxHistoryScore;
+        int oppositeColor = (color == WHITE) ? BLACK : WHITE;
+
+        int st = move.getStartSquare();
+        int tr = move.getTargetSquare();
+
+        int stThreat = moveGenerator.isSquareAttacked(board, st, oppositeColor);
+        int trThreat = moveGenerator.isSquareAttacked(board, tr, oppositeColor);
+
+        historyScore[color][st][tr][stThreat][trThreat] +=
+            score - historyScore[color][st][tr][stThreat][trThreat] * abs(score) / maxHistoryScore;
     }
 
-    inline int getScore(int color, Move move) {
-        return (historyScore[color][move.getStartSquare()][move.getTargetSquare()]) +
+    inline int getScore(int color, Board& board, Move move) {
+
+        int oppositeColor = (color == WHITE) ? BLACK : WHITE;
+
+        int st = move.getStartSquare();
+        int tr = move.getTargetSquare();
+
+        int stThreat = moveGenerator.isSquareAttacked(board, st, oppositeColor);
+        int trThreat = moveGenerator.isSquareAttacked(board, tr, oppositeColor);
+
+        return (historyScore[color][st][tr][stThreat][trThreat]) +
+               maxHistoryScore; // to prevent negative values
+    }
+
+    inline int getScore(int color, Board& board, Move move, int stThreat) {
+
+        int oppositeColor = (color == WHITE) ? BLACK : WHITE;
+
+        int st = move.getStartSquare();
+        int tr = move.getTargetSquare();
+
+        int trThreat = moveGenerator.isSquareAttacked(board, tr, oppositeColor);
+
+        return (historyScore[color][st][tr][stThreat][trThreat]) +
                maxHistoryScore; // to prevent negative values
     }
 };

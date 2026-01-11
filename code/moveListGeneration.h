@@ -75,9 +75,12 @@ struct MoveListGenerator {
 
         Bitboard pieces = friendPieces;
         int currentEvaluation = board.evaluation;
+        int oppositeColor = (color == WHITE) ? BLACK : WHITE;
 
         while (pieces > 0) {
             int startSquare = pieces.getFirstBitNumberAndExclude();
+            int stThreat = moveGenerator.isSquareAttacked(board, startSquare, oppositeColor);
+
             Bitboard moves = moveGenerator.moves(board, startSquare);
             if (onlyCaptures) {
                 moves &= opponentPieces;
@@ -146,7 +149,7 @@ struct MoveListGenerator {
                     Move move = Move(startSquare, targetSquare, NOPIECE);
                     move.score += (captureCoeff << captureShift);
                     if (!isCapture || !onlyCaptures)
-                        move.score += historyHelper.getScore(color, move);
+                        move.score += historyHelper.getScore(color, board, move, stThreat);
                     else {
                         // cout<<sseEval<<'\n';
                         move.score += (sseEval + 15);
