@@ -573,6 +573,13 @@ struct Worker {
             	continue;
             }
 
+            if (!isPvNode && movesSearched > 0 && !isMovingSideInCheck && abs(MATE_SCORE - beta) > maxDepth && abs(alpha + MATE_SCORE) > maxDepth &&
+                !isMoveInteresting && movesSearched >= 6 + depth * depth * 4
+            ) {
+
+                continue;
+            }
+
             int premovefutilityMargin = (150 + historyValueF * 75 - isTTCapture * 100) * depth * depth;
             if (movesSearched > 0 && !isMovingSideInCheck && staticEval < alpha - premovefutilityMargin &&
                 !isMoveInteresting && abs(MATE_SCORE - beta) > maxDepth && abs(alpha + MATE_SCORE) > maxDepth
