@@ -311,7 +311,7 @@ struct Worker {
     int staticEvaluationHistory[maxDepth];
 
 	template<NodeType nodePvType>
-    int search(Board &board, int color, int depth, int isRoot, int alpha, int beta, int depthFromRoot) {
+    int search(Board &board, int color, int depth, int isRoot, int alpha, int beta, int depthFromRoot, bool isCutNode) {
         if (stopSearch || nodes >= nodesLim) {
             stopSearch = true;
             return 0;
@@ -392,7 +392,7 @@ struct Worker {
             	min((staticEval - beta) / 200.0, 5.0));
 
             int prevEnPassColumn = board.makeNullMove();
-            int score = -search<NonPV>(board, oppositeColor, depth - 1 - R, 0, -beta, -beta + 1, depthFromRoot + 1);
+            int score = -search<NonPV>(board, oppositeColor, depth - 1 - R, 0, -beta, -beta + 1, depthFromRoot + 1, false);
             board.makeNullMove();
             board.enPassantColumn = prevEnPassColumn;
             if (score >= beta)
@@ -643,7 +643,7 @@ struct Worker {
                 int LMR_DEPTH_REDUCTION =
                     floor(lmrLogTable[depth][movesSearched] + 0.5 -
                           1 * (isPvNode)-1.5 * float(historyValue) / historyHelper.maxHistoryScore +
-                          0.5 * (!improving) + (isTTCapture) * 1); // reduction of depth
+                          0.5 * (!improving) + (isTTCapture) * 1 + (isCutNode) * 0.5); // reduction of depth
 
                 if (LMR_DEPTH_REDUCTION < 0)
                     LMR_DEPTH_REDUCTION = 0;
@@ -689,19 +689,19 @@ struct Worker {
                     // historyHelper.getScore(color,move)<historyHelper.maxHistoryScore // history score is negative
                 ) {
                     score = -search<NonPV>(board, oppositeColor, depth - 1 - LMR_DEPTH_REDUCTION, 0, -(alpha + 1), -alpha,
-                                    depthFromRoot + 1);
+                                    depthFromRoot + 1, !isCutNode);
                 } else
                     score = alpha + 1; // if LMR is restricted, do this to do PVS
 
                 if (score > alpha) {
                     score = -search<NonPV>(board, oppositeColor, depth - 1 + extendDepth, 0, -(alpha + 1), -alpha,
-                                    depthFromRoot + 1);
+                                    depthFromRoot + 1, !isCutNode);
                     if (isPvNode && score > alpha && score < beta)
                         score =
-                            -search<nodePvType>(board, oppositeColor, depth - 1 + extendDepth, 0, -beta, -alpha, depthFromRoot + 1);
+                            -search<nodePvType>(board, oppositeColor, depth - 1 + extendDepth, 0, -beta, -alpha, depthFromRoot + 1, !isCutNode);
                 }
             } else
-                score = -search<nodePvType>(board, oppositeColor, depth - 1 + extendDepth, 0, -beta, -alpha, depthFromRoot + 1);
+                score = -search<nodePvType>(board, oppositeColor, depth - 1 + extendDepth, 0, -beta, -alpha, depthFromRoot + 1, false);
 
             board = boardCopy;
 
@@ -824,7 +824,7 @@ struct Worker {
     }
 
     int startSearch(Board &board, int depth, int alpha, int beta) {
-        return search<PV>(board, board.boardColor, depth, true, alpha, beta, 0);
+        return search<PV>(board, board.boardColor, depth, true, alpha, beta, 0, false);
         doneSearch = true;
     }
 
@@ -885,7 +885,7 @@ struct Worker {
             // cout<<'\n';
             int alpha = -inf * 2, beta = inf * 2;
 
-            search<PV>(board, board.boardColor, depth, 1, alpha, beta, 0);
+            search<PV>(board, board.boardColor, depth, 1, alpha, beta, 0, false);
 
             // cout<<"depth "<<depth<<" score "<<rootScore<<' '<<bestMove.convertToUCI()<<'\n';
 
@@ -962,7 +962,7 @@ struct Searcher {
             int score;
             int nodes = 0;
             if (depth == 1) {
-                workers[0].search<PV>(mainBoard, mainBoard.boardColor, depth, 1, alpha, beta, 0);
+                workers[0].search<PV>(mainBoard, mainBoard.boardColor, depth, 1, alpha, beta, 0, false);
                 score = workers[0].rootScore;
                 bestMove = workers[0].bestMove;
                 nodes = workers[0].nodes;
