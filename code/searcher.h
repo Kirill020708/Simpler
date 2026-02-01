@@ -428,9 +428,9 @@ struct Worker {
                 return score;
         }
 
-        if (!isRoot && depth == 1 && !isMovingSideInCheck &&
+        if (!isRoot && !isPvNode && !isMovingSideInCheck &&
         	!searchStack[depthFromRoot].excludeTTmove && !isMateScores) { // Razoring
-            int margin = 200;
+            int margin = 150 * depth * depth + 200;
 
             if (staticEval + margin < alpha) {
                 int qEval = quiescentSearch<NonPV>(board, color, alpha - 1, alpha, depthFromRoot + 1);
