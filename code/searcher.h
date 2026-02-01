@@ -446,6 +446,69 @@ struct Worker {
             moveListGenerator.hashMove = bestMove;
         Move ttMove = moveListGenerator.hashMove;
 
+
+        #if !defined DO_HCE
+        __int16_t accumW[hiddenLayerSize], accumB[hiddenLayerSize];
+        for (int i = 0; i < hiddenLayerSize; i += 16) {
+
+            _mm256_storeu_si256((__m256i *)&accumW[i], _mm256_loadu_si256((__m256i *)&nnueEvaluator.hlSumW[i]));
+
+            _mm256_storeu_si256((__m256i *)&accumB[i], _mm256_loadu_si256((__m256i *)&nnueEvaluator.hlSumB[i]));
+
+            // accumW[i]=nnueEvaluator.hlSumW[i];
+            // accumB[i]=nnueEvaluator.hlSumB[i];
+        }
+        #endif
+
+        int probcutDepthR = 4;
+        //ProbCut
+        if (!isRoot &&
+        	depth >= probcutDepthR &&
+        	!isPvNode && 
+        	!isMovingSideInCheck &&
+        	!searchStack[depthFromRoot].excludeTTmove &&
+        	!isMateScores) {
+
+        	int probcutBeta = beta + 200;
+
+        	if (ttEntry.evaluation == NO_EVAL || ttEntry.evaluation >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
+
+	        	moveListGenerator.generateMoves(board, historyHelper, color, depthFromRoot, DO_SORT, ONLY_CAPTURES);
+
+		        for (int currentMove = 0; currentMove < moveListGenerator.moveListSize[depthFromRoot]; currentMove++) {
+		            Move move = moveListGenerator.moveList[depthFromRoot][currentMove];
+
+		            board.makeMove(move, nnueEvaluator);
+
+		            int score = -quiescentSearch<NonPV>(board, oppositeColor, -probcutBeta, -probcutBeta + 1, depthFromRoot + 1);
+
+		            if (score >= probcutBeta)
+		            	score = -search<NonPV>(board, oppositeColor, depth - probcutDepthR, 0, -probcutBeta, -probcutBeta + 1,
+	                                    depthFromRoot + 1, extended);
+
+		            board = boardCopy;
+
+		            #if !defined DO_HCE
+		            for (int i = 0; i < hiddenLayerSize; i += 16) {
+
+		                _mm256_storeu_si256((__m256i *)&nnueEvaluator.hlSumW[i], _mm256_loadu_si256((__m256i *)&accumW[i]));
+
+		                _mm256_storeu_si256((__m256i *)&nnueEvaluator.hlSumB[i], _mm256_loadu_si256((__m256i *)&accumB[i]));
+
+		                // nnueEvaluator.hlSumW[i]=accumW[i];
+		                // nnueEvaluator.hlSumB[i]=accumB[i];
+		            }
+		            #endif
+
+		            if (score >= probcutBeta) {
+	                    transpositionTable.write(board, currentZobristKey, score, depth - probcutDepthR, LOWER_BOUND,
+	                                             boardCurrentAge, move, depthFromRoot);
+	                    return score;
+		            }
+		        }
+		    }
+        }
+
         // int bestKillerMove=0;
         // for(int i=0;i<killMovesNumber;i++)
         // 	if(killerMovesAge[depthFromRoot][i]>killerMovesAge[depthFromRoot][bestKillerMove]&&killerMovesCount[depthFromRoot][i]>1)
@@ -534,19 +597,6 @@ struct Worker {
         int quietMovesSearched = 0;
         bestHashMove = Move();
         int numberOfMoves = moveListGenerator.moveListSize[depthFromRoot];
-
-        #if !defined DO_HCE
-        __int16_t accumW[hiddenLayerSize], accumB[hiddenLayerSize];
-        for (int i = 0; i < hiddenLayerSize; i += 16) {
-
-            _mm256_storeu_si256((__m256i *)&accumW[i], _mm256_loadu_si256((__m256i *)&nnueEvaluator.hlSumW[i]));
-
-            _mm256_storeu_si256((__m256i *)&accumB[i], _mm256_loadu_si256((__m256i *)&nnueEvaluator.hlSumB[i]));
-
-            // accumW[i]=nnueEvaluator.hlSumW[i];
-            // accumB[i]=nnueEvaluator.hlSumB[i];
-        }
-        #endif
 
         bool isTTCapture = (ttMove != Move() && !board.isQuietMove(ttMove));
 
