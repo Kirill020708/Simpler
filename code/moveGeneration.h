@@ -106,15 +106,15 @@ struct MoveGeneration {
     inline bool isSquareAttackedByWhite();
     inline bool isSquareAttackedByBlack();
 
-    inline bool isWhiteInCheck(Board &board) {
+    __attribute__((noinline)) bool isWhiteInCheck(Board &board) {
         return isSquareAttackedByBlack(board, (board.kings & board.whitePieces).getFirstBitNumber());
     }
 
-    inline bool isBlackInCheck(Board &board) {
+    __attribute__((noinline)) bool isBlackInCheck(Board &board) {
         return isSquareAttackedByWhite(board, (board.kings & board.blackPieces).getFirstBitNumber());
     }
 
-    inline bool isInCheck(Board &board, int color) {
+    __attribute__((noinline)) bool isInCheck(Board &board, int color) {
         if (color == WHITE)
             return isWhiteInCheck(board);
         return isBlackInCheck(board);
@@ -185,7 +185,7 @@ struct MoveGeneration {
         return 0;
     }
 
-    inline bool isSquareAttackedByWhite(Board &board, int square) {
+    __attribute__((noinline)) bool isSquareAttackedByWhite(Board &board, int square) {
         Bitboard whitePawns = board.pawns & board.whitePieces;
         Bitboard pawnsAttack =
             (((whitePawns & (~boardHelper.getColumn(7))) >> 7) | ((whitePawns & (~boardHelper.getColumn(0))) >> 9)) &
@@ -212,7 +212,7 @@ struct MoveGeneration {
         return false;
     }
 
-    inline bool isSquareAttackedByBlack(Board &board, int square) {
+    __attribute__((noinline)) bool isSquareAttackedByBlack(Board &board, int square) {
         Bitboard blackPawns = board.pawns & board.blackPieces;
         Bitboard pawnsAttack =
             (((blackPawns & (~boardHelper.getColumn(0))) << 7) | ((blackPawns & (~boardHelper.getColumn(7))) << 9)) &
