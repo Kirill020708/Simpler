@@ -469,7 +469,7 @@ struct Worker {
         	!searchStack[depthFromRoot].excludeTTmove &&
         	!isMateScores) {
 
-        	int probcutBeta = beta + 200;
+        	int probcutBeta = beta + 200 - 50 * improving;
 
         	if (ttEntry.evaluation == NO_EVAL || ttEntry.evaluation >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
 
