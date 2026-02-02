@@ -660,7 +660,7 @@ struct Worker {
             				   maxEvaluation <= -MATE_SCORE_MAX_PLY ||
             				   isMateScores);
 
-            if (!beingMated && !isRoot && !isPvNode && movesSearched > 3 + depth * depth * 3 && !isMovingSideInCheck && !isMoveInteresting && historyValue < 0) {
+            if (!beingMated && !isRoot && !isPvNode && movesSearched > 3 + depth * depth * (3 - isTTCapture) && !isMovingSideInCheck && !isMoveInteresting && historyValue < 0) {
             	continue;
             }
             
