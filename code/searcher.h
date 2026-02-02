@@ -664,7 +664,7 @@ struct Worker {
             	continue;
             }
             
-            if (!beingMated && !isRoot && !isPvNode && movesSearched > 0 && !isMovingSideInCheck && !isMoveInteresting && historyValue < -100 * depth * depth) {
+            if (!beingMated && !isRoot && !isPvNode && movesSearched > 0 && !isMovingSideInCheck && !isMoveInteresting && historyValue < -(100 - 50 * isTTCapture) * depth * depth) {
             	continue;
             }
 
