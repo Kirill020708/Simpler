@@ -128,10 +128,7 @@ struct MoveListGenerator {
                         Move(startSquare, targetSquare, BISHOP, (material[BISHOP] + captureCoeff) << captureShift);
                     promotionMoves[2] = Move(startSquare, targetSquare, ROOK, (material[ROOK] + captureCoeff) << captureShift);
                     promotionMoves[3] = Move(startSquare, targetSquare, QUEEN, (material[QUEEN] + captureCoeff) << captureShift);
-                    // promotionMoves[0]=Move(startSquare,targetSquare,KNIGHT,pieceSquareTable.materialEval[KNIGHT]<<captureShift);
-                    // promotionMoves[1]=Move(startSquare,targetSquare,BISHOP,pieceSquareTable.materialEval[BISHOP]<<captureShift);
-                    // promotionMoves[2]=Move(startSquare,targetSquare,ROOK,pieceSquareTable.materialEval[ROOK]<<captureShift);
-                    // promotionMoves[3]=Move(startSquare,targetSquare,QUEEN,pieceSquareTable.materialEval[QUEEN]<<captureShift);
+                    
                     for (int i = 0; i < 4; i++) {
                         board.makeMove(promotionMoves[i]);
                         if (moveGenerator.isInCheck(board, color)) {
@@ -154,12 +151,12 @@ struct MoveListGenerator {
                     board = boardCopy;
                     Move move = Move(startSquare, targetSquare, NOPIECE);
                     move.score += (captureCoeff << captureShift);
+
                     if (!isCapture || !onlyCaptures)
                         move.score += historyHelper.getScore(board, color, move);
-                    else {
-                        // cout<<sseEval<<'\n';
+                    else
                         move.score += (sseEval + 15);
-                    }
+                    
                     if (move == hashMove)
                         move.score += (1 << hashMoveShift);
                     if (move == killerMove)

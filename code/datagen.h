@@ -274,9 +274,8 @@ struct DataGenerator {
             mainBoard.initNNUE(workers[i].nnueEvaluator);
             for (ll j = 0; j < 256; j++) {
                 for (ll j1 = 0; j1 < 2; j1++) {
-                    workers[i].killerMovesTable[j][j1] = Move();
-                    workers[i].killerMovesCount[j][j1] = 0;
-                    workers[i].killerMovesAge[j][j1] = 0;
+                    workers[i].killers[j][j1] = Move();
+                    workers[i].killersAge[j][j1] = 0;
                 }
             }
         }
