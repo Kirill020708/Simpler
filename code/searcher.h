@@ -434,8 +434,16 @@ struct Worker {
 
             if (staticEval + margin < alpha) {
                 int qEval = quiescentSearch<NonPV>(board, color, alpha - 1, alpha, depthFromRoot + 1);
+
+                if (depth == 1 ||
+                	(depth <= 2 && ttEntry.evaluation != NO_EVAL && ttEntry.evaluation < alpha - margin - 50))
+                	return qEval;
+
                 if (qEval < alpha)
                     return qEval;
+
+                if (depth > 1 && depth <= 3 && qEval > beta + 200)
+                	depth--;
             }
         }
 
