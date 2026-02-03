@@ -118,6 +118,8 @@ struct UCIcommunicationHepler {
             // inline int sseEval(int square,int color,int firstAttacker){
             // cout<<evaluator.evaluateDoubledPawns()<<'\n';
             // nnueEvaluator.printAccum();
+            cout<<moveGenerator.sseEval(mainBoard,stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
+            // printDesk01(moveGenerator.computePinnedPiecesW(mainBoard));
             // return;
         }
         if (mainCommand == "uci") {

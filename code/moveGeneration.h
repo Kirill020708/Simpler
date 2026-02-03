@@ -244,29 +244,85 @@ struct MoveGeneration {
         return isSquareAttackedByBlack(board, square);
     }
 
-    inline int getSmallestAttacker(Board &board, int square, int color) {
+    Bitboard computePinnedPiecesW(Board &board) {
+        Bitboard pinnedPieces;
+
+        int kingPos = (board.whitePieces & board.kings).getFirstBitNumber();
+
+        Bitboard possibleAttackers = board.blackPieces & (board.bishops | board.queens) & boardHelper.bishopRays[kingPos];
+
+        while (possibleAttackers > 0) {
+           int threatPiece = possibleAttackers.getFirstBitNumberAndExclude();
+           if ((boardHelper.rayPair[kingPos][threatPiece] & board.whitePieces).popcnt() == 1 &&
+               (boardHelper.rayPair[kingPos][threatPiece] & board.blackPieces).popcnt() == 1)
+            
+                pinnedPieces |= (boardHelper.rayPair[kingPos][threatPiece] & board.whitePieces);
+        }
+
+        possibleAttackers = board.blackPieces & (board.rooks | board.queens) & boardHelper.rookRays[kingPos];
+
+        while (possibleAttackers > 0) {
+           int threatPiece = possibleAttackers.getFirstBitNumberAndExclude();
+           if ((boardHelper.rayPair[kingPos][threatPiece] & board.whitePieces).popcnt() == 1 &&
+               (boardHelper.rayPair[kingPos][threatPiece] & board.blackPieces).popcnt() == 1)
+            
+                pinnedPieces |= (boardHelper.rayPair[kingPos][threatPiece] & board.whitePieces);
+        }
+
+        return pinnedPieces;
+    }
+
+    Bitboard computePinnedPiecesB(Board &board) {
+        Bitboard pinnedPieces;
+
+        int kingPos = (board.blackPieces & board.kings).getFirstBitNumber();
+
+        Bitboard possibleAttackers = board.whitePieces & (board.bishops | board.queens) & boardHelper.bishopRays[kingPos];
+
+        while (possibleAttackers > 0) {
+           int threatPiece = possibleAttackers.getFirstBitNumberAndExclude();
+           if ((boardHelper.rayPair[kingPos][threatPiece] & board.blackPieces).popcnt() == 1 &&
+               (boardHelper.rayPair[kingPos][threatPiece] & board.whitePieces).popcnt() == 1)
+            
+                pinnedPieces |= (boardHelper.rayPair[kingPos][threatPiece] & board.blackPieces);
+        }
+
+        possibleAttackers = board.whitePieces & (board.rooks | board.queens) & boardHelper.rookRays[kingPos];
+
+        while (possibleAttackers > 0) {
+           int threatPiece = possibleAttackers.getFirstBitNumberAndExclude();
+           if ((boardHelper.rayPair[kingPos][threatPiece] & board.blackPieces).popcnt() == 1 &&
+               (boardHelper.rayPair[kingPos][threatPiece] & board.whitePieces).popcnt() == 1)
+            
+                pinnedPieces |= (boardHelper.rayPair[kingPos][threatPiece] & board.blackPieces);
+        }
+
+        return pinnedPieces;
+    }
+
+    inline int getSmallestAttacker(Board &board, int square, int color, Bitboard allowed) {
         int oppositeColor = (color == WHITE) ? BLACK : WHITE;
         Bitboard friendPieces = (color == WHITE) ? board.whitePieces : board.blackPieces;
         Bitboard opponentPieces = (color == WHITE) ? board.blackPieces : board.whitePieces;
 
-        if (boardHelper.pawnCaptureLeft[oppositeColor][square] & board.pawns & friendPieces)
+        if (boardHelper.pawnCaptureLeft[oppositeColor][square] & board.pawns & friendPieces & allowed)
             return boardHelper.pawnCaptureLeft[oppositeColor][square].getFirstBitNumber();
-        if (boardHelper.pawnCaptureRight[oppositeColor][square] & board.pawns & friendPieces)
+        if (boardHelper.pawnCaptureRight[oppositeColor][square] & board.pawns & allowed & friendPieces)
             return boardHelper.pawnCaptureRight[oppositeColor][square].getFirstBitNumber();
 
-        if (friendPieces & board.knights & boardHelper.knightMoves[square])
+        if (friendPieces & board.knights & allowed & boardHelper.knightMoves[square])
             return (friendPieces & board.knights & boardHelper.knightMoves[square]).getFirstBitNumber();
 
         Bitboard bishopRays = bishopMoves(board, square);
-        if (friendPieces & board.bishops & bishopRays)
+        if (friendPieces & board.bishops & allowed & bishopRays)
             return (friendPieces & board.bishops & bishopRays).getFirstBitNumber();
 
         Bitboard rookRays = rookMoves(board, square);
-        if (friendPieces & board.rooks & rookRays)
+        if (friendPieces & board.rooks & allowed & rookRays)
             return (friendPieces & board.rooks & rookRays).getFirstBitNumber();
 
         Bitboard queenRays = bishopRays | rookRays;
-        if (friendPieces & board.queens & queenRays)
+        if (friendPieces & board.queens & allowed & queenRays)
             return (friendPieces & board.queens & queenRays).getFirstBitNumber();
 
         if ((friendPieces & board.kings & boardHelper.kingMoves[square]))
@@ -279,6 +335,14 @@ struct MoveGeneration {
     int evalStack[32];
 
     inline int sseEval(Board &board, int square, int color, int firstAttacker) {
+        Bitboard whitePinned = computePinnedPiecesW(board);
+        Bitboard blackPinned = computePinnedPiecesW(board);
+
+        Bitboard whiteKingRay = boardHelper.rayPair[(board.whitePieces & board.kings).getFirstBitNumber()][square];
+        Bitboard blackKingRay = boardHelper.rayPair[(board.blackPieces & board.kings).getFirstBitNumber()][square];
+
+        Bitboard allowed = (~(whitePinned | blackPinned)) | (whitePinned & whiteKingRay) | (blackPinned & blackKingRay);
+
         Board boardCopy = board;
         int captureNumber = 1;
         int eval = 0;
@@ -288,7 +352,7 @@ struct MoveGeneration {
             if (captureNumber == 1)
                 attacker = firstAttacker;
             else
-                attacker = getSmallestAttacker(board, square, color);
+                attacker = getSmallestAttacker(board, square, color, allowed);
 
             // cout<<attacker<<'\n';
 
