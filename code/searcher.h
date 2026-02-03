@@ -667,7 +667,8 @@ struct Worker {
             if (!beingMated &&
             	!isRoot &&
             	currentMove > 0 &&
-            	!isMovingSideInCheck) {
+            	!isMovingSideInCheck &&
+            	!isKiller) {
 
             	// Late move pruning (LMP)
 	            if (!isPvNode &&
