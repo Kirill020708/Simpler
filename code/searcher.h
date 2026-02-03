@@ -359,13 +359,16 @@ struct Worker {
         bool improving = false;
         bool isMovingSideInCheck = moveGenerator.isInCheck(board, color);
 
-        if (isMovingSideInCheck)
+        if (isMovingSideInCheck) {
             staticEvaluationHistory[ply] = NONE_SCORE;
+            if (ply >= 2)
+            	staticEvaluationHistory[ply] = staticEvaluationHistory[ply - 2];
+        }
         else {
             staticEvaluationHistory[ply] = staticEval;
             if (ply >= 2) {
                 int previousEval = staticEvaluationHistory[ply - 2];
-                if (previousEval == NONE_SCORE || previousEval < staticEval)
+                if (previousEval != NONE_SCORE && previousEval < staticEval)
                     improving = true;
             }
         }
