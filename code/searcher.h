@@ -532,6 +532,20 @@ struct Worker {
 		    }
         }
 
+        int smallProbcutBeta = beta + 400;
+        // Small probCut
+        if (
+        	!isRoot &&
+        	!isPvNode && 
+        	!isMovingSideInCheck &&
+        	!searchStack[ply].excludeTTmove &&
+        	!isMateScores &&
+        	ttEntry.evaluation != NO_EVAL &&
+        	ttEntry.evaluation >= smallProbcutBeta &&
+        	ttEntry.depth >= depth - probcutDepthR)
+
+        	return ttEntry.evaluation;
+
 
         int killerMove = 0, killerBackup = 1;
 
