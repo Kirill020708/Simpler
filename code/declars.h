@@ -122,3 +122,13 @@ int normalizeNNUEscore(int score, int material) {
 
     return (score * 100.0 / p_a);
 }
+
+
+void printDesk01(ull x) {
+    for (ll i = 0; i < 64; i++) {
+        cout << ((x & (1ull << i)) > 0);
+        if (i % 8 == 7)
+            cout << '\n';
+    }
+    cout << '\n';
+}

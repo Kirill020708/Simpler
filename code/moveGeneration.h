@@ -336,7 +336,7 @@ struct MoveGeneration {
 
     inline int sseEval(Board &board, int square, int color, int firstAttacker) {
         Bitboard whitePinned = computePinnedPiecesW(board);
-        Bitboard blackPinned = computePinnedPiecesW(board);
+        Bitboard blackPinned = computePinnedPiecesB(board);
 
         Bitboard whiteKingRay = boardHelper.rayPair[(board.whitePieces & board.kings).getFirstBitNumber()][square];
         Bitboard blackKingRay = boardHelper.rayPair[(board.blackPieces & board.kings).getFirstBitNumber()][square];

@@ -55,13 +55,6 @@ void waitAndEndSearch(int timeToThink) {
 // d1f3 e6e5 c1d2 e5e4 f3f5 d8b8 a1b1 b8c8 f5c8 a8c8 f2f3 c6c5 f3e4 d5e4 c3b5 a7a6 b5d6 c7d6 b1c1 f8e8 f1e1 d6d5 a2a3
 // c5c4 d2c3 c8d8 c1d1 d8b8 a3a4 b8d8 c3b4 d8a8 b4c3 a8d8 a4a5 d8a8 d1d2 a8d8 d2f2 d8a8 f2d2
 
-void printDesk01(ull x) {
-    for (ll i = 0; i < 64; i++) {
-        cout << ((x & (1ull << i)) > 0);
-        if (i % 8 == 7)
-            cout << '\n';
-    }
-}
 #ifndef PERFT
 #define PERFT
 
