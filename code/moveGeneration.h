@@ -303,26 +303,27 @@ struct MoveGeneration {
     inline int getSmallestAttacker(Board &board, int square, int color, Bitboard allowed) {
         int oppositeColor = (color == WHITE) ? BLACK : WHITE;
         Bitboard friendPieces = (color == WHITE) ? board.whitePieces : board.blackPieces;
+        friendPieces &= allowed;
         Bitboard opponentPieces = (color == WHITE) ? board.blackPieces : board.whitePieces;
 
-        if (boardHelper.pawnCaptureLeft[oppositeColor][square] & board.pawns & friendPieces & allowed)
+        if (boardHelper.pawnCaptureLeft[oppositeColor][square] & board.pawns & friendPieces)
             return boardHelper.pawnCaptureLeft[oppositeColor][square].getFirstBitNumber();
-        if (boardHelper.pawnCaptureRight[oppositeColor][square] & board.pawns & allowed & friendPieces)
+        if (boardHelper.pawnCaptureRight[oppositeColor][square] & board.pawns & friendPieces)
             return boardHelper.pawnCaptureRight[oppositeColor][square].getFirstBitNumber();
 
-        if (friendPieces & board.knights & allowed & boardHelper.knightMoves[square])
+        if (friendPieces & board.knights & boardHelper.knightMoves[square])
             return (friendPieces & board.knights & boardHelper.knightMoves[square]).getFirstBitNumber();
 
         Bitboard bishopRays = bishopMoves(board, square);
-        if (friendPieces & board.bishops & allowed & bishopRays)
+        if (friendPieces & board.bishops & bishopRays)
             return (friendPieces & board.bishops & bishopRays).getFirstBitNumber();
 
         Bitboard rookRays = rookMoves(board, square);
-        if (friendPieces & board.rooks & allowed & rookRays)
+        if (friendPieces & board.rooks & rookRays)
             return (friendPieces & board.rooks & rookRays).getFirstBitNumber();
 
         Bitboard queenRays = bishopRays | rookRays;
-        if (friendPieces & board.queens & allowed & queenRays)
+        if (friendPieces & board.queens & queenRays)
             return (friendPieces & board.queens & queenRays).getFirstBitNumber();
 
         if ((friendPieces & board.kings & boardHelper.kingMoves[square]))
@@ -342,6 +343,7 @@ struct MoveGeneration {
         Bitboard blackKingRay = boardHelper.rayPair[(board.blackPieces & board.kings).getFirstBitNumber()][square];
 
         Bitboard allowed = (~(whitePinned | blackPinned)) | (whitePinned & whiteKingRay) | (blackPinned & blackKingRay);
+        allowed |= board.kings;
 
         Board boardCopy = board;
         int captureNumber = 1;
