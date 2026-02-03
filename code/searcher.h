@@ -847,8 +847,8 @@ struct Worker {
 		        	historyHelper.whiteAttacks = whiteAttacks;
 		        	historyHelper.blackAttacks = blackAttacks;
 
-		        	int historyBonus = 10 * depth + 0;
-		        	int maluseBonus = 10 * depth + 0;
+		        	int historyBonus = 10 * depth + 5;
+		        	int maluseBonus = 10 * depth + 5;
 
                     historyHelper.update(board, color, move, historyBonus);
 
