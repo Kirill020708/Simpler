@@ -41,6 +41,7 @@ struct StackState {
     bool excludeTTmove = false;
     Move excludeMove;
     Move bestMove;
+    bool disableNMP = false;
 };
 
 enum NodeType {
@@ -425,6 +426,7 @@ struct Worker {
             staticEval >= beta &&
             !isPvNode &&
             !searchStack[ply].excludeTTmove &&
+            !searchStack[ply].disableNMP == false &&
             !isMateScores) {
 
             int R = floor(4 +
@@ -432,7 +434,9 @@ struct Worker {
             	min((staticEval - beta) / 200.0, 5.0));
 
             int prevEnPassColumn = board.makeNullMove();
+            searchStack[ply + 1].disableNMP = true;
             int score = -search<NonPV>(board, oppositeColor, depth - 1 - R, 0, -beta, -beta + 1, ply + 1, extended);
+            searchStack[ply + 1].disableNMP = false;
             board.makeNullMove();
             board.enPassantColumn = prevEnPassColumn;
             if (score >= beta)
