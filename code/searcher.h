@@ -671,7 +671,7 @@ struct Worker {
 
             	// Late move pruning (LMP)
 	            if (!isPvNode &&
-	            	movesSearched > 3 + depth * depth * (3 - isTTCapture) &&
+	            	movesSearched > 3 + depth * depth * (2 - isTTCapture) &&
 	            	!isMoveInteresting &&
 	            	historyValue < 0) {
 
