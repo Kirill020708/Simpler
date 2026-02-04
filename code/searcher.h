@@ -657,7 +657,8 @@ struct Worker {
                 sseEval = moveListGenerator.seeTable[move.getStartSquare()][move.getTargetSquare()];
             	if(doTTmoveBeforeMovegen && currentMove == 0)
             		sseEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
-            }
+            } else
+            	sseEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
 
             bool beingMated = (alpha <= -MATE_SCORE_MAX_PLY ||
             				   maxEvaluation <= -MATE_SCORE_MAX_PLY ||
@@ -699,6 +700,17 @@ struct Worker {
 	                continue;
 	            }
 
+	            // Quiets SEE pruning
+	            if (movesSearched > 0 &&
+	            	!isPvNode &&
+	            	!inCheck &&
+	            	!isMoveInteresting &&
+	                sseEval <= -200 * depth &&
+	                !searchStack[ply].excludeTTmove) {
+
+	                continue;
+	            }
+
 	            // Captures SEE pruning
 	            int seeMargin[4] = {0, 200, 400, 900};
 
@@ -706,7 +718,8 @@ struct Worker {
 	            	!isPvNode &&
 	            	!inCheck &&
 	            	depth <= 3 &&
-	                sseEval <= -seeMargin[depth] && !searchStack[ply].excludeTTmove) {
+	                sseEval <= -seeMargin[depth] &&
+	                !searchStack[ply].excludeTTmove) {
 
 	                continue;
 	            }
