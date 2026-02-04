@@ -998,6 +998,8 @@ struct Worker {
         for (int i = 0; i < (1 << 16); i++)
         	rootNodes[i] = 0;
 
+        int rootStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator, corrhistHelper);
+
         for (int depth = 1; depth <= maxDepth; depth++) {
             // workers[0].nnueEvaluator.printAccum();
             // cout<<'\n';
@@ -1065,9 +1067,12 @@ struct Worker {
 
 	            float bestmoveNodePart = float(rootNodes[bestMove.move]) / nodes;
 
+	            float evalStabilityMult = clamp(abs(rootStaticEval - score) / 200.0, 1.0, 2.0);
+
 	            int targetTime = softBound 
 	            * bestmoveStabilityMult[bestMoveStreak - 1]
-	            * (1.7 - bestmoveNodePart);
+	            * (1.7 - bestmoveNodePart)
+	            * evalStabilityMult;
 
 	            if (timeThinked >= targetTime) {
 	            	stopIDsearch = true;
