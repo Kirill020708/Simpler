@@ -748,7 +748,7 @@ struct Worker {
                         - 1 * (isKiller)); // reduction of depth
 
                 if (lmrReduction < 0)
-                    lmrReduction = 0;
+                    lmrReduction = -1;
 
                 lmrReduction = min(lmrReduction, depth - 1);
 
