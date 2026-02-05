@@ -11,7 +11,7 @@
 
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "incbin.h"
-INCBIN(NETWORK, "code/quantised256.bin");
+INCBIN(NETWORK, "code/quantisedMirror.bin");
 
 const int inputSize = 64 * 12, hiddenLayerSize = 256;
 const int QA = 255, QB = 64, SCALE = 400;
