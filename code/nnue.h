@@ -31,8 +31,10 @@ struct NNUEevaluator {
     }
 
     void clear() {
-        for (int i = 0; i < hiddenLayerSize; i++)
-            hlSumW[i] = hlSumB[i] = b0[i];
+        for (int i = 0; i < hiddenLayerSize; i += 16) {
+            _mm256_storeu_si256((__m256i *)&hlSumW[i], _mm256_loadu_si256((__m256i *)&b0[i]));
+            _mm256_storeu_si256((__m256i *)&hlSumB[i], _mm256_loadu_si256((__m256i *)&b0[i]));
+        }
     }
 
     void set0(pair<int, int> neuronIdx) {
