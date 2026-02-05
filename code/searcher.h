@@ -675,6 +675,8 @@ struct Worker {
 	            	!isMoveInteresting &&
 	            	historyValue < 0) {
 
+	            	if (depth <= 1)
+	            		break;
 	            	continue;
 	            }
 	            
