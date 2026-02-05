@@ -21,7 +21,7 @@ struct NNUEevaluator {
 
     bool initialized = false;
     __int16_t w0[inputSize][hiddenLayerSize], b0[hiddenLayerSize];
-    __int16_t w1[outputBuckets][hiddenLayerSize * 2], b1;
+    __int16_t w1[outputBuckets][hiddenLayerSize * 2], b1[outputBuckets];
 
     __int16_t hlSumW[hiddenLayerSize], hlSumB[hiddenLayerSize];
 
@@ -132,7 +132,7 @@ struct NNUEevaluator {
         output = _mm_extract_epi32(sum128, 0);
 
         output /= QA;
-        output += b1;
+        output += b1[bucket];
         output *= SCALE;
         output /= (QA * QB);
         return output;
@@ -174,7 +174,8 @@ struct NNUEevaluator {
                 w1[bucket][j] = data[iter++];
 
         }
-        b1 = data[iter++];
+        for (int bucket = 0; bucket < outputBuckets; bucket++)
+            b1[bucket] = data[iter++];
         // cout<<b1<<'\n';
 
         clear();
