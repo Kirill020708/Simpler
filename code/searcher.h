@@ -428,7 +428,7 @@ struct Worker {
             !isMateScores) {
 
             int R = floor(4 +
-            	depth / 5.0 +
+            	depth / 4.0 +
             	min((staticEval - beta) / 200.0, 5.0));
 
             int prevEnPassColumn = board.makeNullMove();
