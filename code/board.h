@@ -570,6 +570,11 @@ struct alignas(64) Board {
             currentSquare++;
         }
 
+        int wKingPos = (whitePieces & kings).getFirstBitNumber();
+        flippedW = (wKingPos & 7) >= 4;
+        int bKingPos = (whitePieces & kings).getFirstBitNumber();
+        flippedB = (bKingPos & 7) >= 4;
+
         if (currentColor == "w")
             boardColor = WHITE;
         else
