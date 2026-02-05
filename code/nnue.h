@@ -11,7 +11,7 @@
 
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "incbin.h"
-INCBIN(NETWORK, "code/quantised8buckets.bin");
+INCBIN(NETWORK, "code/quantisedV2.bin");
 
 const int inputSize = 64 * 12, hiddenLayerSize = 256;
 const int outputBuckets = 8;

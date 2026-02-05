@@ -81,6 +81,9 @@ struct alignas(64) Board {
 
     int lastIrreversibleMoveAge = -1; // age of last irreversible move (capture/pawn move), for testing repetition
 
+    bool flippedW = true;
+    bool flippedB = true;
+
     inline int numberOfPieces() {
         return (whitePieces | blackPieces).popcnt();
     }
@@ -168,12 +171,20 @@ struct alignas(64) Board {
     }
 
     pair<int, int> getNNUEidx(int square, int piece, int pieceColor) {
-        int neuronIdxB = 64 * (piece - 1 + (!pieceColor) * 6) + square;
 
         int row = (square >> 3), col = (square & 7);
-        row = 7 - row;
-        square = (row << 3) + col;
-        int neuronIdxW = 64 * (piece - 1 + pieceColor * 6) + square;
+
+        int neuronIdxW = 64 * (piece - 1 + pieceColor * 6) + ((7 - row) << 3);
+        if (!flippedW)
+            neuronIdxW += col;
+        else
+            neuronIdxW += 7 - col;
+
+        int neuronIdxB = 64 * (piece - 1 + (!pieceColor) * 6) + (row << 3);
+        if (!flippedB)
+            neuronIdxB += col;
+        else
+            neuronIdxB += 7 - col;
         return {neuronIdxW, neuronIdxB};
     }
 
@@ -343,6 +354,12 @@ struct alignas(64) Board {
                 enPassantColumn = boardHelper.getColumnNumber(startSquare);
         } else if (movingPiece == KING) {
             movePiece(startSquare, targetSquare);
+            if (((startSquare & 7) <= 3) != ((targetSquare & 7) <= 3)) {
+                if (color == WHITE)
+                    flippedW ^= 1;
+                else
+                    flippedB ^= 1;
+            }
             if (startSquare == 60 && targetSquare == 58) // white left castling
                 movePiece(56, 59);
             if (startSquare == 60 && targetSquare == 62) // white right castling
@@ -368,6 +385,16 @@ struct alignas(64) Board {
             castlingBlackKingsideBroke = 1;
     }
 
+    void initNNUE(NNUEevaluator &nnueEvaluator) {
+        nnueEvaluator.clear();
+        for (int square = 0; square < 64; square++) {
+            int piece = occupancyPiece(square);
+            int pieceColor = occupancy(square);
+            if (pieceColor != EMPTY)
+                nnueEvaluator.set1(getNNUEidx(square, piece, pieceColor));
+        }
+    }
+
     inline void makeMove(Move move, NNUEevaluator &nnueEvaluator) {
         if ((whitePieces | blackPieces).getBit(move.getTargetSquare()) ||
             pawns.getBit(move.getStartSquare())) // check if move is irreversible
@@ -384,6 +411,8 @@ struct alignas(64) Board {
         ply2Ps = ply1Ps;
         ply1Sq = targetSquare;
         ply1Ps = movingPiece;
+
+        bool flipRecalc = false;
         
         enPassantColumn = NO_EN_PASSANT;
         if (movingPiece == PAWN) {
@@ -402,6 +431,13 @@ struct alignas(64) Board {
                 enPassantColumn = boardHelper.getColumnNumber(startSquare);
         } else if (movingPiece == KING) {
             movePiece(startSquare, targetSquare, nnueEvaluator);
+            if (((startSquare & 7) <= 3) != ((targetSquare & 7) <= 3)) {
+                flipRecalc = true;
+                if (color == WHITE)
+                    flippedW ^= 1;
+                else
+                    flippedB ^= 1;
+            }
             if (startSquare == 60 && targetSquare == 58) // white left castling
                 movePiece(56, 59, nnueEvaluator);
             if (startSquare == 60 && targetSquare == 62) // white right castling
@@ -425,6 +461,8 @@ struct alignas(64) Board {
             castlingBlackQueensideBroke = 1;
         if (startSquare == 7 || targetSquare == 7)
             castlingBlackKingsideBroke = 1;
+       if (flipRecalc)
+            initNNUE(nnueEvaluator);
     }
 
     inline void clearPositionZbr(int square) {
@@ -496,16 +534,6 @@ struct alignas(64) Board {
             castlingBlackKingsideBroke = 1;
     }
 
-    void initNNUE(NNUEevaluator &nnueEvaluator) {
-        nnueEvaluator.clear();
-        for (int square = 0; square < 64; square++) {
-            int piece = occupancyPiece(square);
-            int pieceColor = occupancy(square);
-            if (pieceColor != EMPTY)
-                nnueEvaluator.set1(getNNUEidx(square, piece, pieceColor));
-        }
-    }
-
     void initFromFEN(string fen) {
         age = 0;
         vector<string> tokens = splitStr(fen, " ");
@@ -565,6 +593,11 @@ struct alignas(64) Board {
             enPassantColumn = enPassantSquare[0] - 'a';
 
         lastIrreversibleMoveAge = age - stoi(ageDiff) - 1;
+
+        int wKingPos = (whitePieces & kings).getFirstBitNumber();
+        flippedW = (wKingPos & 7) >= 4;
+        int bKingPos = (blackPieces & kings).getFirstBitNumber();
+        flippedB = (bKingPos & 7) >= 4;
 
         evaluation = 0;
         materialCount = 0;
