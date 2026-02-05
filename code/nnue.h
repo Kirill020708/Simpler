@@ -11,16 +11,17 @@
 
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "incbin.h"
-INCBIN(NETWORK, "code/quantised256.bin");
+INCBIN(NETWORK, "code/quantised8buckets.bin");
 
 const int inputSize = 64 * 12, hiddenLayerSize = 256;
+const int outputBuckets = 8;
 const int QA = 255, QB = 64, SCALE = 400;
 
 struct NNUEevaluator {
 
     bool initialized = false;
     __int16_t w0[inputSize][hiddenLayerSize], b0[hiddenLayerSize];
-    __int16_t w1[hiddenLayerSize * 2], b1;
+    __int16_t w1[outputBuckets][hiddenLayerSize * 2], b1;
 
     __int16_t hlSumW[hiddenLayerSize], hlSumB[hiddenLayerSize];
 
@@ -87,7 +88,7 @@ struct NNUEevaluator {
         cout << '\n';
     }
 
-    int evaluate(int color) {
+    int evaluate(int color, int bucket) {
         int output = 0;
 
         __m256i outputV = _mm256_setzero_si256();
@@ -103,7 +104,7 @@ struct NNUEevaluator {
             hl0 = _mm256_mullo_epi32(hl0, hl0);
             __m256i hl1 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 1));
             hl1 = _mm256_mullo_epi32(hl1, hl1);
-            __m256i w1v = _mm256_loadu_si256((__m256i *)&w1[i + hiddenLayerSize * (color == BLACK)]);
+            __m256i w1v = _mm256_loadu_si256((__m256i *)&w1[bucket][i + hiddenLayerSize * (color == BLACK)]);
             outputV = _mm256_add_epi32(
                 outputV, _mm256_mullo_epi32(hl0, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 0))));
             outputV = _mm256_add_epi32(
@@ -116,7 +117,7 @@ struct NNUEevaluator {
             hl0 = _mm256_mullo_epi32(hl0, hl0);
             hl1 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 1));
             hl1 = _mm256_mullo_epi32(hl1, hl1);
-            w1v = _mm256_loadu_si256((__m256i *)&w1[i + hiddenLayerSize * (color == WHITE)]);
+            w1v = _mm256_loadu_si256((__m256i *)&w1[bucket][i + hiddenLayerSize * (color == WHITE)]);
             outputV = _mm256_add_epi32(
                 outputV, _mm256_mullo_epi32(hl0, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 0))));
             outputV = _mm256_add_epi32(
@@ -168,10 +169,11 @@ struct NNUEevaluator {
             // cout<<b0[j]<<' ';
         }
         // cout<<'\n';
+        for (int bucket = 0; bucket < outputBuckets; bucket++) {
+            for (int j = 0; j < hiddenLayerSize * 2; j++)
+                w1[bucket][j] = data[iter++];
 
-        for (int j = 0; j < hiddenLayerSize * 2; j++)
-            w1[j] = data[iter++];
-
+        }
         b1 = data[iter++];
         // cout<<b1<<'\n';
 

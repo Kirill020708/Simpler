@@ -85,6 +85,10 @@ struct alignas(64) Board {
         return (whitePieces | blackPieces).popcnt();
     }
 
+    inline int getOutputBucket() {
+        return (numberOfPieces() - 2) / 4;
+    }
+
     inline float endgameWeight() {
         return 1 - float(materialCount) / 64.0;
     }

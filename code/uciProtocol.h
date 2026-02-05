@@ -149,7 +149,7 @@ struct UCIcommunicationHepler {
             evaluator.uciOutput = true;
             cout << evaluator.evaluatePositionDeterministic(mainBoard) << " cp (white's perspective)" << endl;
             mainBoard.initNNUE(mainNnueEvaluator);
-            int nnueEval = mainNnueEvaluator.evaluate(mainBoard.boardColor);
+            int nnueEval = mainNnueEvaluator.evaluate(mainBoard.boardColor, mainBoard.getOutputBucket());
             if (mainBoard.boardColor == BLACK)
                 nnueEval = -nnueEval;
             cout << nnueEval << " cp (NNUE, white's perspective)" << endl;
@@ -186,7 +186,7 @@ struct UCIcommunicationHepler {
                         cout << "     ";
                     else {
                         mainBoard.clearPosition(square, mainNnueEvaluator);
-                        int newNnueEval = mainNnueEvaluator.evaluate(mainBoard.boardColor);
+                        int newNnueEval = mainNnueEvaluator.evaluate(mainBoard.boardColor, mainBoard.getOutputBucket());
                         if (mainBoard.boardColor == BLACK)
                             newNnueEval = -newNnueEval;
                         newNnueEval = normalizeNNUEscore(newNnueEval, mainBoard.getNormalizeMaterial());

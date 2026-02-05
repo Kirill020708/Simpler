@@ -855,7 +855,7 @@ struct Evaluator {
         #if defined DO_HCE
             evaluation = evaluatePosition(board) * ((color == WHITE) ? 1 : -1);
         #else
-            evaluation = nnueEvaluator.evaluate(color);
+            evaluation = nnueEvaluator.evaluate(color, board.getOutputBucket());
         #endif
 
         
