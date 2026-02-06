@@ -199,7 +199,7 @@ struct Worker {
 
         int rawStaticEval, staticEval;
         if (moveListGenerator.isStalled(board, color) || evaluator.insufficientMaterialDraw(board))
-            rawStaticEval = staticEval = evaluator.evaluateStalledPosition(board, color, ply);
+            return evaluator.evaluateStalledPosition(board, color, ply);
         else {
         	if (ttEntry.eval != NO_EVAL)
         		rawStaticEval = ttEntry.eval;
