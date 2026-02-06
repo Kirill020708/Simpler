@@ -748,8 +748,6 @@ struct Worker {
 
             // transpositionTable.prefetch(board.getZobristKey());
 
-            int newStaticEval = -evaluator.evaluatePosition(board, oppositeColor, nnueEvaluator, corrhistHelper);
-
             // cout<<move.convertToUCI()<<' '<<newStaticEval<<'\n';
 
 
@@ -864,7 +862,7 @@ struct Worker {
                     }
 
                     if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
-                    	staticEval = evaluator.evaluatePosition(board, color, nnueEvaluator, corrhistHelper);
+                    	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
                     	if (score > staticEval)
                     		corrhistHelper.update(color, board, (score - staticEval) * depth / 8);
                     }
@@ -905,7 +903,7 @@ struct Worker {
         	newTTmove = Move();
 
         if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
-        	staticEval = evaluator.evaluatePosition(board, color, nnueEvaluator, corrhistHelper);
+            staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
         	if (type == EXACT || bestScore < staticEval)
         		corrhistHelper.update(color, board, (bestScore - staticEval) * depth / 8);
         }
