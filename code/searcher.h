@@ -197,16 +197,24 @@ struct Worker {
 
         moveListGenerator.hashMove = ttMove;
 
-        int staticEval;
+        int rawStaticEval, staticEval;
         if (moveListGenerator.isStalled(board, color) || evaluator.insufficientMaterialDraw(board))
-            staticEval = evaluator.evaluateStalledPosition(board, color, ply);
-        else
-            staticEval = evaluator.evaluatePosition(board, color, nnueEvaluator, corrhistHelper);
+            rawStaticEval = staticEval = evaluator.evaluateStalledPosition(board, color, ply);
+        else {
+	        ttEntry = prEntry;
+	        correctTTscore(ttEntry, staticEval, staticEval);
+	        if (ttEntry.score != NO_EVAL) {
+	        	rawStaticEval = ttEntry.eval;
+	            staticEval = ttEntry.score;
+	        } else {
+	        	if (ttEntry.eval != NO_EVAL)
+	        		rawStaticEval = ttEntry.eval;
+	        	else
+	            	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
+            	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+	        }
 
-        ttEntry = prEntry;
-        correctTTscore(ttEntry, staticEval, staticEval);
-        if (ttEntry.score != NO_EVAL)
-            staticEval = ttEntry.score;
+        }
 
         int bestScore = staticEval;
 
@@ -214,7 +222,7 @@ struct Worker {
 
         alpha = max(alpha, staticEval);
         if (alpha >= beta) {
-            transpositionTable.write(board, currentZobristKey, bestScore, 0, LOWER_BOUND, boardCurrentAge,
+            transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, LOWER_BOUND, boardCurrentAge,
                                               ttEntry.move, ply);
             return bestScore;
         }
@@ -267,7 +275,6 @@ struct Worker {
 
             ull newKey = zobristAfterMove(board, move);
             transpositionTable.prefetch(newKey);
-            evaluationTranspositionTable.prefetch(newKey);
 
             board.makeMove(move, nnueEvaluator);
 
@@ -301,7 +308,7 @@ struct Worker {
                 if (alpha < score)
                     alpha = score;
                 if (alpha >= beta) {
-                    transpositionTable.write(board, currentZobristKey, score, 0, LOWER_BOUND,
+                    transpositionTable.write(board, currentZobristKey, score, rawStaticEval, 0, LOWER_BOUND,
                                                       boardCurrentAge, move, ply);
                     return bestScore;
                 }
@@ -313,7 +320,7 @@ struct Worker {
             	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
             }
         }
-        transpositionTable.write(board, currentZobristKey, bestScore, 0, type, boardCurrentAge,
+        transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, type, boardCurrentAge,
                                           newTTmove, ply);
         return bestScore;
     }
@@ -366,21 +373,7 @@ struct Worker {
         if (!isRoot && evaluator.insufficientMaterialDraw(board))
             return evaluator.evaluateStalledPosition(board, color, ply);
 
-        int staticEval = evaluator.evaluatePosition(board, color, nnueEvaluator, corrhistHelper);
-        // cout<<board.generateFEN()<<' '<<staticEval<<'\n';
-        bool improving = false;
-        bool isMovingSideInCheck = moveGenerator.isInCheck(board, color);
-
-        if (isMovingSideInCheck)
-            staticEvaluationHistory[ply] = NONE_SCORE;
-        else {
-            staticEvaluationHistory[ply] = staticEval;
-            if (ply >= 2) {
-                int previousEval = staticEvaluationHistory[ply - 2];
-                if (previousEval == NONE_SCORE || previousEval < staticEval)
-                    improving = true;
-            }
-        }
+        int rawStaticEval, staticEval;
 
         auto ttEntry = transpositionTable.get(board, currentZobristKey, ply);
         auto corrEntry = ttEntry;
@@ -399,8 +392,31 @@ struct Worker {
         auto scorrEntry = ttEntry;
         correctTTscore(scorrEntry, staticEval, staticEval);
 
-        if (scorrEntry.score != NO_EVAL)
+        if (scorrEntry.score != NO_EVAL) {
+        	rawStaticEval = ttEntry.eval;
             staticEval = scorrEntry.score;
+        } else {
+        	if (ttEntry.eval != NO_EVAL)
+        		rawStaticEval = ttEntry.eval;
+        	else
+            	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
+        	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+        }
+
+        // cout<<board.generateFEN()<<' '<<staticEval<<'\n';
+        bool improving = false;
+        bool isMovingSideInCheck = moveGenerator.isInCheck(board, color);
+
+        if (isMovingSideInCheck)
+            staticEvaluationHistory[ply] = NONE_SCORE;
+        else {
+            staticEvaluationHistory[ply] = staticEval;
+            if (ply >= 2) {
+                int previousEval = staticEvaluationHistory[ply - 2];
+                if (previousEval == NONE_SCORE || previousEval < staticEval)
+                    improving = true;
+            }
+        }
 
         bool isMateScores = (abs(alpha) >= MATE_SCORE_MAX_PLY ||
 					    	 abs(beta) >= MATE_SCORE_MAX_PLY ||
@@ -536,7 +552,7 @@ struct Worker {
 		            #endif
 
 		            if (score >= probcutBeta) {
-	                    transpositionTable.write(board, currentZobristKey, score, depth - probcutDepthR, LOWER_BOUND,
+	                    transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth - probcutDepthR, LOWER_BOUND,
 	                                             boardCurrentAge, move, ply);
 	                    return score;
 		            }
@@ -725,7 +741,6 @@ struct Worker {
 
             ull newKey = zobristAfterMove(board, move);
             transpositionTable.prefetch(newKey);
-            evaluationTranspositionTable.prefetch(newKey);
 
 
             occuredPositionsHelper.occuredPositions[board.age + 1] = newKey;
@@ -869,7 +884,7 @@ struct Worker {
                         historyHelper.update(board, color, prevMove, -maluseBonus);
                     }
 
-                    transpositionTable.write(board, currentZobristKey, score, depth, LOWER_BOUND,
+                    transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth, LOWER_BOUND,
                                              boardCurrentAge, newTTmove, ply);
                     return bestScore;
                 }
@@ -899,7 +914,7 @@ struct Worker {
         if (bestScore == -inf)
         	bestScore = alpha;
 
-        transpositionTable.write(board, currentZobristKey, bestScore, depth, type, boardCurrentAge, newTTmove, ply);
+        transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, depth, type, boardCurrentAge, newTTmove, ply);
         return bestScore;
     }
 

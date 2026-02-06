@@ -53,51 +53,6 @@
 #endif /* HISTORY */
 
 
-struct EvalTableEntry {
-    ull key = 0;
-    int evaluation = NO_EVAL;
-
-    EvalTableEntry() {
-        key = 0;
-        evaluation = NO_EVAL;
-    }
-
-    EvalTableEntry(ull key_, int evaluation_) {
-        key = key_;
-        evaluation = evaluation_;
-    }
-};
-
-struct EvaluationTranspositionTable {
-    ll tableSize = 0;
-    vector<EvalTableEntry> table;
-
-    inline void write(ull key, int evaluation) {
-        // if (tableSize == 0)
-        //     return;
-        int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
-        table[index] = {key, evaluation};
-    }
-
-    inline int get(ull key) {
-        // if (tableSize == 0)
-        //     return NO_EVAL;
-        int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
-        if (table[index].key != key)
-            return NO_EVAL;
-        return table[index].evaluation;
-    }
-
-    inline void prefetch(ull key) {
-        // if (tableSize == 0)
-        //     return;
-        __builtin_prefetch(&table[(__uint128_t(key) * __uint128_t(tableSize)) >> 64]);
-
-    }
-};
-
-EvaluationTranspositionTable evaluationTranspositionTable;
-
 struct Evaluator {
 
     bool showInfo = false;
@@ -828,14 +783,7 @@ struct Evaluator {
         if (insufficientMaterialDraw(board))
             return DRAW_SCORE;
 
-        ull key = board.getZobristKey();
-        if (showInfo == false && uciOutput == false) {
-            int TTevaluation = evaluationTranspositionTable.get(key);
-            if (TTevaluation != NO_EVAL)
-                return TTevaluation;
-        }
         int evaluation = int(evaluatePositionDeterministic(board));
-        evaluationTranspositionTable.write(key, int(evaluation));
         return evaluation;
     }
 
@@ -844,12 +792,6 @@ struct Evaluator {
         if (insufficientMaterialDraw(board))
             return DRAW_SCORE;
 
-        ull key = board.getZobristKey();
-        if (showInfo == false && uciOutput == false) {
-            int TTevaluation = evaluationTranspositionTable.get(key);
-            if (TTevaluation != NO_EVAL)
-                return TTevaluation;
-        }
         int evaluation;
 
         #if defined DO_HCE
@@ -858,8 +800,6 @@ struct Evaluator {
             evaluation = nnueEvaluator.evaluate(color, board.getOutputBucket());
         #endif
 
-        
-        evaluationTranspositionTable.write(key, int(evaluation));
         return evaluation;
     }
 

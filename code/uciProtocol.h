@@ -78,23 +78,14 @@ struct UCIcommunicationHepler {
     void reallocateHashMemory(int MBsize) {
         long long bSize = ll(MBsize) * 1024 * 1024;
         int TTEntrySize = sizeof(TableEntry);
-        int EvEntrySize = sizeof(EvalTableEntry);
-        long long sz = bSize / (TTEntrySize * 2 + EvEntrySize);
 
-        transpositionTable.table.resize(bSize * 2 / 3 / TTEntrySize, TableEntry());
+        transpositionTable.table.resize(bSize / TTEntrySize, TableEntry());
         transpositionTable.table.shrink_to_fit();
-        transpositionTable.tableSize = bSize * 2 / 3 / TTEntrySize;
-
-        evaluationTranspositionTable.table.resize(bSize / 3 / EvEntrySize, EvalTableEntry());
-        evaluationTranspositionTable.table.shrink_to_fit();
-        evaluationTranspositionTable.tableSize = bSize / 3 / EvEntrySize;
+        transpositionTable.tableSize = transpositionTable.table.size();
     }
 
     void clearHash() {
         transpositionTable.table = vector<TableEntry>(transpositionTable.table.size(), TableEntry());
-
-        evaluationTranspositionTable.table =
-            vector<EvalTableEntry>(evaluationTranspositionTable.table.size(), EvalTableEntry());
     }
 
     void parseCommand(string command) {
