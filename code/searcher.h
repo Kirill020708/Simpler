@@ -89,11 +89,11 @@ struct Worker {
                 staticEval = -staticEval;
         }
 
-        float maxEvaluation = staticEval;
+        float bestScore = staticEval;
 
         alpha = max(alpha, staticEval);
         if (alpha >= beta)
-            return maxEvaluation;
+            return bestScore;
 
         Board boardCopy = board;
         moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
@@ -105,15 +105,15 @@ struct Worker {
             float score = -texelSearch(board, (color == WHITE) ? BLACK : WHITE, -beta, -alpha, ply + 1);
 
             board = boardCopy;
-            if (maxEvaluation < score) {
-                maxEvaluation = score;
+            if (bestScore < score) {
+                bestScore = score;
                 if (alpha < score)
                     alpha = score;
                 if (alpha >= beta)
-                    return maxEvaluation;
+                    return bestScore;
             }
         }
-        return maxEvaluation;
+        return bestScore;
     }
 
     ull zobristAfterMove(Board &board, Move move) {
@@ -147,6 +147,17 @@ struct Worker {
 	    return newKey;
     }
 
+    void correctTTscore(TableEntry &ttEntry, int alpha, int beta) {
+
+        if (ttEntry.type == LOWER_BOUND && // when calculated TT node we got alpha>=beta
+            ttEntry.score < beta)
+            ttEntry.score = NO_EVAL;
+
+        if (ttEntry.type == UPPER_BOUND &&
+        	ttEntry.score >= alpha)
+            ttEntry.score = NO_EVAL;
+    }
+
     template<NodeType nodePvType>
     int quiescentSearch(Board &board, int color, int alpha, int beta, int ply) {
 
@@ -169,20 +180,22 @@ struct Worker {
         nodes++;
 
         ull currentZobristKey = board.getZobristKey();
-        auto [hashTableEvaluation, bestHashMove] =
-            transpositionTable.get(board, currentZobristKey, 0, alpha, beta, ply);
-        int nodeType = transpositionTable.getNodeType(currentZobristKey);
-        if (hashTableEvaluation != NO_EVAL) {
-            return hashTableEvaluation;
+        auto ttEntry = transpositionTable.get(board, currentZobristKey, ply);
 
-            // alpha=max(alpha,hashTableEvaluation);
-            // if(alpha>=beta)
-            // 	return alpha;
-        }
-        if (!moveGenerator.isMoveLegal(board, bestHashMove) || board.isQuietMove(bestHashMove))
-        	bestHashMove = Move();
-        moveListGenerator.hashMove = bestHashMove;
-        Move ttMove = bestHashMove;
+        auto prEntry = ttEntry;
+        correctTTscore(ttEntry, alpha, beta);
+
+        int nodeType = ttEntry.type;
+
+        if (ttEntry.score != NO_EVAL)
+            return ttEntry.score;
+
+        Move ttMove = ttEntry.move;
+
+        if (!moveGenerator.isMoveLegal(board, ttMove) || board.isQuietMove(ttMove))
+        	ttMove = Move();
+
+        moveListGenerator.hashMove = ttMove;
 
         int staticEval;
         if (moveListGenerator.isStalled(board, color) || evaluator.insufficientMaterialDraw(board))
@@ -190,21 +203,18 @@ struct Worker {
         else
             staticEval = evaluator.evaluatePosition(board, color, nnueEvaluator, corrhistHelper);
 
-        auto ttEntry = transpositionTable.getEntry(board, currentZobristKey, ply);
-        if (ttEntry.evaluation != NO_EVAL)
-            staticEval = ttEntry.evaluation;
+        if (prEntry.score != NO_EVAL)
+            staticEval = prEntry.score;
 
-        int maxEvaluation = staticEval;
+        int bestScore = staticEval;
 
         bool isMovingSideInCheck = moveGenerator.isInCheck(board, color);
 
-        int numOfPiecesOnBoard = board.numberOfPieces();
-
         alpha = max(alpha, staticEval);
         if (alpha >= beta) {
-            transpositionTable.write(board, currentZobristKey, maxEvaluation, 0, LOWER_BOUND, boardCurrentAge,
-                                              bestHashMove, ply);
-            return maxEvaluation;
+            transpositionTable.write(board, currentZobristKey, bestScore, 0, LOWER_BOUND, boardCurrentAge,
+                                              ttEntry.move, ply);
+            return bestScore;
         }
 
         // moveListGenerator.killerMove=moveListGenerator.hashMove;
@@ -230,7 +240,7 @@ struct Worker {
 
         bool isFirstMove = 1;
         char type = UPPER_BOUND;
-        bestHashMove = Move();
+        Move newTTmove = Move();
 
         if (ttMove != Move())
         	moveListGenerator.moveListSize[ply] = 1;
@@ -281,17 +291,17 @@ struct Worker {
             isFirstMove = 0;
             if (stopSearch)
                 return 0;
-            if (maxEvaluation < score) {
+            if (bestScore < score) {
                 if (score > alpha)
                     type = EXACT;
-                maxEvaluation = score;
-                bestHashMove = move;
+                bestScore = score;
+                newTTmove = move;
                 if (alpha < score)
                     alpha = score;
                 if (alpha >= beta) {
-                    transpositionTable.write(board, currentZobristKey, maxEvaluation, 0, LOWER_BOUND,
-                                                      boardCurrentAge, bestHashMove, ply);
-                    return maxEvaluation;
+                    transpositionTable.write(board, currentZobristKey, score, 0, LOWER_BOUND,
+                                                      boardCurrentAge, move, ply);
+                    return bestScore;
                 }
             }
 
@@ -301,9 +311,9 @@ struct Worker {
             	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
             }
         }
-        transpositionTable.write(board, currentZobristKey, maxEvaluation, 0, type, boardCurrentAge,
-                                          bestHashMove, ply);
-        return maxEvaluation;
+        transpositionTable.write(board, currentZobristKey, bestScore, 0, type, boardCurrentAge,
+                                          newTTmove, ply);
+        return bestScore;
     }
 
 #define killMovesNumber 2
@@ -370,36 +380,32 @@ struct Worker {
             }
         }
 
-        auto [hashTableEvaluation, bestHashMove] = transpositionTable.get(board, currentZobristKey, depth, alpha, beta, ply);
-        if (!moveGenerator.isMoveLegal(board, bestHashMove))
-        	bestHashMove = Move();
+        auto ttEntry = transpositionTable.get(board, currentZobristKey, ply);
+        auto corrEntry = ttEntry;
+        correctTTscore(corrEntry, alpha, beta);
 
-        if (hashTableEvaluation != NO_EVAL) {
+        int nodeType = ttEntry.type;
 
-            if (!isRoot &&
-            	!isPvNode &&
-            	!searchStack[ply].excludeTTmove)
+        if (corrEntry.score != NO_EVAL &&
+        	ttEntry.depth >= depth &&
+        	!isRoot &&
+        	!isPvNode &&
+        	!searchStack[ply].excludeTTmove)
 
-                return hashTableEvaluation;
+            return corrEntry.score;
 
-            staticEval = hashTableEvaluation;
-        }
-        auto ttEntry = transpositionTable.getEntry(board, currentZobristKey, ply);
-        if (ttEntry.evaluation != NO_EVAL)
-            staticEval = ttEntry.evaluation;
+        if (ttEntry.score != NO_EVAL)
+            staticEval = ttEntry.score;
 
         bool isMateScores = (abs(alpha) >= MATE_SCORE_MAX_PLY ||
 					    	 abs(beta) >= MATE_SCORE_MAX_PLY ||
 					    	 abs(staticEval) >= MATE_SCORE_MAX_PLY);
 
-        // occuredPositions[board.age]=currentZobristKey;
-
-        int nodeType = transpositionTable.getNodeType(currentZobristKey);
 
         // Reverse futility pruning
         if (!isRoot &&
         	!isMovingSideInCheck &&
-        	ttEntry.evaluation == NO_EVAL &&
+        	ttEntry.type == NONE &&
         	!isPvNode &&
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
@@ -451,7 +457,7 @@ struct Worker {
                 int qEval = quiescentSearch<NonPV>(board, color, alpha - 1, alpha, ply + 1);
 
                 if (depth == 1 ||
-                	(depth <= 2 && ttEntry.evaluation != NO_EVAL && ttEntry.evaluation < alpha - margin - 50))
+                	(depth <= 2 && ttEntry.type != NONE && ttEntry.score < alpha - margin - 50))
                 	return qEval;
 
                 if (qEval < alpha)
@@ -464,11 +470,12 @@ struct Worker {
 
         Board boardCopy = board;
 
-        moveListGenerator.hashMove = bestHashMove;
-        if (isRoot && depth > 1)
-            moveListGenerator.hashMove = bestMove;
-        Move ttMove = moveListGenerator.hashMove;
+        Move ttMove = ttEntry.move;
 
+        if (isRoot && depth > 1)
+            ttMove = bestMove;
+
+        moveListGenerator.hashMove = ttMove;
 
         #if !defined DO_HCE
         __int16_t accumW[hiddenLayerSize], accumB[hiddenLayerSize];
@@ -494,7 +501,7 @@ struct Worker {
 
         	int probcutBeta = beta + 200;
 
-        	if (ttEntry.evaluation == NO_EVAL || ttEntry.evaluation >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
+        	if (ttEntry.type == NONE || ttEntry.score >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
 
 	        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
 
@@ -578,12 +585,12 @@ struct Worker {
         	ttEntry.depth >= depth - 3 &&
         	!searchStack[ply].excludeTTmove &&
         	nodeType != UPPER_BOUND &&
-        	abs(MATE_SCORE) - abs(ttEntry.evaluation) > maxDepth
+        	abs(MATE_SCORE) - abs(ttEntry.score) > maxDepth
         	){
 
         	searchStack[ply + 1].excludeTTmove = true;
         	searchStack[ply + 1].excludeMove = ttMove;
-        	int singularBeta = ttEntry.evaluation - depth;
+        	int singularBeta = ttEntry.score - depth;
         	int singularScore = search<nodePvType>(board, color, depth / 2, 0, singularBeta - 1, singularBeta, ply + 1, extended);
 
         	searchStack[ply + 1].excludeTTmove = false;
@@ -602,11 +609,11 @@ struct Worker {
         		return beta; // Multicut
         }
 
-        int maxEvaluation = -inf;
+        int bestScore = -inf;
         char type = UPPER_BOUND;
         int movesSearched = 0;
         int quietMovesSearched = 0;
-        bestHashMove = Move();
+        Move newTTmove = Move();
         int numberOfMoves = moveListGenerator.moveListSize[ply];
 
         bool isTTCapture = (ttMove != Move() && !board.isQuietMove(ttMove));
@@ -660,7 +667,7 @@ struct Worker {
             }
 
             bool beingMated = (alpha <= -MATE_SCORE_MAX_PLY ||
-            				   maxEvaluation <= -MATE_SCORE_MAX_PLY ||
+            				   bestScore <= -MATE_SCORE_MAX_PLY ||
             				   isMateScores);
 
             // Conditions for moveloop pruning
@@ -799,11 +806,11 @@ struct Worker {
                 return 0;
             }
 
-            if (maxEvaluation < score) {
+            if (bestScore < score) {
                 if (score > alpha)
                     type = EXACT;
-                maxEvaluation = score;
-                bestHashMove = move;
+                bestScore = score;
+                newTTmove = move;
                 searchStack[ply].bestMove = move;
                 if (isRoot) {
                     bestMove = move;
@@ -837,7 +844,7 @@ struct Worker {
 
                     }
 
-                    if (!isMovingSideInCheck && (bestHashMove == Move() || board.isQuietMove(bestHashMove))) {
+                    if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
                     	staticEval = evaluator.evaluatePosition(board, color, nnueEvaluator, corrhistHelper);
                     	if (score > staticEval)
                     		corrhistHelper.update(color, board, (score - staticEval) * depth / 8);
@@ -857,9 +864,9 @@ struct Worker {
                         historyHelper.update(board, color, prevMove, -maluseBonus);
                     }
 
-                    transpositionTable.write(board, currentZobristKey, maxEvaluation, depth, LOWER_BOUND,
-                                             boardCurrentAge, bestHashMove, ply);
-                    return maxEvaluation;
+                    transpositionTable.write(board, currentZobristKey, score, depth, LOWER_BOUND,
+                                             boardCurrentAge, newTTmove, ply);
+                    return bestScore;
                 }
             }
 
@@ -876,44 +883,24 @@ struct Worker {
         }
 
         if (type == UPPER_BOUND)
-        	bestHashMove = Move();
+        	newTTmove = Move();
 
-        if (!isMovingSideInCheck && (bestHashMove == Move() || board.isQuietMove(bestHashMove))) {
+        if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
         	staticEval = evaluator.evaluatePosition(board, color, nnueEvaluator, corrhistHelper);
-        	if (type == EXACT || maxEvaluation < staticEval)
-        		corrhistHelper.update(color, board, (maxEvaluation - staticEval) * depth / 8);
+        	if (type == EXACT || bestScore < staticEval)
+        		corrhistHelper.update(color, board, (bestScore - staticEval) * depth / 8);
         }
 
-        if (maxEvaluation == -inf)
-        	maxEvaluation = alpha;
+        if (bestScore == -inf)
+        	bestScore = alpha;
 
-        transpositionTable.write(board, currentZobristKey, maxEvaluation, depth, type, boardCurrentAge, bestHashMove, ply);
-        return maxEvaluation;
+        transpositionTable.write(board, currentZobristKey, bestScore, depth, type, boardCurrentAge, newTTmove, ply);
+        return bestScore;
     }
 
     int startSearch(Board &board, int depth, int alpha, int beta) {
         return search<PV>(board, board.boardColor, depth, true, alpha, beta, 0, 0);
         doneSearch = true;
-    }
-
-    Move pvLine[256];
-    int pvLineSize;
-
-    void getPvLine(Board &board, int color) {
-        ull currentZobristKey = board.getZobristKey();
-
-        if (transpositionTable.getNodeType(currentZobristKey) != EXACT)
-            return;
-
-        auto [hashTableEvaluation, bestHashMove] = transpositionTable.get(board, currentZobristKey, 0, 0, 0, 0);
-
-        if (bestHashMove != Move()) {
-            pvLine[pvLineSize++] = bestHashMove;
-            Board boardCopy = board;
-            board.makeMove(bestHashMove);
-            getPvLine(board, (color == WHITE) ? BLACK : WHITE);
-            board = boardCopy;
-        }
     }
 
     Worker() {
@@ -1010,9 +997,9 @@ struct Worker {
             score = rootScore;
 
 	        if (bestMove == Move()) {
-	        	auto ttEntry = transpositionTable.getEntry(board, board.getZobristKey(), 0);
-	        	if (ttEntry.bestMove != Move() && moveGenerator.isMoveLegal(board, ttEntry.bestMove))
-	        		bestMove = ttEntry.bestMove;
+	        	auto ttEntry = transpositionTable.get(board, board.getZobristKey(), 0);
+	        	if (ttEntry.move != Move() && moveGenerator.isMoveLegal(board, ttEntry.move))
+	        		bestMove = ttEntry.move;
 	        	else {
 	        		moveListGenerator.generateMoves(board, historyHelper, color, 0, DO_SORT, ALL_MOVES);
 	        		bestMove = moveListGenerator.moveList[0][0];
