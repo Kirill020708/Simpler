@@ -430,22 +430,33 @@ struct alignas(64) Board {
             if (abs(targetSquare - startSquare) == 16) // updEnPassant
                 enPassantColumn = boardHelper.getColumnNumber(startSquare);
         } else if (movingPiece == KING) {
-            movePiece(startSquare, targetSquare, nnueEvaluator);
             if (((startSquare & 7) <= 3) != ((targetSquare & 7) <= 3)) {
                 flipRecalc = true;
                 if (color == WHITE)
                     flippedW ^= 1;
                 else
                     flippedB ^= 1;
+
+                movePiece(startSquare, targetSquare);
+                if (startSquare == 60 && targetSquare == 58) // white left castling
+                    movePiece(56, 59);
+                if (startSquare == 60 && targetSquare == 62) // white right castling
+                    movePiece(63, 61);
+                if (startSquare == 4 && targetSquare == 2) // black left castling
+                    movePiece(0, 3);
+                if (startSquare == 4 && targetSquare == 6) // black right castling
+                    movePiece(7, 5);
+            } else {
+                movePiece(startSquare, targetSquare, nnueEvaluator);
+                if (startSquare == 60 && targetSquare == 58) // white left castling
+                    movePiece(56, 59, nnueEvaluator);
+                if (startSquare == 60 && targetSquare == 62) // white right castling
+                    movePiece(63, 61, nnueEvaluator);
+                if (startSquare == 4 && targetSquare == 2) // black left castling
+                    movePiece(0, 3, nnueEvaluator);
+                if (startSquare == 4 && targetSquare == 6) // black right castling
+                    movePiece(7, 5, nnueEvaluator);
             }
-            if (startSquare == 60 && targetSquare == 58) // white left castling
-                movePiece(56, 59, nnueEvaluator);
-            if (startSquare == 60 && targetSquare == 62) // white right castling
-                movePiece(63, 61, nnueEvaluator);
-            if (startSquare == 4 && targetSquare == 2) // black left castling
-                movePiece(0, 3, nnueEvaluator);
-            if (startSquare == 4 && targetSquare == 6) // black right castling
-                movePiece(7, 5, nnueEvaluator);
             if (color == WHITE)
                 castlingWhiteQueensideBroke = castlingWhiteKingsideBroke = 1;
             if (color == BLACK)
