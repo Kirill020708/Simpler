@@ -201,20 +201,17 @@ struct Worker {
         if (moveListGenerator.isStalled(board, color) || evaluator.insufficientMaterialDraw(board))
             rawStaticEval = staticEval = evaluator.evaluateStalledPosition(board, color, ply);
         else {
-	        ttEntry = prEntry;
-	        correctTTscore(ttEntry, staticEval, staticEval);
-	        if (ttEntry.score != NO_EVAL) {
-	        	rawStaticEval = ttEntry.eval;
-	            staticEval = ttEntry.score;
-	        } else {
-	        	if (ttEntry.eval != NO_EVAL)
-	        		rawStaticEval = ttEntry.eval;
-	        	else
-	            	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
-            	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
-	        }
-
+        	if (ttEntry.eval != NO_EVAL)
+        		rawStaticEval = ttEntry.eval;
+        	else
+            	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
+        	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
         }
+
+        ttEntry = prEntry;
+        correctTTscore(ttEntry, staticEval, staticEval);
+        if (ttEntry.score != NO_EVAL)
+            staticEval = ttEntry.score;
 
         int bestScore = staticEval;
 
@@ -389,19 +386,17 @@ struct Worker {
 
             return corrEntry.score;
 
+    	if (ttEntry.eval != NO_EVAL)
+    		rawStaticEval = ttEntry.eval;
+    	else
+        	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
+    	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+
         auto scorrEntry = ttEntry;
         correctTTscore(scorrEntry, staticEval, staticEval);
 
-        if (scorrEntry.score != NO_EVAL) {
-        	rawStaticEval = ttEntry.eval;
+        if (scorrEntry.score != NO_EVAL)
             staticEval = scorrEntry.score;
-        } else {
-        	if (ttEntry.eval != NO_EVAL)
-        		rawStaticEval = ttEntry.eval;
-        	else
-            	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
-        	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
-        }
 
         // cout<<board.generateFEN()<<' '<<staticEval<<'\n';
         bool improving = false;
