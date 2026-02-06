@@ -81,13 +81,9 @@ struct UCIcommunicationHepler {
         int EvEntrySize = sizeof(EvalTableEntry);
         long long sz = bSize / (TTEntrySize * 2 + EvEntrySize);
 
-        transpositionTable.table.resize(bSize / 3 / TTEntrySize, TableEntry());
+        transpositionTable.table.resize(bSize * 2 / 3 / TTEntrySize, TableEntry());
         transpositionTable.table.shrink_to_fit();
-        transpositionTable.tableSize = bSize / 3 / TTEntrySize;
-
-        transpositionTableQuiescent.table.resize(bSize / 3 / TTEntrySize, TableEntry());
-        transpositionTableQuiescent.table.shrink_to_fit();
-        transpositionTableQuiescent.tableSize = bSize / 3 / TTEntrySize;
+        transpositionTable.tableSize = bSize * 2 / 3 / TTEntrySize;
 
         evaluationTranspositionTable.table.resize(bSize / 3 / EvEntrySize, EvalTableEntry());
         evaluationTranspositionTable.table.shrink_to_fit();
@@ -96,8 +92,6 @@ struct UCIcommunicationHepler {
 
     void clearHash() {
         transpositionTable.table = vector<TableEntry>(transpositionTable.table.size(), TableEntry());
-
-        transpositionTableQuiescent.table = vector<TableEntry>(transpositionTableQuiescent.table.size(), TableEntry());
 
         evaluationTranspositionTable.table =
             vector<EvalTableEntry>(evaluationTranspositionTable.table.size(), EvalTableEntry());
