@@ -102,28 +102,32 @@ struct NNUEevaluator {
             __m256i hl = _mm256_loadu_si256((__m256i *)&hlSumW[i]);
             hl = _mm256_and_si256(hl, _mm256_cmpgt_epi16(hl, zerosm));
             hl = _mm256_blendv_epi8(hl, qas, _mm256_cmpgt_epi16(hl, qas));
-            __m256i hl0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 0));
-            hl0 = _mm256_mullo_epi32(hl0, hl0);
-            __m256i hl1 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 1));
-            hl1 = _mm256_mullo_epi32(hl1, hl1);
             __m256i w1v = _mm256_loadu_si256((__m256i *)&w1[bucket][i + hiddenLayerSize * (color == BLACK)]);
-            outputV = _mm256_add_epi32(
-                outputV, _mm256_mullo_epi32(hl0, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 0))));
-            outputV = _mm256_add_epi32(
-                outputV, _mm256_mullo_epi32(hl1, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 1))));
+            __m256i hlw = _mm256_mullo_epi16(hl, w1v);
+
+            __m256i hl0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 0));
+            __m256i w0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hlw, 0));
+            outputV = _mm256_add_epi32(outputV, _mm256_mullo_epi32(hl0, w0));
+
+            hl0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 1));
+            w0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hlw, 1));
+            outputV = _mm256_add_epi32(outputV, _mm256_mullo_epi32(hl0, w0));
+
 
             hl = _mm256_loadu_si256((__m256i *)&hlSumB[i]);
             hl = _mm256_and_si256(hl, _mm256_cmpgt_epi16(hl, zerosm));
             hl = _mm256_blendv_epi8(hl, qas, _mm256_cmpgt_epi16(hl, qas));
-            hl0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 0));
-            hl0 = _mm256_mullo_epi32(hl0, hl0);
-            hl1 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 1));
-            hl1 = _mm256_mullo_epi32(hl1, hl1);
             w1v = _mm256_loadu_si256((__m256i *)&w1[bucket][i + hiddenLayerSize * (color == WHITE)]);
-            outputV = _mm256_add_epi32(
-                outputV, _mm256_mullo_epi32(hl0, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 0))));
-            outputV = _mm256_add_epi32(
-                outputV, _mm256_mullo_epi32(hl1, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 1))));
+            hlw = _mm256_mullo_epi16(hl, w1v);
+
+            hl0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 0));
+            w0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hlw, 0));
+            outputV = _mm256_add_epi32(outputV, _mm256_mullo_epi32(hl0, w0));
+
+            hl0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 1));
+            w0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hlw, 1));
+            outputV = _mm256_add_epi32(outputV, _mm256_mullo_epi32(hl0, w0));
+            
 
             // output+=screlu(hlSumW[i])*w1[i];
             // output+=screlu(hlSumB[i])*w1[i+hiddenLayerSize];
