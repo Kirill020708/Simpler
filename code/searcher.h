@@ -179,7 +179,7 @@ struct Worker {
             // if(alpha>=beta)
             // 	return alpha;
         }
-        if (!moveGenerator.isMoveLegal(board, bestHashMove))
+        if (!moveGenerator.isMoveLegal(board, bestHashMove) || board.isQuietMove(bestHashMove))
         	bestHashMove = Move();
         moveListGenerator.hashMove = bestHashMove;
         Move ttMove = bestHashMove;
