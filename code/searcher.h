@@ -154,7 +154,7 @@ struct Worker {
             ttEntry.score = NO_EVAL;
 
         if (ttEntry.type == UPPER_BOUND &&
-        	ttEntry.score >= alpha)
+        	ttEntry.score > alpha)
             ttEntry.score = NO_EVAL;
     }
 
