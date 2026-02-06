@@ -65,6 +65,12 @@ struct TranspositionTable {
         // TTmutex.unlock();
     }
 
+    inline void writeStaticEval(ull key, int eval) {
+        int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
+        if (table[index].type != NONE && table[index].key == key)
+            table[index].eval = eval;
+    }
+
     inline TableEntry get(Board &board, ull key, int depthFromRoot) {
         // if (tableSize == 0)
         //     return TableEntry();

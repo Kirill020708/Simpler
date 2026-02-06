@@ -203,8 +203,10 @@ struct Worker {
         else {
         	if (ttEntry.eval != NO_EVAL)
         		rawStaticEval = ttEntry.eval;
-        	else
+        	else {
             	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
+            	transpositionTable.writeStaticEval(currentZobristKey, rawStaticEval);
+        	}
         	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
         }
 
@@ -388,10 +390,19 @@ struct Worker {
 
     	if (ttEntry.eval != NO_EVAL)
     		rawStaticEval = ttEntry.eval;
-    	else
+    	else {
         	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
+            transpositionTable.writeStaticEval(currentZobristKey, rawStaticEval);
+    	}
     	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
-    	
+
+        auto scorrEntry = ttEntry;
+        correctTTscore(scorrEntry, staticEval, staticEval);
+
+        if (scorrEntry.score != NO_EVAL)
+            staticEval = scorrEntry.score;
+
+        // cout<<board.generateFEN()<<' '<<staticEval<<'\n';
         bool improving = false;
         bool isMovingSideInCheck = moveGenerator.isInCheck(board, color);
 
@@ -405,14 +416,6 @@ struct Worker {
                     improving = true;
             }
         }
-
-        auto scorrEntry = ttEntry;
-        correctTTscore(scorrEntry, staticEval, staticEval);
-
-        if (scorrEntry.score != NO_EVAL)
-            staticEval = scorrEntry.score;
-
-        // cout<<board.generateFEN()<<' '<<staticEval<<'\n';
 
         bool isMateScores = (abs(alpha) >= MATE_SCORE_MAX_PLY ||
 					    	 abs(beta) >= MATE_SCORE_MAX_PLY ||
