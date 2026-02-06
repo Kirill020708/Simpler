@@ -203,8 +203,10 @@ struct Worker {
         else
             staticEval = evaluator.evaluatePosition(board, color, nnueEvaluator, corrhistHelper);
 
-        if (prEntry.score != NO_EVAL)
-            staticEval = prEntry.score;
+        ttEntry = prEntry;
+        correctTTscore(ttEntry, staticEval, staticEval);
+        if (ttEntry.score != NO_EVAL)
+            staticEval = ttEntry.score;
 
         int bestScore = staticEval;
 
@@ -394,8 +396,11 @@ struct Worker {
 
             return corrEntry.score;
 
-        if (ttEntry.score != NO_EVAL)
-            staticEval = ttEntry.score;
+        auto scorrEntry = ttEntry;
+        correctTTscore(scorrEntry, staticEval, staticEval);
+
+        if (scorrEntry.score != NO_EVAL)
+            staticEval = scorrEntry.score;
 
         bool isMateScores = (abs(alpha) >= MATE_SCORE_MAX_PLY ||
 					    	 abs(beta) >= MATE_SCORE_MAX_PLY ||
