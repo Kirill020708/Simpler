@@ -9,10 +9,10 @@
 
 #endif /* DECLARS */
 
-struct __attribute__ ((packed)) TableEntry {
+struct TableEntry {
     ull key = 0;
-    int score = NO_EVAL;
-    int eval = NO_EVAL;
+    int16_t score = NO_EVAL;
+    int16_t eval = NO_EVAL;
     int16_t move = 0;
     char depth = 0, type = NONE;
 
