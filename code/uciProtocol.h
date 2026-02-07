@@ -244,19 +244,27 @@ struct UCIcommunicationHepler {
             }
             int timeToThink = 1e9;
             int basetime = 0;
+            bool timeBound = 0;
             if (mainBoard.boardColor == WHITE && wtime != -1) {
                 timeToThink = wtime * 0.025 + winc;
                 basetime = wtime;
+                timeBound = true;
             }
             if (mainBoard.boardColor == BLACK && btime != -1) {
                 timeToThink = btime * 0.025 + binc;
                 basetime = btime;
+                timeBound = true;
             }
-            if (movetime != -1)
+            if (movetime != -1) {
                 timeToThink = movetime;
+                timeBound = true;
+            }
             // cout<<timeToThink<<'\n';
             int softBound = inf, hardBound = inf;
-            searcher.workers[0].basetime = basetime;
+            if (timeBound)
+                searcher.workers[0].basetime = basetime;
+            else
+                searcher.workers[0].basetime = 1e9;
             if (wtime != -1) {
                 softBound = timeToThink;
                 hardBound = max(min(basetime / 2, basetime - 10), 1);

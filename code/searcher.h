@@ -989,7 +989,7 @@ struct Worker {
 
     bool minimal = false;
     bool doNormalization = true;
-    int basetime;
+    int basetime = 1e9;
 
     void IDsearch(Board &board, int maxDepth, int softBound, int hardBound, int nodesLimit, int nodesH, bool isMainThread, bool printUCI, vector<Worker> &workers) {
         
