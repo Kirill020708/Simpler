@@ -166,12 +166,15 @@ struct Worker {
     	if (isPvNode)
     		seldepth = max(seldepth, ply + 1);
 
+        if (stopSearch || nodes >= nodesLim) {
+            stopSearch = true;
+            return 0;
+        }
+
     	if ((nodes & 1023) == 0) {
         	std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
             ll timeThinked = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - searchStartTime).count();
-            if (timeThinked >= hardTimeBound)
-            	stopSearch = true;
-	        if (stopSearch || nodes >= nodesLim) {
+            if (timeThinked >= hardTimeBound) {
 	            stopSearch = true;
 	            return 0;
 	        }
@@ -338,12 +341,15 @@ struct Worker {
     	if (isPvNode)
     		seldepth = max(seldepth, ply + 1);
 
+        if (stopSearch || nodes >= nodesLim) {
+            stopSearch = true;
+            return 0;
+        }
+
     	if ((nodes & 1023) == 0) {
         	std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
             ll timeThinked = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - searchStartTime).count();
-            if (timeThinked >= hardTimeBound)
-            	stopSearch = true;
-	        if (stopSearch || nodes >= nodesLim) {
+            if (timeThinked >= hardTimeBound) {
 	            stopSearch = true;
 	            return 0;
 	        }

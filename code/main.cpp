@@ -79,6 +79,8 @@ int main(int argc, char *argv[]) {
 	    }
 
 	    if(args.substr(0, 7) == "genfens") {
+
+            uciHelper.reallocateHashMemory(8);
 	    	auto tokens = splitStr(args, " ");
 	    	int N = stoi(tokens[1]);
 	    	int seed = stoi(tokens[3]);
@@ -90,32 +92,43 @@ int main(int argc, char *argv[]) {
 	    	MoveListGenerator moveListGenerator;
 	    	HistoryHelper historyHelper;
 
+            searcher.doInfoOutput = false;
+
 	    	while (N--) {
 	    		auto boardCopy = mainBoard;
 	    		int nmbOfMoves = 8 + (rngS() % 2);
                 bool isOk = 1;
 
 	    		while (nmbOfMoves--) {
-	                moveListGenerator.generateMoves(boardCopy, historyHelper,boardCopy.boardColor, 0, DONT_SORT, ALL_MOVES);
+	                moveListGenerator.generateMoves(mainBoard, historyHelper,mainBoard.boardColor, 0, DONT_SORT, ALL_MOVES);
 	                int movesCount = moveListGenerator.moveListSize[0];
                     if (movesCount == 0) {
                         isOk = 0;
                         break;
                     }
 	                Move randomMove = moveListGenerator.moveList[0][rngS() % movesCount];
-	                boardCopy.makeMove(randomMove);
+	                mainBoard.makeMove(randomMove);
 	            }
 
-                if (moveListGenerator.isStalled(boardCopy, boardCopy.boardColor))
+                if (moveListGenerator.isStalled(mainBoard, mainBoard.boardColor))
                     isOk = 0;
+                else {
+                    searcher.iterativeDeepeningSearch(256, 1e6, 1e6, 500, 500);
+                    if (abs(searcher.workers[0].rootScore) >= 500) {
+                        searcher.iterativeDeepeningSearch(256, 1e6, 1e6, 5000, 5000);
+                        if (abs(searcher.workers[0].rootScore) >= 1000)
+                            isOk = 0;
+                    }
+                }
 
                 if (isOk) {
                     if (printInfo)
 	                    cout << "info string genfens ";
-                    cout << boardCopy.generateFEN() << endl;
+                    cout << mainBoard.generateFEN() << endl;
                 }
                 else
                     N++;
+                mainBoard = boardCopy;
 	    	}
 
 	    	exit(0);
