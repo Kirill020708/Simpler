@@ -76,6 +76,7 @@ struct alignas(64) Board {
 
     int ply1Sq = 0, ply1Ps = 0;
     int ply2Sq = 0, ply2Ps = 0;
+    int ply3Sq = 0, ply3Ps = 0;
 
     int age = 0;
 
@@ -332,6 +333,8 @@ struct alignas(64) Board {
         int color = occupancy(startSquare);
         int movingPiece = occupancyPiece(startSquare);
 
+        ply3Sq = ply2Sq;
+        ply3Ps = ply2Ps;
         ply2Sq = ply1Sq;
         ply2Ps = ply1Ps;
         ply1Sq = targetSquare;
@@ -407,6 +410,8 @@ struct alignas(64) Board {
         int color = occupancy(startSquare);
         int movingPiece = occupancyPiece(startSquare);
 
+        ply3Sq = ply2Sq;
+        ply3Ps = ply2Ps;
         ply2Sq = ply1Sq;
         ply2Ps = ply1Ps;
         ply1Sq = targetSquare;
