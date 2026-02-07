@@ -1133,9 +1133,9 @@ struct Worker {
 	                cout << " pv ";
 	                if (basetime - timeThinked >= 10) {
 		                reverse(searchStack[0].pvLine.begin(), searchStack[0].pvLine.end());
-		                for (auto move:searchStack[0].pvLine)
-		                	cout << move.convertToUCI() << ' ';
-		            } else
+		                // for (auto move:searchStack[0].pvLine)
+		                // 	cout << move.convertToUCI() << ' ';
+		            }
 		            	cout << bestMove.convertToUCI();
 	                cout << endl;
 	            }
