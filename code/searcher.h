@@ -651,8 +651,7 @@ struct Worker {
         	moveListGenerator.moveListSize[ply] = 1;
         }
 
-        if (isPvNode)
-        	searchStack[ply].pvLine = vector<Move>();
+        searchStack[ply].pvLine = vector<Move>();
 
         for (int currentMove = 0; currentMove < moveListGenerator.moveListSize[ply]; currentMove++) {
             Move move = moveListGenerator.moveList[ply][currentMove];
