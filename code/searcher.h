@@ -1131,9 +1131,12 @@ struct Worker {
 	                cout << " hashfull " << transpositionTable.getHashfull();
 	                cout << " time " << timeThinked;
 	                cout << " pv ";
-	                reverse(searchStack[0].pvLine.begin(), searchStack[0].pvLine.end());
-	                for (auto move:searchStack[0].pvLine)
-	                	cout << move.convertToUCI() << ' ';
+	                if (hardBound >= 10) {
+		                reverse(searchStack[0].pvLine.begin(), searchStack[0].pvLine.end());
+		                for (auto move:searchStack[0].pvLine)
+		                	cout << move.convertToUCI() << ' ';
+		            } else
+		            	cout << bestMove.convertToUCI();
 	                cout << endl;
 	            }
 
