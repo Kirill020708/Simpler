@@ -256,6 +256,7 @@ struct UCIcommunicationHepler {
                 timeToThink = movetime;
             // cout<<timeToThink<<'\n';
             int softBound = inf, hardBound = inf;
+            searcher.workers[0].basetime = basetime;
             if (wtime != -1) {
                 softBound = timeToThink;
                 hardBound = max(min(basetime / 2, basetime - 10), 1);

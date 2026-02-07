@@ -989,6 +989,7 @@ struct Worker {
 
     bool minimal = false;
     bool doNormalization = true;
+    int basetime;
 
     void IDsearch(Board &board, int maxDepth, int softBound, int hardBound, int nodesLimit, int nodesH, bool isMainThread, bool printUCI, vector<Worker> &workers) {
         
@@ -1130,7 +1131,7 @@ struct Worker {
 	                cout << " hashfull " << transpositionTable.getHashfull();
 	                cout << " time " << timeThinked;
 	                cout << " pv ";
-	                if (hardBound >= 10) {
+	                if (basetime - timeThinked >= 10) {
 		                reverse(searchStack[0].pvLine.begin(), searchStack[0].pvLine.end());
 		                for (auto move:searchStack[0].pvLine)
 		                	cout << move.convertToUCI() << ' ';
