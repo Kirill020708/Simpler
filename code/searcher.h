@@ -41,6 +41,7 @@ struct StackState {
     bool excludeTTmove = false;
     Move excludeMove;
     Move bestMove;
+    vector<Move> pvLine;
 };
 
 enum NodeType {
@@ -650,6 +651,9 @@ struct Worker {
         	moveListGenerator.moveListSize[ply] = 1;
         }
 
+        if (isPvNode)
+        	searchStack[ply].pvLine = vector<Move>();
+
         for (int currentMove = 0; currentMove < moveListGenerator.moveListSize[ply]; currentMove++) {
             Move move = moveListGenerator.moveList[ply][currentMove];
 
@@ -834,6 +838,10 @@ struct Worker {
                     type = EXACT;
                 bestScore = score;
                 newTTmove = move;
+                if (isPvNode) {
+                	searchStack[ply].pvLine = searchStack[ply + 1].pvLine;
+                	searchStack[ply].pvLine.push_back(move);
+                }
                 searchStack[ply].bestMove = move;
                 if (isRoot) {
                     bestMove = move;
@@ -1100,7 +1108,10 @@ struct Worker {
             		totalNodes += workers[i].nodes;
 
             	if (printUCI && (!minimal || stopIDsearch || depth == maxDepth)) {
-	                cout << "info depth " << depth << " seldepth " << seldepth << " score ";
+	                cout << "info depth " << depth;
+	                cout << " seldepth ";
+	                cout << seldepth;
+	                cout << " score ";
 	                if (MATE_SCORE - abs(score) > maxDepth){
 	                    cout << "cp ";
 	                	if (doNormalization)
@@ -1115,10 +1126,14 @@ struct Worker {
 	                    else
 	                        cout << (-MATE_SCORE - score - 1) / 2;
 	                }
-	                cout << " nodes " << totalNodes << " nps " << (totalNodes * (long long)(1000)) / (timeThinked + 1);
+	                cout << " nodes " << totalNodes;
+	                cout << " nps " << (totalNodes * (long long)(1000)) / (timeThinked + 1);
 	                cout << " hashfull " << transpositionTable.getHashfull();
-	                cout << " time "
-	                     << timeThinked << " pv " << bestMove.convertToUCI() << ' ';
+	                cout << " time " << timeThinked;
+	                cout << " pv ";
+	                reverse(searchStack[0].pvLine.begin(), searchStack[0].pvLine.end());
+	                for (auto move:searchStack[0].pvLine)
+	                	cout << move.convertToUCI() << ' ';
 	                cout << endl;
 	            }
 
