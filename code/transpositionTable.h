@@ -98,6 +98,15 @@ struct TranspositionTable {
         __builtin_prefetch(&table[(__uint128_t(key) * __uint128_t(tableSize)) >> 64]);
 
     }
+
+    int getHashfull() {
+        int hits = 0;
+        for (int i = 0; i < min(1000ll, tableSize); i++)
+            hits += (table[i].type != NONE);
+        if (tableSize && tableSize < 1000)
+            hits = hits * 1000 / tableSize;
+        return hits;
+    }
 };
 
 TranspositionTable transpositionTable;

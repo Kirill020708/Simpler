@@ -1115,7 +1115,9 @@ struct Worker {
 	                    else
 	                        cout << (-MATE_SCORE - score - 1) / 2;
 	                }
-	                cout << " nodes " << totalNodes << " nps " << (totalNodes * (long long)(1000)) / (timeThinked + 1) << " time "
+	                cout << " nodes " << totalNodes << " nps " << (totalNodes * (long long)(1000)) / (timeThinked + 1);
+	                cout << " hashfull " << transpositionTable.getHashfull();
+	                cout << " time "
 	                     << timeThinked << " pv " << bestMove.convertToUCI() << ' ';
 	                cout << endl;
 	            }
