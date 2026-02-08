@@ -708,16 +708,14 @@ struct Worker {
             	!isMovingSideInCheck) {
 
             	// Late move pruning (LMP)
-	            if (!isPvNode &&
-	            	movesSearched > 3 + depth * depth * (1 - isTTCapture * 0.5) &&
+	            if (movesSearched > 3 + depth * depth * (1 - isTTCapture * 0.5) &&
 	            	historyValue < 0) {
 
 	            	break;
 	            }
 	            
 	            // History pruning
-	            if (!isPvNode &&
-	            	movesSearched > 0 &&
+	            if (movesSearched > 0 &&
 	            	!isMoveInteresting &&
 	            	historyValue < -100 * depth * depth) {
 
@@ -738,7 +736,6 @@ struct Worker {
 
 	            // Captures SEE pruning
 	            if (movesSearched > 0 &&
-	            	!isPvNode &&
 	            	!inCheck &&
 	                sseEval <= -100 * depth) {
 
