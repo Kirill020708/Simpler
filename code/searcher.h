@@ -735,13 +735,10 @@ struct Worker {
 	            }
 
 	            // Captures SEE pruning
-	            int seeMargin[4] = {0, 200, 400, 900};
-
 	            if (movesSearched > 0 &&
 	            	!isPvNode &&
 	            	!inCheck &&
-	            	depth <= 3 &&
-	                sseEval <= -seeMargin[depth] && !searchStack[ply].excludeTTmove) {
+	                sseEval <= -100 * depth) {
 
 	                continue;
 	            }
