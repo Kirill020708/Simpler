@@ -848,7 +848,10 @@ struct Worker {
                 if (alpha < score)
                     alpha = score;
                 if (alpha >= beta) {
-                    if (board.isQuietMove(move)) {
+
+                    bool isQuiet = board.isQuietMove(move);
+
+                    if (isQuiet) {
                         // update killer move
 
                     	if (killers[ply][0] == move)
@@ -890,7 +893,9 @@ struct Worker {
                     for (int previousMoves = 0; previousMoves < currentMove;
                          previousMoves++) { // negate all searched non-capture moves
                         Move prevMove = moveListGenerator.moveList[ply][previousMoves];
-                        historyHelper.update(board, color, prevMove, -maluseBonus);
+
+                    	if (isQuiet || !board.isQuietMove(prevMove))
+                        	historyHelper.update(board, color, prevMove, -maluseBonus);
                     }
 
                     transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth, LOWER_BOUND,
