@@ -740,7 +740,7 @@ struct Worker {
 	            if (movesSearched > 0 &&
 	            	!isPvNode &&
 	            	!inCheck &&
-	                sseEval <= -100 * depth) {
+	                sseEval <= -(100 + historyValueF * 70) * depth) {
 
 	                continue;
 	            }
