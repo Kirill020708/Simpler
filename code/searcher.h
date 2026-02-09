@@ -744,6 +744,15 @@ struct Worker {
 
 	                continue;
 	            }
+
+	            if (movesSearched > 0 &&
+	            	!isPvNode &&
+	            	!inCheck) {
+
+	            	sseEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
+	            	if (sseEval <= -(50 + historyValueF * 30) * depth)
+	            		continue;
+	            }
 	        }
 
             ull newKey = zobristAfterMove(board, move);
