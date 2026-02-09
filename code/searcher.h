@@ -273,7 +273,7 @@ struct Worker {
         	if(move == ttMove)
         		seeEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
 
-        	if (staticEval + 100 < alpha && seeEval <= 0)
+        	if (staticEval + seeEval * 2 + 100 < alpha)
         		continue;
 
             ull newKey = zobristAfterMove(board, move);
