@@ -107,7 +107,7 @@ struct MoveListGenerator {
                     int historyScore = historyHelper.getScore(board, color, Move(startSquare, targetSquare, NOPIECE));
                     float historyScoreF = float(historyScore) / historyHelper.maxHistoryScore;
 
-                    if (captureEval <= -100 && onlyCaptures)
+                    if (captureEval <= -120 - historyScoreF * 100 && onlyCaptures)
                     	continue;
 
                     if (captureEval >= -120 - historyScoreF * 100)
