@@ -237,8 +237,8 @@ struct Worker {
         }
 
         #if !defined DO_HCE
-        __int16_t accumW[hiddenLayerSize], accumB[hiddenLayerSize];
-        for (int i = 0; i < hiddenLayerSize; i += 16) {
+        __int16_t accumW[hl1Size], accumB[hl1Size];
+        for (int i = 0; i < hl1Size; i += 16) {
 
             _mm256_storeu_si256((__m256i *)&accumW[i], _mm256_loadu_si256((__m256i *)&nnueEvaluator.hlSumW[i]));
 
@@ -289,7 +289,7 @@ struct Worker {
             board = boardCopy;
 
             #if !defined DO_HCE
-            for (int i = 0; i < hiddenLayerSize; i += 16) {
+            for (int i = 0; i < hl1Size; i += 16) {
 
                 _mm256_storeu_si256((__m256i *)&nnueEvaluator.hlSumW[i], _mm256_loadu_si256((__m256i *)&accumW[i]));
 
@@ -505,8 +505,8 @@ struct Worker {
         moveListGenerator.hashMove = ttMove;
 
         #if !defined DO_HCE
-        __int16_t accumW[hiddenLayerSize], accumB[hiddenLayerSize];
-        for (int i = 0; i < hiddenLayerSize; i += 16) {
+        __int16_t accumW[hl1Size], accumB[hl1Size];
+        for (int i = 0; i < hl1Size; i += 16) {
 
             _mm256_storeu_si256((__m256i *)&accumW[i], _mm256_loadu_si256((__m256i *)&nnueEvaluator.hlSumW[i]));
 
@@ -546,7 +546,7 @@ struct Worker {
 		            board = boardCopy;
 
 		            #if !defined DO_HCE
-		            for (int i = 0; i < hiddenLayerSize; i += 16) {
+		            for (int i = 0; i < hl1Size; i += 16) {
 
 		                _mm256_storeu_si256((__m256i *)&nnueEvaluator.hlSumW[i], _mm256_loadu_si256((__m256i *)&accumW[i]));
 
@@ -809,7 +809,7 @@ struct Worker {
             board = boardCopy;
 
             #if !defined DO_HCE
-            for (int i = 0; i < hiddenLayerSize; i += 16) {
+            for (int i = 0; i < hl1Size; i += 16) {
 
                 _mm256_storeu_si256((__m256i *)&nnueEvaluator.hlSumW[i], _mm256_loadu_si256((__m256i *)&accumW[i]));
 
