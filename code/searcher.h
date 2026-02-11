@@ -191,7 +191,8 @@ struct Worker {
 
         int nodeType = ttEntry.type;
 
-        if (ttEntry.score != NO_EVAL)
+        if (ttEntry.score != NO_EVAL &&
+        	!isPvNode)
             return ttEntry.score;
 
         Move ttMove = ttEntry.move;
