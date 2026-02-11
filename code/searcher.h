@@ -701,6 +701,18 @@ struct Worker {
             				   bestScore <= -MATE_SCORE_MAX_PLY ||
             				   isMateScores);
 
+            int lmrReduction =
+                floor(lmrLogTable[depth][movesSearched] + 0.5 
+                	- 1 * (isPvNode)
+                	- 1.5 * historyValueF
+                	+ 0.5 * (!improving)
+                	+ 1 * (isTTCapture)
+                	- 1 * (isCapture)
+                	- 0.002 * sseEval
+                    - 1 * (isKiller)); // reduction of depth
+
+            int lmrDepth = depth - lmrReduction;
+
             // Conditions for moveloop pruning
             if (!beingMated &&
             	!isRoot &&
@@ -709,7 +721,7 @@ struct Worker {
 
             	// Late move pruning (LMP)
 	            if (!isPvNode &&
-	            	movesSearched > 3 + depth * depth * (1 - isTTCapture * 0.5) &&
+	            	movesSearched > 3 + lmrDepth * lmrDepth * (1 - isTTCapture * 0.5) &&
 	            	historyValue < 0) {
 
 	            	break;
@@ -767,16 +779,6 @@ struct Worker {
                 // Late move reduction
                 const int LMR_FULL_MOVES = 2; // number of moves to search with full depth
                 const int LMR_MIN_DEPTH = 3;  // don't reduct depth if it's more or equal to this value
-
-                int lmrReduction =
-                    floor(lmrLogTable[depth][movesSearched] + 0.5 
-                    	- 1 * (isPvNode)
-                    	- 1.5 * historyValueF
-                    	+ 0.5 * (!improving)
-                    	+ 1 * (isTTCapture)
-                    	- 1 * (isCapture)
-                    	- 0.002 * sseEval
-                        - 1 * (isKiller)); // reduction of depth
 
                 if (lmrReduction < 0)
                     lmrReduction = 0;
