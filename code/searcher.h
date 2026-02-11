@@ -260,6 +260,8 @@ struct Worker {
 
         bool searchedTTmove = false;
 
+        int movesSearched = 0;
+
         for (int currentMove = 0; currentMove < moveListGenerator.moveListSize[ply]; currentMove++) {
             Move move = moveListGenerator.moveList[ply][currentMove];
 
@@ -268,6 +270,8 @@ struct Worker {
             	searchedTTmove = true;
             }
 
+            if (movesSearched > 3)
+            	break;
 
             int seeEval = moveListGenerator.seeTable[move.getStartSquare()][move.getTargetSquare()];
         	if(move == ttMove)
@@ -285,6 +289,8 @@ struct Worker {
             // transpositionTable.prefetch(board.getZobristKey());
 
             int score = -quiescentSearch<nodePvType>(board, (color == WHITE) ? BLACK : WHITE, -beta, -alpha, ply + 1);
+
+            movesSearched++;
 
             board = boardCopy;
 
