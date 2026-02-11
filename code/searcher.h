@@ -602,6 +602,8 @@ struct Worker {
         	moveListGenerator.moveListSize[ply] = 1;
         }
 
+        bool isTTCapture = (ttMove != Move() && !board.isQuietMove(ttMove));
+
         // Singular extensions
         int extendTTmove = 0;
         if (
@@ -629,7 +631,8 @@ struct Worker {
         		extendTTmove = 1;
 
         		// Double extentions
-        		if (!isPvNode && singularScore < singularBeta - 30)
+        		int dextMargin = 30 + 30 * (isTTCapture);
+        		if (!isPvNode && singularScore < singularBeta - dextMargin)
         			extendTTmove++;
 
         	} else if (singularScore >= beta && MATE_SCORE - abs(singularScore) > maxDepth)
@@ -644,8 +647,6 @@ struct Worker {
         int quietMovesSearched = 0;
         Move newTTmove = Move();
         int numberOfMoves = moveListGenerator.moveListSize[ply];
-
-        bool isTTCapture = (ttMove != Move() && !board.isQuietMove(ttMove));
 
         bool searchedTTmove = false;
 
