@@ -153,7 +153,7 @@ struct MoveListGenerator {
                     Move move = Move(startSquare, targetSquare, NOPIECE);
                     move.score += (captureCoeff << captureShift);
 
-                    if (!isCapture || !onlyCaptures)
+                    if (!isCapture)
                         move.score += historyHelper.getScore(board, color, move);
                     else
                         move.score += (sseEval + 15);
