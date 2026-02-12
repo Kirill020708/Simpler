@@ -261,7 +261,11 @@ struct Worker {
         	if(move == ttMove)
         		seeEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
 
-        	if (staticEval + 100 < alpha && seeEval <= 0)
+            int historyValue = historyHelper.getScore(board, color, move) - historyHelper.maxHistoryScore;
+            float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
+
+
+        	if (staticEval + 100 + historyValueF * 100 < alpha && seeEval <= 0)
         		continue;
 
             ull newKey = zobristAfterMove(board, move);
