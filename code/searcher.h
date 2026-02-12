@@ -236,18 +236,6 @@ struct Worker {
         	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
         }
 
-        #if !defined DO_HCE
-        __int16_t accumW[hl1Size], accumB[hl1Size];
-        for (int i = 0; i < hl1Size; i += 16) {
-
-            _mm256_storeu_si256((__m256i *)&accumW[i], _mm256_loadu_si256((__m256i *)&nnueEvaluator.hlSumW[i]));
-
-            _mm256_storeu_si256((__m256i *)&accumB[i], _mm256_loadu_si256((__m256i *)&nnueEvaluator.hlSumB[i]));
-
-            // accumW[i]=nnueEvaluator.hlSumW[i];
-            // accumB[i]=nnueEvaluator.hlSumB[i];
-        }
-        #endif
 
         int oppositeColor = (color == WHITE) ? BLACK : WHITE;
 
@@ -288,17 +276,7 @@ struct Worker {
 
             board = boardCopy;
 
-            #if !defined DO_HCE
-            for (int i = 0; i < hl1Size; i += 16) {
-
-                _mm256_storeu_si256((__m256i *)&nnueEvaluator.hlSumW[i], _mm256_loadu_si256((__m256i *)&accumW[i]));
-
-                _mm256_storeu_si256((__m256i *)&nnueEvaluator.hlSumB[i], _mm256_loadu_si256((__m256i *)&accumB[i]));
-
-                // nnueEvaluator.hlSumW[i]=accumW[i];
-                // nnueEvaluator.hlSumB[i]=accumB[i];
-            }
-            #endif
+            nnueEvaluator.ply--;
 
             isFirstMove = 0;
             if (stopSearch)
@@ -504,19 +482,6 @@ struct Worker {
 
         moveListGenerator.hashMove = ttMove;
 
-        #if !defined DO_HCE
-        __int16_t accumW[hl1Size], accumB[hl1Size];
-        for (int i = 0; i < hl1Size; i += 16) {
-
-            _mm256_storeu_si256((__m256i *)&accumW[i], _mm256_loadu_si256((__m256i *)&nnueEvaluator.hlSumW[i]));
-
-            _mm256_storeu_si256((__m256i *)&accumB[i], _mm256_loadu_si256((__m256i *)&nnueEvaluator.hlSumB[i]));
-
-            // accumW[i]=nnueEvaluator.hlSumW[i];
-            // accumB[i]=nnueEvaluator.hlSumB[i];
-        }
-        #endif
-
         int probcutDepthR = 4;
         //ProbCut
         if (!isRoot &&
@@ -545,17 +510,7 @@ struct Worker {
 
 		            board = boardCopy;
 
-		            #if !defined DO_HCE
-		            for (int i = 0; i < hl1Size; i += 16) {
-
-		                _mm256_storeu_si256((__m256i *)&nnueEvaluator.hlSumW[i], _mm256_loadu_si256((__m256i *)&accumW[i]));
-
-		                _mm256_storeu_si256((__m256i *)&nnueEvaluator.hlSumB[i], _mm256_loadu_si256((__m256i *)&accumB[i]));
-
-		                // nnueEvaluator.hlSumW[i]=accumW[i];
-		                // nnueEvaluator.hlSumB[i]=accumB[i];
-		            }
-		            #endif
+		            nnueEvaluator.ply--;
 
 		            if (score >= probcutBeta) {
 	                    transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth - probcutDepthR, LOWER_BOUND,
@@ -808,17 +763,7 @@ struct Worker {
 
             board = boardCopy;
 
-            #if !defined DO_HCE
-            for (int i = 0; i < hl1Size; i += 16) {
-
-                _mm256_storeu_si256((__m256i *)&nnueEvaluator.hlSumW[i], _mm256_loadu_si256((__m256i *)&accumW[i]));
-
-                _mm256_storeu_si256((__m256i *)&nnueEvaluator.hlSumB[i], _mm256_loadu_si256((__m256i *)&accumB[i]));
-
-                // nnueEvaluator.hlSumW[i]=accumW[i];
-                // nnueEvaluator.hlSumB[i]=accumB[i];
-            }
-            #endif
+            nnueEvaluator.ply--;
 
             if (isRoot)
             	rootNodes[move.move] += (nodes - prevNodes);

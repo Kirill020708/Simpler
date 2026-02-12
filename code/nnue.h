@@ -18,6 +18,69 @@ const int w1BlockSize = 4 * hl2Size;
 const int outputBuckets = 8;
 const int Q0 = 255, Q1 = 128, Q = 64, SCALE = 400;
 
+const int DO_HM = 100;
+
+struct alignas(64) SmallBoard {
+    Bitboard whitePieces, blackPieces;
+    Bitboard pawns, knights, bishops, rooks, queens, kings;
+
+    bool flippedW = true;
+    bool flippedB = true;
+
+    pair<int, int> getNNUEidx(int square, int piece, int pieceColor) {
+
+        int row = (square >> 3), col = (square & 7);
+
+        int neuronIdxW = 64 * (piece - 1 + pieceColor * 6) + ((7 - row) << 3);
+        if (!flippedW)
+            neuronIdxW += col;
+        else
+            neuronIdxW += 7 - col;
+
+        int neuronIdxB = 64 * (piece - 1 + (!pieceColor) * 6) + (row << 3);
+        if (!flippedB)
+            neuronIdxB += col;
+        else
+            neuronIdxB += 7 - col;
+        return {neuronIdxW, neuronIdxB};
+    }
+
+    inline int occupancy(int square) {
+        return WHITE * (whitePieces.getBit(square)) + BLACK * (blackPieces.getBit(square)) +
+               EMPTY * (!((whitePieces | blackPieces).getBit(square)));
+
+        if (square < 0 || square > 63)
+            return ERROR;
+        if (whitePieces.getBit(square))
+            return WHITE;
+        if (blackPieces.getBit(square))
+            return BLACK;
+        return EMPTY;
+    }
+
+    inline int occupancyPiece(int square) {
+        // return ERROR * (square < 0 || square > 63) + PAWN * (pawns.getBit(square)) + KNIGHT * (knights.getBit(square)) +
+        //        BISHOP * (bishops.getBit(square)) + ROOK * (rooks.getBit(square)) + QUEEN * (queens.getBit(square)) +
+        //        KING * (kings.getBit(square)) + NOPIECE;
+
+        if (square < 0 || square > 63)
+            return ERROR;
+        if (pawns.getBit(square))
+            return PAWN;
+        if (knights.getBit(square))
+            return KNIGHT;
+        if (bishops.getBit(square))
+            return BISHOP;
+        if (rooks.getBit(square))
+            return ROOK;
+        if (queens.getBit(square))
+            return QUEEN;
+        if (kings.getBit(square))
+            return KING;
+        return NOPIECE;
+    }
+};
+
 struct NNUEevaluator {
 
     bool initialized = false;
@@ -27,57 +90,111 @@ struct NNUEevaluator {
     int w2[outputBuckets][hl2Size][hl3Size], b2[outputBuckets][hl3Size];
     int w3[outputBuckets][hl3Size], b3[outputBuckets];
 
-    __int16_t hlSumW[hl1Size], hlSumB[hl1Size];
+    __int16_t hlSumW[maxDepth + 1][hl1Size];
+    __int16_t hlSumB[maxDepth + 1][hl1Size];
+
+    int ply;
+    int updateIter[maxDepth + 1];
+    int updateW[maxDepth + 1][4];
+    int updateB[maxDepth + 1][4];
+    SmallBoard boardStack[maxDepth + 1]; // need for lazy eval in hm nodes
+    int lastCleanAccumulator[maxDepth + 1];
 
     NNUEevaluator() {
+        ply = 0;
+        updateIter[0] = 0;
+        lastCleanAccumulator[0] = 0;
         for (int i = 0; i < hl1Size; i++)
-            hlSumW[i] = hlSumB[i] = b0[i];
+            hlSumW[0][i] = hlSumB[0][i] = b0[i];
     }
 
-    void clear() {
+    void clear(int idx) {
         for (int i = 0; i < hl1Size; i += 16) {
-            _mm256_storeu_si256((__m256i *)&hlSumW[i], _mm256_loadu_si256((__m256i *)&b0[i]));
-            _mm256_storeu_si256((__m256i *)&hlSumB[i], _mm256_loadu_si256((__m256i *)&b0[i]));
+            _mm256_storeu_si256((__m256i *)&hlSumW[idx][i], _mm256_loadu_si256((__m256i *)&b0[i]));
+            _mm256_storeu_si256((__m256i *)&hlSumB[idx][i], _mm256_loadu_si256((__m256i *)&b0[i]));
         }
     }
 
     void set0(pair<int, int> neuronIdx) {
-        for (int i = 0; i < hl1Size; i += 16) {
-
-            _mm256_storeu_si256((__m256i *)&hlSumW[i],
-                                _mm256_sub_epi16(_mm256_loadu_si256((__m256i *)&hlSumW[i]),
-                                                 _mm256_loadu_si256((__m256i *)&w0[neuronIdx.F][i])));
-
-            _mm256_storeu_si256((__m256i *)&hlSumB[i],
-                                _mm256_sub_epi16(_mm256_loadu_si256((__m256i *)&hlSumB[i]),
-                                                 _mm256_loadu_si256((__m256i *)&w0[neuronIdx.S][i])));
-
-            // hlSumW[i]-=w0[neuronIdx.F][i];
-            // hlSumB[i]-=w0[neuronIdx.S][i];
-        }
+        updateW[ply][updateIter[ply]] = neuronIdx.F;
+        updateB[ply][updateIter[ply]] = neuronIdx.S;
+        updateIter[ply]++;
     }
 
     void set1(pair<int, int> neuronIdx) {
-        // cout<<neuronIdx.F<<' '<<neuronIdx.S<<'\n';
+        updateW[ply][updateIter[ply]] = neuronIdx.F;
+        updateB[ply][updateIter[ply]] = neuronIdx.S;
+        updateIter[ply]++;
+    }
+
+    void Add(int idx, pair<int, int>updI) {
         for (int i = 0; i < hl1Size; i += 16) {
 
-            _mm256_storeu_si256((__m256i *)&hlSumW[i],
-                                _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&hlSumW[i]),
-                                                 _mm256_loadu_si256((__m256i *)&w0[neuronIdx.F][i])));
-
-            _mm256_storeu_si256((__m256i *)&hlSumB[i],
-                                _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&hlSumB[i]),
-                                                 _mm256_loadu_si256((__m256i *)&w0[neuronIdx.S][i])));
-
-            // hlSumW[i]+=w0[neuronIdx.F][i];
-            // hlSumB[i]+=w0[neuronIdx.S][i];
+            _mm256_storeu_si256((__m256i *)&hlSumW[idx][i],
+                                _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&hlSumW[idx][i]),
+                                                 _mm256_loadu_si256((__m256i *)&w0[updI.F][i])));
+            _mm256_storeu_si256((__m256i *)&hlSumB[idx][i],
+                                _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&hlSumB[idx][i]),
+                                                 _mm256_loadu_si256((__m256i *)&w0[updI.S][i])));
         }
-        // for(ll i=0;i<hl1Size;i++)
-        // 	cout<<hlSumW[i]<<' ';
-        // cout<<'\n';
-        // for(ll i=0;i<hl1Size;i++)
-        // 	cout<<hlSumB[i]<<' ';
-        // cout<<'\n';
+    }
+
+    
+
+    void SubAdd(int idx) {
+        for (int i = 0; i < hl1Size; i += 16) {
+
+            _mm256_storeu_si256((__m256i *)&hlSumW[idx][i],
+                                _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&hlSumW[idx - 1][i]),
+                                    _mm256_sub_epi16(_mm256_loadu_si256((__m256i *)&w0[updateW[idx][1]][i]),
+                                                     _mm256_loadu_si256((__m256i *)&w0[updateW[idx][0]][i]))));
+
+            _mm256_storeu_si256((__m256i *)&hlSumB[idx][i],
+                                _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&hlSumB[idx - 1][i]),
+                                    _mm256_sub_epi16(_mm256_loadu_si256((__m256i *)&w0[updateB[idx][1]][i]),
+                                                     _mm256_loadu_si256((__m256i *)&w0[updateB[idx][0]][i]))));
+        }
+    }
+
+    void SubSubAdd(int idx) {
+        for (int i = 0; i < hl1Size; i += 16) {
+
+            _mm256_storeu_si256((__m256i *)&hlSumW[idx][i],
+                                _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&hlSumW[idx - 1][i]),
+                                    _mm256_sub_epi16(_mm256_loadu_si256((__m256i *)&w0[updateW[idx][2]][i]),
+                                        _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&w0[updateW[idx][0]][i]),
+                                                     _mm256_loadu_si256((__m256i *)&w0[updateW[idx][1]][i])))));
+
+
+            _mm256_storeu_si256((__m256i *)&hlSumB[idx][i],
+                                _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&hlSumB[idx - 1][i]),
+                                    _mm256_sub_epi16(_mm256_loadu_si256((__m256i *)&w0[updateB[idx][2]][i]),
+                                        _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&w0[updateB[idx][0]][i]),
+                                                     _mm256_loadu_si256((__m256i *)&w0[updateB[idx][1]][i])))));
+
+        }
+    }
+
+    void SubAddSubAdd(int idx) {
+        for (int i = 0; i < hl1Size; i += 16) {
+
+            _mm256_storeu_si256((__m256i *)&hlSumW[idx][i],
+                                _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&hlSumW[idx - 1][i]),
+                                    _mm256_add_epi16(
+                                        _mm256_sub_epi16(_mm256_loadu_si256((__m256i *)&w0[updateW[idx][1]][i]),
+                                                         _mm256_loadu_si256((__m256i *)&w0[updateW[idx][0]][i])),
+                                        _mm256_sub_epi16(_mm256_loadu_si256((__m256i *)&w0[updateW[idx][3]][i]),
+                                                         _mm256_loadu_si256((__m256i *)&w0[updateW[idx][2]][i])))));
+
+            _mm256_storeu_si256((__m256i *)&hlSumB[idx][i],
+                                _mm256_add_epi16(_mm256_loadu_si256((__m256i *)&hlSumB[idx - 1][i]),
+                                    _mm256_add_epi16(
+                                        _mm256_sub_epi16(_mm256_loadu_si256((__m256i *)&w0[updateB[idx][1]][i]),
+                                                         _mm256_loadu_si256((__m256i *)&w0[updateB[idx][0]][i])),
+                                        _mm256_sub_epi16(_mm256_loadu_si256((__m256i *)&w0[updateB[idx][3]][i]),
+                                                         _mm256_loadu_si256((__m256i *)&w0[updateB[idx][2]][i])))));
+
+        }
     }
 
     int screlu(int x) {
@@ -94,7 +211,32 @@ struct NNUEevaluator {
         cout << '\n';
     }
 
+    void cleanAccumulators() {
+        int cleanAcc = lastCleanAccumulator[ply];
+        for (int i = cleanAcc + 1; i <= ply; i++) {
+            lastCleanAccumulator[i] = i;
+            if (updateIter[i] == 5) { // HM
+                clear(i);
+                Bitboard pieces = boardStack[i].whitePieces | boardStack[i].blackPieces;
+                while (pieces > 0) {
+                    int square = pieces.getFirstBitNumberAndExclude();
+                    int piece = boardStack[i].occupancyPiece(square);
+                    int pieceColor = boardStack[i].occupancy(square);
+                    if (pieceColor != EMPTY)
+                        Add(i, boardStack[i].getNNUEidx(square, piece, pieceColor));
+                }
+            } else if(updateIter[i] == 2) {
+                SubAdd(i);
+            } else if(updateIter[i] == 3) {
+                SubSubAdd(i);
+            } else if(updateIter[i] == 4) {
+                SubAddSubAdd(i);
+            }
+        }
+    }
+
     int evaluate(int color, int bucket) {
+        cleanAccumulators();
         uint16_t hl1Activations1[hl1Size * 2];
         alignas(64) uint8_t hl1Activations[hl1Size * 2];
 
@@ -103,7 +245,7 @@ struct NNUEevaluator {
         __m256i ql = _mm256_set1_epi16(Q);
 
         for (int i = 0; i < hl1Size; i += 16) {
-            __m256i ac1 = _mm256_loadu_si256((__m256i *)&hlSumW[i]);
+            __m256i ac1 = _mm256_loadu_si256((__m256i *)&hlSumW[ply][i]);
             ac1 = _mm256_and_si256(ac1, _mm256_cmpgt_epi16(ac1, zerosm));
             ac1 = _mm256_blendv_epi8(ac1, qas, _mm256_cmpgt_epi16(ac1, qas));
 
@@ -113,7 +255,7 @@ struct NNUEevaluator {
         }
 
         for (int i = 0; i < hl1Size; i += 16) {
-            __m256i ac1 = _mm256_loadu_si256((__m256i *)&hlSumB[i]);
+            __m256i ac1 = _mm256_loadu_si256((__m256i *)&hlSumB[ply][i]);
             ac1 = _mm256_and_si256(ac1, _mm256_cmpgt_epi16(ac1, zerosm));
             ac1 = _mm256_blendv_epi8(ac1, qas, _mm256_cmpgt_epi16(ac1, qas));
             
@@ -378,7 +520,7 @@ struct NNUEevaluator {
         for (int bucket = 0; bucket < outputBuckets; bucket++)
             b3[bucket] = getValue(data, iter, 32);
 
-        clear();
+        clear(0);
     }
 };
 

@@ -386,12 +386,13 @@ struct alignas(64) Board {
     }
 
     void initNNUE(NNUEevaluator &nnueEvaluator) {
-        nnueEvaluator.clear();
+        nnueEvaluator.ply = 0;
+        nnueEvaluator.clear(0);
         for (int square = 0; square < 64; square++) {
             int piece = occupancyPiece(square);
             int pieceColor = occupancy(square);
             if (pieceColor != EMPTY)
-                nnueEvaluator.set1(getNNUEidx(square, piece, pieceColor));
+                nnueEvaluator.Add(0, getNNUEidx(square, piece, pieceColor));
         }
     }
 
@@ -413,16 +414,20 @@ struct alignas(64) Board {
         ply1Ps = movingPiece;
 
         bool flipRecalc = false;
+
+        nnueEvaluator.ply++;
+        nnueEvaluator.lastCleanAccumulator[nnueEvaluator.ply] = nnueEvaluator.lastCleanAccumulator[nnueEvaluator.ply - 1];
+        nnueEvaluator.updateIter[nnueEvaluator.ply] = 0;
         
         enPassantColumn = NO_EN_PASSANT;
         if (movingPiece == PAWN) {
+            clearPosition(startSquare, nnueEvaluator);
             if ((abs(targetSquare - startSquare) & 1) && occupancy(targetSquare) == EMPTY) { // enPassant capture
                 if (color == WHITE)
                     clearPosition(targetSquare + 8, nnueEvaluator);
                 if (color == BLACK)
                     clearPosition(targetSquare - 8, nnueEvaluator);
             }
-            clearPosition(startSquare, nnueEvaluator);
             clearPosition(targetSquare, nnueEvaluator);
             if (move.getPromotionFlag() != NOPIECE)
                 movingPiece = move.getPromotionFlag();
@@ -461,8 +466,20 @@ struct alignas(64) Board {
             castlingBlackQueensideBroke = 1;
         if (startSquare == 7 || targetSquare == 7)
             castlingBlackKingsideBroke = 1;
-       if (flipRecalc)
-            initNNUE(nnueEvaluator);
+        if (flipRecalc) {
+            nnueEvaluator.updateIter[nnueEvaluator.ply] = 5;
+            int ply = nnueEvaluator.ply;
+            nnueEvaluator.boardStack[ply].whitePieces = whitePieces;
+            nnueEvaluator.boardStack[ply].blackPieces = blackPieces;
+            nnueEvaluator.boardStack[ply].pawns = pawns;
+            nnueEvaluator.boardStack[ply].knights = knights;
+            nnueEvaluator.boardStack[ply].bishops = bishops;
+            nnueEvaluator.boardStack[ply].rooks = rooks;
+            nnueEvaluator.boardStack[ply].queens = queens;
+            nnueEvaluator.boardStack[ply].kings = kings;
+            nnueEvaluator.boardStack[ply].flippedW = flippedW;
+            nnueEvaluator.boardStack[ply].flippedB = flippedB;
+        }
     }
 
     inline void clearPositionZbr(int square) {
