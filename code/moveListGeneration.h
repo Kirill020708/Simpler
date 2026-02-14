@@ -105,12 +105,13 @@ struct MoveListGenerator {
                     seeTable[startSquare][targetSquare] = sseEval;
 
                     int historyScore = historyHelper.getScore(board, color, Move(startSquare, targetSquare, NOPIECE));
-                    float historyScoreF = float(historyScore) / historyHelper.maxHistoryScore;
+                    int normHistoryScore = historyScore - historyHelper.maxHistoryScore;
+                    float historyScoreF = float(normHistoryScore) / historyHelper.maxHistoryScore;
 
                     if (captureEval <= -100 && onlyCaptures)
                     	continue;
 
-                    if (captureEval >= -120 - historyScoreF * 100)
+                    if (captureEval >= -220 - historyScoreF * 100)
                         captureCoeff += (1 << 15);
 
                     captureCoeff += (material[capturedPiece] + historyScore * 20) + 10;
