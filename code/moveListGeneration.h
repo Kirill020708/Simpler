@@ -108,7 +108,7 @@ struct MoveListGenerator {
                     int normHistoryScore = historyScore - historyHelper.maxHistoryScore;
                     float historyScoreF = float(normHistoryScore) / historyHelper.maxHistoryScore;
 
-                    if (captureEval <= -100 && onlyCaptures)
+                    if (captureEval <= -120 - historyScoreF * 100 && onlyCaptures)
                     	continue;
 
                     if (captureEval >= -220 - historyScoreF * 100)
