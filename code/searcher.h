@@ -656,6 +656,28 @@ struct Worker {
             				   bestScore <= -MATE_SCORE_MAX_PLY ||
             				   isMateScores);
 
+
+            // Late move reduction
+            const int LMR_FULL_MOVES = 2; // number of moves to search with full depth
+            const int LMR_MIN_DEPTH = 3;  // don't reduct depth if it's more or equal to this value
+
+            int lmrReduction =
+                floor(lmrLogTable[depth][movesSearched] + 0.5 
+                	- 1 * (isPvNode)
+                	- 1.5 * historyValueF
+                	+ 0.5 * (!improving)
+                	+ 1 * (isTTCapture)
+                	- 1 * (isCapture)
+                	- 0.002 * sseEval
+                    - 1 * (isKiller)); // reduction of depth
+
+            if (lmrReduction < 0)
+                lmrReduction = 0;
+
+            lmrReduction = min(lmrReduction, depth - 1);
+
+            int lmrDepth = depth - lmrReduction;
+
             // Conditions for moveloop pruning
             if (!beingMated &&
             	!isRoot &&
@@ -695,7 +717,7 @@ struct Worker {
 	            if (movesSearched > 0 &&
 	            	!isPvNode &&
 	            	!inCheck &&
-	                sseEval <= -(100 + historyValueF * 70) * depth) {
+	                sseEval <= -(100 + historyValueF * 70) * lmrDepth) {
 
 	                continue;
 	            }
@@ -718,26 +740,6 @@ struct Worker {
 
             int score;
             if (movesSearched) { // Principal variation search
-
-                // Late move reduction
-                const int LMR_FULL_MOVES = 2; // number of moves to search with full depth
-                const int LMR_MIN_DEPTH = 3;  // don't reduct depth if it's more or equal to this value
-
-                int lmrReduction =
-                    floor(lmrLogTable[depth][movesSearched] + 0.5 
-                    	- 1 * (isPvNode)
-                    	- 1.5 * historyValueF
-                    	+ 0.5 * (!improving)
-                    	+ 1 * (isTTCapture)
-                    	- 1 * (isCapture)
-                    	- 0.002 * sseEval
-                        - 1 * (isKiller)); // reduction of depth
-
-                if (lmrReduction < 0)
-                    lmrReduction = 0;
-
-                lmrReduction = min(lmrReduction, depth - 1);
-
 
                 bool doLMRcapture = true;
                 if (inCheck)
