@@ -521,6 +521,21 @@ struct Worker {
 		    }
         }
 
+        // Small probCut
+        int smallProbCutBeta = beta + 400;
+
+        if (!isRoot &&
+        	!isPvNode && 
+        	!isMovingSideInCheck &&
+        	!searchStack[ply].excludeTTmove &&
+        	!isMateScores &&
+        	ttEntry.type == LOWER_BOUND &&
+        	ttEntry.depth >= depth - probcutDepthR &&
+        	ttEntry.score >= smallProbCutBeta){
+
+        	return smallProbCutBeta;
+        }
+
 
         int killerMove = 0, killerBackup = 1;
 
