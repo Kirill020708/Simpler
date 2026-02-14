@@ -289,6 +289,18 @@ struct Worker {
                 if (alpha < score)
                     alpha = score;
                 if (alpha >= beta) {
+
+		        	int historyBonus = 10;
+		        	int maluseBonus = 10;
+
+                    historyHelper.update(board, color, move, historyBonus);
+
+                    for (int previousMoves = 0; previousMoves < currentMove;
+                         previousMoves++) { // negate all searched non-capture moves
+                        Move prevMove = moveListGenerator.moveList[ply][previousMoves];
+                        historyHelper.update(board, color, prevMove, -maluseBonus);
+                    }
+
                     transpositionTable.write(board, currentZobristKey, score, rawStaticEval, 0, LOWER_BOUND,
                                                       boardCurrentAge, move, ply);
                     return bestScore;
