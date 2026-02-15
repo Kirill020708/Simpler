@@ -493,7 +493,7 @@ struct Worker {
 
         	int probcutBeta = beta + 200;
 
-        	if (ttEntry.type == NONE || ttEntry.score >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
+        	if (ttEntry.type == NONE || ttEntry.score >= probcutBeta || ttEntry.depth < depth - probcutDepthR + 1) {
 
 	        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
 
