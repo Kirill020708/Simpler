@@ -591,6 +591,8 @@ struct Worker {
         		return beta; // Multicut
             else if (ttEntry.score >= beta)
                 extendTTmove = -1; // Negative extensions
+            else if (cutNode)
+            	extendTTmove = -1;
         }
 
         int bestScore = -inf;
