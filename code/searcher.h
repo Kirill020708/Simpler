@@ -379,7 +379,9 @@ struct Worker {
         	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
             transpositionTable.writeStaticEval(currentZobristKey, rawStaticEval);
     	}
-    	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+    	int corrValue = corrhistHelper.getScore(color, board);
+    	staticEval = rawStaticEval + corrValue;
+    	corrValue = abs(corrValue);
 
         auto scorrEntry = ttEntry;
         correctTTscore(scorrEntry, staticEval, staticEval);
@@ -415,7 +417,7 @@ struct Worker {
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
-            int margin = (30 - improving * 15) * max(depth, 1) * max(depth, 1);
+            int margin = (30 - improving * 15 + corrValue / 10) * max(depth, 1) * max(depth, 1);
 
             if (staticEval >= beta + margin)
                 return (staticEval + beta) / 2;
