@@ -80,6 +80,8 @@ struct MoveListGenerator {
         Bitboard pieces = friendPieces;
         int currentEvaluation = board.evaluation;
 
+        int prevMoveTarget = board.ply1Sq;
+
         while (pieces > 0) {
             int startSquare = pieces.getFirstBitNumberAndExclude();
             Bitboard moves = moveGenerator.moves(board, startSquare);
@@ -113,6 +115,9 @@ struct MoveListGenerator {
 
                     if (captureEval >= -220 - historyScoreF * 100)
                         captureCoeff += (1 << 15);
+
+                    if (targetSquare == prevMoveTarget)
+                        captureCoeff += 300;
 
                     captureCoeff += (material[capturedPiece] + historyScore * 20) + 10;
 
