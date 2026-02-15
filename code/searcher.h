@@ -729,6 +729,7 @@ struct Worker {
                     	- 1.5 * historyValueF
                     	+ 0.5 * (!improving)
                     	+ 1 * (isTTCapture)
+                    	+ 1 * cutNode
                     	- 1 * (isCapture)
                     	- 0.002 * sseEval
                         - 1 * (isKiller)); // reduction of depth
