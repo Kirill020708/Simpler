@@ -126,6 +126,8 @@ def main():
     '''
     )
 
+    parser.add_argument('--homePath', type=str, default=os.getcwd())
+
     parser.add_argument('--threads', type=int, default=1)
     parser.add_argument('--file', type=str, default='')
     parser.add_argument('--softnodes', type=int, default=5000)
@@ -149,6 +151,9 @@ def main():
     
     args = parser.parse_args()
 
+
+    current_path = args.homePath
+
     if args.stats:
         aggregate_stats()
 
@@ -162,9 +167,7 @@ def main():
         terminateProcesses()
     
     if args.launch:
-        current_path = os.getcwd()
 
-        input_template = f"""datagen outputDir {current_path} softnodes {args.softnodes} hardnodes {args.hardnodes} games {args.games} id %d resignMoveCount {args.resignMoveCount} resignScore {args.resignScore} drawMoveCount {args.drawMoveCount} minDrawMoveCount {args.minDrawMoveCount} drawScore {args.drawScore}"""
         
         processes = []
         for i in range(args.threads):
@@ -176,8 +179,9 @@ def main():
                 stderr=subprocess.DEVNULL,
                 text=True
             )
+            seed = random.randInt(0,10000000)
+            input_template = f"""datagen seed {seed} outputDir {current_path} softnodes {args.softnodes} hardnodes {args.hardnodes} games {args.games} id {thread_id} resignMoveCount {args.resignMoveCount} resignScore {args.resignScore} drawMoveCount {args.drawMoveCount} minDrawMoveCount {args.minDrawMoveCount} drawScore {args.drawScore}"""
             process.stdin.write(input_template % thread_id)
-            print(input_template % thread_id)
             process.stdin.close()
             processes.append(process)
 
