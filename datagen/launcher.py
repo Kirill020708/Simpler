@@ -180,9 +180,9 @@ def main():
                 stderr=subprocess.DEVNULL,
                 text=True
             )
-            seed = random.randInt(0,10000000)
+            seed = random.randint(0,10000000)
             input_template = f"""datagen seed {seed} outputDir {current_path} softnodes {args.softnodes} hardnodes {args.hardnodes} games {args.games} id {thread_id} resignMoveCount {args.resignMoveCount} resignScore {args.resignScore} drawMoveCount {args.drawMoveCount} minDrawMoveCount {args.minDrawMoveCount} drawScore {args.drawScore}"""
-            process.stdin.write(input_template % thread_id)
+            process.stdin.write(input_template)
             process.stdin.close()
             processes.append(process)
 
