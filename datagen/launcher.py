@@ -5,6 +5,7 @@ import os
 import sys
 import glob
 import platform
+import random
 
 
 def aggregate_stats():
