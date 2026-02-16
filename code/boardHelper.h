@@ -18,8 +18,10 @@ struct BoardHelper {
 
     Bitboard possiblePawnDefendersWhite[64], possiblePawnDefendersBlack[64]; // squares for checking for passed pawn
     Bitboard possibleOutpostDefendersWhite[64], possibleOutpostDefendersBlack[64]; // squares for checking for outpost
+    
+    Bitboard rayPair[64][64];
+    Bitboard rookRays[64], bishopRays[64];
 
-    Bitboard updatedSquares[64];
 
     Bitboard columnUp[64], columnDown[64];
 
@@ -66,11 +68,45 @@ struct BoardHelper {
     constexpr BoardHelper()
         : kingMoves{}, knightMoves{}, pawnMoves{}, pawnCaptures{}, pawnCaptureLeft{}, pawnCaptureRight{},
           neighborColumns{}, columns{}, possiblePawnDefendersWhite{}, possiblePawnDefendersBlack{},
-          possibleOutpostDefendersWhite{}, possibleOutpostDefendersBlack{}, updatedSquares{}, columnUp{}, columnDown{},
-          distanceToEdge{} {
+          possibleOutpostDefendersWhite{}, possibleOutpostDefendersBlack{}, rayPair{}, columnUp{}, columnDown{},
+          distanceToEdge{}, rookRays{}, bishopRays{} {
         for (int i = 0; i < 8; i++)
             for (int j = 0; j < 8; j++) {
                 int s = i * 8 + j;
+
+                for (int i1 = 0; i1 < 8; i1++)
+                    for (int j1 = 0; j1 < 8; j1++) {
+                        int s1 = i1 * 8 + j1;
+
+                        int x1 = min(i, i1), y1 = min(j, j1);
+                        int x2 = max(i, i1), y2 = max(j, j1);
+
+                        if (i1 == i) {
+                            for (int it = y1; it <= y2; it++)
+                                rayPair[s][s1] |= (1ull << (i * 8 + it));
+                        }
+
+                        if (j1 == j) {
+                            for (int it = x1; it <= x2; it++)
+                                rayPair[s][s1] |= (1ull << (it * 8 + j));
+                        }
+
+                        if (i + j == i1 + j1) {
+                            for (int it = x1; it <= x2; it++) {
+                                int jt = y2 - (it - x1);
+                                rayPair[s][s1] |= (1ull << (it * 8 + jt));
+                            }
+                        }
+
+                        if (i - j == i1 - j1) {
+                            for (int it = x1; it <= x2; it++) {
+                                int jt = y1 + (it - x1);
+                                rayPair[s][s1] |= (1ull << (it * 8 + jt));
+                            }
+                        }
+
+                        rayPair[s][s1] &= (~(1ull << s));
+                    }
 
                 columns[s] = getColumn(j);
 
@@ -149,12 +185,13 @@ struct BoardHelper {
                     }
                 }
 
-                updatedSquares[s] = kingMoves[s] | knightMoves[s];
                 for (ll i1 = 0; i1 < 8; i1++)
                     for (ll j1 = 0; j1 < 8; j1++) {
                         ll s1 = i1 * 8 + j1;
-                        if (i1 == i || j1 == j || (c_abs(i - i1) == 1 && c_abs(j - j1) == 1))
-                            updatedSquares[s] |= (1ull << s1);
+                        if (i1 == i || j1 == j)
+                            rookRays[s] |= (1ull << s1);
+                        if (c_abs(i - i1) == c_abs(j - j1))
+                            bishopRays[s] |= (1ull << s1);
                     }
 
                 distanceToEdge[s] = c_min(i, 7 - i) + c_min(j, 7 - j);
