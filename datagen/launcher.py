@@ -85,9 +85,12 @@ def cleanData():
 
     print(f"Cleaned {len(data_files) - 1} files\n")
 
+current_path = ''
 
 def terminateProcesses():
-    system = platform.system()
+    global current_path
+    open(current_path+"/datagenFiles/exit.txt", "w").close()
+    '''system = platform.system()
     
     if system == "Windows":
         cmd = ["taskkill", "/F", "/IM", "Simpler.exe"]
@@ -98,10 +101,11 @@ def terminateProcesses():
         subprocess.run(cmd, capture_output=True, text=True)
         print(f"Killed Simpler processes on {system}")
     except:
-        print("No Simpler processes found or command failed")
+        print("No Simpler processes found or command failed")'''
 
 
 def main():
+    global current_path
 
     parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,

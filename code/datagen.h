@@ -5,6 +5,8 @@
 
 #endif /* SEARCHER */
 
+#include <filesystem>
+
 struct DataGenerator {
     string outputDir = "";
     int workerId;
@@ -308,6 +310,9 @@ struct DataGenerator {
             out << "total_time: " << sec << endl;
             out << "games_per_sec: " << fixed << setprecision(1) << curGame * 1000.0 / elapsedTime << endl;
             out << "positions_per_sec: " << positionsNumber * 1000 / elapsedTime << endl;
+
+            if (filesystem::exists(outputDir + "/datagenFiles/exit.txt"))
+                break;
             if (curGame == numberOfGames) {
                 // for(int i=0;i<threadNumber;i++)
                 // 	if(i!=0){
@@ -320,6 +325,7 @@ struct DataGenerator {
             }
             // threadPool[0]=thread(&DataGenerator::playGame,this,0);
         }
+        exit(0);
     }
 };
 
