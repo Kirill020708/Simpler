@@ -318,6 +318,7 @@ struct UCIcommunicationHepler {
         if (mainCommand == "d") {
             cout << mainBoard.generateFEN() << endl;
         }
+
         if (mainCommand == "datagen") {
             int gamesNumber = 1;
             for (int i = 1; i < tokens.size(); i++) {
@@ -327,10 +328,24 @@ struct UCIcommunicationHepler {
                     dataGenerator.hardNodesLimit = stoi(tokens[i + 1]);
                 if (tokens[i] == "threads")
                     dataGenerator.threadNumber = stoi(tokens[i + 1]);
-                if (tokens[i] == "file")
-                    dataGenerator.outputPathBin = tokens[i + 1];
+                if (tokens[i] == "id")
+                    dataGenerator.workerId = stoi(tokens[i + 1]);
+                if (tokens[i] == "seed")
+                    dataGenerator.seed = stoi(tokens[i + 1]);
                 if (tokens[i] == "games")
                     gamesNumber = stoi(tokens[i + 1]);
+                if (tokens[i] == "resignMoveCount")
+                    dataGenerator.resignMoveCount = stoi(tokens[i + 1]);
+                if (tokens[i] == "resignScore")
+                    dataGenerator.resignScore = stoi(tokens[i + 1]);
+                if (tokens[i] == "drawMoveCount")
+                    dataGenerator.drawMoveCount = stoi(tokens[i + 1]);
+                if (tokens[i] == "minDrawMoveCount")
+                    dataGenerator.minDrawMoveCount = stoi(tokens[i + 1]);
+                if (tokens[i] == "drawScore")
+                    dataGenerator.drawScore = stoi(tokens[i + 1]);
+                if (tokens[i] == "outputDir")
+                    dataGenerator.outputDir = (tokens[i + 1]);
             }
             dataGenerator.generateData(gamesNumber);
         }

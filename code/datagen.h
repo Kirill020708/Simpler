@@ -6,8 +6,10 @@
 #endif /* SEARCHER */
 
 struct DataGenerator {
-    string outputPath = "/Users/Apple/Desktop/projects/chessEngv2/NNUE/datagen.txt";
-    string outputPathBin = "/Users/Apple/Desktop/projects/chessEngv2/NNUE/data.vf";
+    string outputDir = "";
+    int workerId;
+    int seed = 0;
+
     int softNodesLimit = 5000, hardNodesLimit = 50000;
     int threadNumber = 1;
 
@@ -17,13 +19,7 @@ struct DataGenerator {
 
     int drawMoveCount = 8, minDrawMoveCount = 34, drawScore = 20;
 
-    vector<Worker> workers;
-    vector<Board> boards;
-
-    vector<int> results;
-    vector<vector<char>> resultsBin;
-
-    vector<bool> finished;
+    int positionsNumber = 0;
 
     inline int mirroredSquare(int square) {
         int row = 7 - (square >> 3);
@@ -31,7 +27,11 @@ struct DataGenerator {
         return (row << 3) + col;
     }
 
-    void playGame(int workerIdx) {
+    vector<char> resultsBin;
+
+    void playGame() {
+        resultsBin.clear();
+
         int curMoveNumber = 0;
         int result = -10;
 
@@ -46,40 +46,46 @@ struct DataGenerator {
 
         int resultBinPos = -1;
 
+        mainBoard = Board();
+
+        MoveListGenerator moveListGenerator;
+
+        bool firstPos = true;
+
         while (true) {
             curMoveNumber++;
             if (curMoveNumber <= curRandomMoveCount) {
 
-                workers[workerIdx].moveListGenerator.generateMoves(boards[workerIdx], workers[workerIdx].historyHelper,
-                                                                   boards[workerIdx].boardColor, 0, DONT_SORT,
+                moveListGenerator.generateMoves(mainBoard, searcher.workers[0].historyHelper,
+                                                                   mainBoard.boardColor, 0, DONT_SORT,
                                                                    ALL_MOVES);
-                int movesCount = workers[workerIdx].moveListGenerator.moveListSize[0];
-                Move randomMove = workers[workerIdx].moveListGenerator.moveList[0][rngT() % movesCount];
-                boards[workerIdx].makeMove(randomMove, workers[workerIdx].nnueEvaluator);
+                int movesCount = moveListGenerator.moveListSize[0];
+                Move randomMove = moveListGenerator.moveList[0][rngT() % movesCount];
+                mainBoard.makeMove(randomMove);
 
                 if (curMoveNumber == curRandomMoveCount) {
-                    ull board = (boards[workerIdx].whitePieces | boards[workerIdx].blackPieces).bitboard;
+                    ull board = (mainBoard.whitePieces | mainBoard.blackPieces).bitboard;
                     for (int i = 7; i >= 0; i--)
-                        resultsBin[workerIdx].push_back((board & (ull(0b11111111) << (i * 8))) >> (i * 8));
+                        resultsBin.push_back((board & (ull(0b11111111) << (i * 8))) >> (i * 8));
 
                     char prevPiece = -1;
                     int nmbOfPieces = 0;
                     for (int row = 7; row >= 0; row--)
                         for (int col = 0; col < 8; col++) {
                             int square = row * 8 + col;
-                            int color = boards[workerIdx].occupancy(square);
-                            int piece = boards[workerIdx].occupancyPiece(square);
+                            int color = mainBoard.occupancy(square);
+                            int piece = mainBoard.occupancyPiece(square);
                             if (color != EMPTY) {
                                 nmbOfPieces++;
                                 char code = (piece - 1);
                                 if (piece == ROOK) {
-                                    if (square == 0 && boards[workerIdx].castlingBlackQueensideBroke == false)
+                                    if (square == 0 && mainBoard.castlingBlackQueensideBroke == false)
                                         code = 6;
-                                    if (square == 7 && boards[workerIdx].castlingBlackKingsideBroke == false)
+                                    if (square == 7 && mainBoard.castlingBlackKingsideBroke == false)
                                         code = 6;
-                                    if (square == 56 && boards[workerIdx].castlingWhiteQueensideBroke == false)
+                                    if (square == 56 && mainBoard.castlingWhiteQueensideBroke == false)
                                         code = 6;
-                                    if (square == 63 && boards[workerIdx].castlingWhiteKingsideBroke == false)
+                                    if (square == 63 && mainBoard.castlingWhiteKingsideBroke == false)
                                         code = 6;
                                 }
                                 if (color == BLACK)
@@ -88,7 +94,7 @@ struct DataGenerator {
                                     prevPiece = code;
                                 else {
                                     code = (prevPiece) + (code << 4);
-                                    resultsBin[workerIdx].push_back(code);
+                                    resultsBin.push_back(code);
                                     prevPiece = -1;
                                 }
                             }
@@ -100,44 +106,52 @@ struct DataGenerator {
                             prevPiece = code;
                         else {
                             code = (prevPiece) + (code << 4);
-                            resultsBin[workerIdx].push_back(code);
+                            resultsBin.push_back(code);
                             prevPiece = -1;
                         }
                     }
                     char enp = 64;
-                    if (boards[workerIdx].enPassantColumn != NO_EN_PASSANT) {
-                        int col = boards[workerIdx].enPassantColumn;
+                    if (mainBoard.enPassantColumn != NO_EN_PASSANT) {
+                        int col = mainBoard.enPassantColumn;
                         int row = 5;
-                        if (boards[workerIdx].boardColor == BLACK)
+                        if (mainBoard.boardColor == BLACK)
                             row = 2;
                         enp = row * 8 + col;
                     }
-                    if (boards[workerIdx].boardColor == BLACK)
+                    if (mainBoard.boardColor == BLACK)
                         enp += (1 << 7);
-                    resultsBin[workerIdx].push_back(enp);
+                    resultsBin.push_back(enp);
 
-                    resultsBin[workerIdx].push_back(0);
-                    resultsBin[workerIdx].push_back(0);
-                    resultsBin[workerIdx].push_back(0);
-                    resultsBin[workerIdx].push_back(0);
-                    resultsBin[workerIdx].push_back(0);
+                    resultsBin.push_back(0);
+                    resultsBin.push_back(0);
+                    resultsBin.push_back(0);
+                    resultsBin.push_back(0);
+                    resultsBin.push_back(0);
 
-                    resultBinPos = resultsBin[workerIdx].size();
+                    resultBinPos = resultsBin.size();
 
-                    resultsBin[workerIdx].push_back(0);
+                    resultsBin.push_back(0);
                 }
 
             } else {
-                results[workerIdx]++;
-                workers[workerIdx].IDsearchDatagen(boards[workerIdx], 256, softNodesLimit, hardNodesLimit);
-                int score = workers[workerIdx].rootScore;
-                if (boards[workerIdx].boardColor == BLACK)
+                positionsNumber++;
+                searcher.datagenSearch(256, softNodesLimit, hardNodesLimit);
+                int score = searcher.workers[0].rootScore;
+
+                if (firstPos && score >= 1000) {
+                    resultsBin.clear();
+                    resultBinPos = -10;
+                    break;
+                }
+                firstPos = false;
+
+                if (mainBoard.boardColor == BLACK)
                     score = -score;
                 // if(abs(score)<=9000){
-                // 	results[workerIdx].push_back(boards[workerIdx].generateFEN()+" | "+to_string(score)+" | ");
+                // 	results[0].push_back(mainBoard.generateFEN()+" | "+to_string(score)+" | ");
                 // }
 
-                Move bestMove = workers[workerIdx].bestMove;
+                Move bestMove = searcher.workers[0].bestMove;
                 int start = bestMove.getStartSquare();
                 int target = bestMove.getTargetSquare();
                 int prom = bestMove.getPromotionFlag();
@@ -149,11 +163,11 @@ struct DataGenerator {
                     prom -= 2;
                 }
 
-                if (boards[workerIdx].occupancyPiece(start) == PAWN && (start & 7) != (target & 7) &&
-                    boards[workerIdx].occupancyPiece(target) == NOPIECE)
+                if (mainBoard.occupancyPiece(start) == PAWN && (start & 7) != (target & 7) &&
+                    mainBoard.occupancyPiece(target) == NOPIECE)
                     type = 1; // en-passant
 
-                if (boards[workerIdx].occupancyPiece(start) == KING && abs((start & 7) - (target & 7)) >= 2) {
+                if (mainBoard.occupancyPiece(start) == KING && abs((start & 7) - (target & 7)) >= 2) {
                     type = 2; // castling
                     if (target == 2)
                         target = 0;
@@ -167,17 +181,17 @@ struct DataGenerator {
 
                 int moveCode = Move(mirroredSquare(start), mirroredSquare(target), prom).move;
                 moveCode += (type << 14);
-                resultsBin[workerIdx].push_back(moveCode & 255);
-                resultsBin[workerIdx].push_back((moveCode >> 8) & 255);
+                resultsBin.push_back(moveCode & 255);
+                resultsBin.push_back((moveCode >> 8) & 255);
 
                 if (score > 32767)
                     score = 32767;
                 if (score < -32768)
                     score = -32768;
-                resultsBin[workerIdx].push_back(score & 255);
-                resultsBin[workerIdx].push_back((score >> 8) & 255);
+                resultsBin.push_back(score & 255);
+                resultsBin.push_back((score >> 8) & 255);
 
-                boards[workerIdx].makeMove(workers[workerIdx].bestMove, workers[workerIdx].nnueEvaluator);
+                mainBoard.makeMove(searcher.workers[0].bestMove, searcher.workers[0].nnueEvaluator);
 
                 if (score >= resignScore)
                     winningStreakW++;
@@ -196,11 +210,11 @@ struct DataGenerator {
             }
             // cout<<curMoveNumber<<'\n';
 
-            if (workers[workerIdx].moveListGenerator.isStalled(boards[workerIdx], boards[workerIdx].boardColor) ||
-                evaluator.insufficientMaterialDraw(boards[workerIdx])) {
+            if (moveListGenerator.isStalled(mainBoard, mainBoard.boardColor) ||
+                evaluator.insufficientMaterialDraw(mainBoard)) {
 
-                int resultEval = evaluator.evaluateStalledPosition(boards[workerIdx], boards[workerIdx].boardColor, 0);
-                if (boards[workerIdx].boardColor == BLACK)
+                int resultEval = evaluator.evaluateStalledPosition(mainBoard, mainBoard.boardColor, 0);
+                if (mainBoard.boardColor == BLACK)
                     resultEval = -resultEval;
 
                 if (resultEval > 0)
@@ -212,7 +226,7 @@ struct DataGenerator {
                 break;
             }
 
-            int moves50 = (boards[workerIdx].age - boards[workerIdx].lastIrreversibleMoveAge - 1);
+            int moves50 = (mainBoard.age - mainBoard.lastIrreversibleMoveAge - 1);
             if (moves50 >= 50) {
                 result = 0;
                 break;
@@ -232,9 +246,6 @@ struct DataGenerator {
                 result = 0;
                 break;
             }
-
-            if (finished[workerIdx] == true)
-                break;
         }
 
         string resultStr;
@@ -245,40 +256,25 @@ struct DataGenerator {
         if (result == -1)
             resultStr = "0.0";
 
-        resultsBin[workerIdx].push_back(0);
-        resultsBin[workerIdx].push_back(0);
-        resultsBin[workerIdx].push_back(0);
-        resultsBin[workerIdx].push_back(0);
+        resultsBin.push_back(0);
+        resultsBin.push_back(0);
+        resultsBin.push_back(0);
+        resultsBin.push_back(0);
 
         if (resultBinPos >= 0)
-            resultsBin[workerIdx].insert(resultsBin[workerIdx].begin() + resultBinPos, char(result + 1));
+            resultsBin.insert(resultsBin.begin() + resultBinPos, char(result + 1));
         else
-            resultsBin[workerIdx].clear();
+            resultsBin.clear();
 
-        // for(auto &str:results[workerIdx])
+        // for(auto &str:results[0])
         // 	str+=resultStr;
-        finished[workerIdx] = true;
     }
 
     void generateData(int numberOfGames) {
-        alwaysReplace = true;
-        workers.resize(threadNumber);
-        boards.resize(threadNumber, mainBoard);
-        results.resize(threadNumber, 0);
-        resultsBin.resize(threadNumber);
-        finished.resize(threadNumber, false);
-        vector<thread> threadPool(threadNumber);
 
-        for (int i = 0; i < threadNumber; i++) {
-            workers[i].nnueEvaluator = mainNnueEvaluator;
-            mainBoard.initNNUE(workers[i].nnueEvaluator);
-            for (ll j = 0; j < 256; j++) {
-                for (ll j1 = 0; j1 < 2; j1++) {
-                    workers[i].killers[j][j1] = Move();
-                    workers[i].killersAge[j][j1] = 0;
-                }
-            }
-        }
+        string outputPathBin = outputDir + "/datagenFiles/data/data" + to_string(workerId) + ".vf";
+        string outputPathStats = outputDir + "/datagenFiles/stats/stat" + to_string(workerId) + ".txt";
+        // searcher.doInfoOutput = false;
 
         // ofstream out(outputPath);
         ofstream outBin(outputPathBin, ios::binary);
@@ -286,90 +282,44 @@ struct DataGenerator {
         // for(int i=0;i<threadNumber;i++)
         // 	threadPool[i]=thread(&DataGenerator::playGame,this,i);
 
-        long long curGame = 0, positionsNumber = 0;
+        long long curGame = 0;
 
         std::chrono::steady_clock::time_point timeStart = std::chrono::steady_clock::now();
 
-        cout << endl;
 
         while (true) {
-            int finishedThread = 0;
-            playGame(finishedThread);
-            // for(int i=0;i<threadNumber;i++)
-            // 	if(finished[i]){
-            // 		finishedThread=i;
-            // 		break;
-            // 	}
-            // if(finishedThread==-1){
-            // 	std::this_thread::sleep_for(std::chrono::microseconds(100));
-            // 	continue;
-            // }
+            playGame();
             curGame++;
-            // threadPool[finishedThread].join();
-            positionsNumber += results[finishedThread];
 
-            // for(auto str:results[finishedThread])
-            // 	out<<str<<'\n';
-
-            for (auto bt : resultsBin[finishedThread]) {
-                // for(int j=0;j<8;j++)
-                // 	out<<((bt&(1<<j))!=0);
-                // out<<' ';
+            for (auto bt : resultsBin) {
                 outBin.write(reinterpret_cast<char *>(&bt), sizeof(bt));
             }
-
-            boards[finishedThread] = mainBoard;
-            results[finishedThread] = 0;
-            resultsBin[finishedThread] = vector<char>();
-            finished[finishedThread] = false;
-
-            workers[finishedThread].nnueEvaluator = mainNnueEvaluator;
-            mainBoard.initNNUE(workers[finishedThread].nnueEvaluator);
 
             std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
             long long elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - timeStart).count();
 
-            if (curGame > 1) {
-                cout << "\033[2K";
-                cout << "\033[1A\r";
-                cout << "\033[2K";
-                cout << "\033[1A\r";
-                cout << "\033[2K";
-                cout << "\033[1A\r";
-                cout << "\033[2K";
-                cout << "\033[1A\r";
-                cout << "\033[2K";
-                cout << "\033[1A\r";
-                cout << "\033[2K";
-                cout << "\033[1A\r";
-                cout << "\033[2K";
-                cout.flush();
-            }
+            ofstream out(outputPathStats);
 
-            cout << "Games played: " << curGame << endl;
-            cout << "Positions saved: " << positionsNumber << endl;
-            cout << "Positions per game: " << positionsNumber / curGame << endl;
+            out << "seed: " << seed << endl;
+            out << "games_number: " << curGame << endl;
+            out << "positions_saved: " << positionsNumber << endl;
+            out << "positions_per_game: " << positionsNumber / curGame << endl;
             long long sec = elapsedTime / 1000;
-            long long min = sec / 60;
-            sec %= 60;
-            long long hrs = min / 60;
-            min %= 60;
-            cout << "Total time: " << hrs << "h " << min << "m " << sec << "s" << endl;
-            cout << "Games per sec: " << fixed << setprecision(1) << curGame * 1000.0 / elapsedTime << endl;
-            cout << "Positions per sec: " << positionsNumber * 1000 / elapsedTime << endl;
+            out << "total_time: " << sec << endl;
+            out << "games_per_sec: " << fixed << setprecision(1) << curGame * 1000.0 / elapsedTime << endl;
+            out << "positions_per_sec: " << positionsNumber * 1000 / elapsedTime << endl;
             if (curGame == numberOfGames) {
                 // for(int i=0;i<threadNumber;i++)
-                // 	if(i!=finishedThread){
+                // 	if(i!=0){
                 // 		finished[i]=true;
                 // 		threadPool[i].join();
                 // 	}
 
-                cout << "Done!\n" << endl;
+                // cout << "Done!\n" << endl;
                 break;
             }
-            // threadPool[finishedThread]=thread(&DataGenerator::playGame,this,finishedThread);
+            // threadPool[0]=thread(&DataGenerator::playGame,this,0);
         }
-        alwaysReplace = false;
     }
 };
 

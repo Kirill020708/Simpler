@@ -912,10 +912,12 @@ struct Worker {
 
         int score = 0;
 
+        hardTimeBound = 1e9;
+
         for (int depth = 1; depth <= maxDepth; depth++) {
             // workers[0].nnueEvaluator.printAccum();
             // cout<<'\n';
-            int alpha = -inf * 2, beta = inf * 2;
+            int alpha = -MATE_SCORE, beta = MATE_SCORE;
 
             if (depth == 1)
             	search<PV>(board, board.boardColor, depth, 1, alpha, beta, 0, 0, false);
@@ -924,7 +926,7 @@ struct Worker {
 
             score = rootScore;
 
-            // cout<<"depth "<<depth<<" score "<<rootScore<<' '<<bestMove.convertToUCI()<<'\n';
+            // cout<<"nodes "<<nodes<<" depth "<<depth<<" score "<<rootScore<<' '<<bestMove.convertToUCI()<<'\n';
 
             if (nodes >= min(nodesLimit, nodesH))
                 break;
@@ -1140,6 +1142,39 @@ struct Searcher {
         	workers[i].stopSearch = true;
         	threadPool[i].join();
         }
+    }
+
+    void datagenSearch(int maxDepth, int nodesLimit, int nodesH) {
+        workers[0].nodesLim = nodesH;
+        stopIDsearch = false;
+        int color = mainBoard.boardColor;
+        vector<thread> threadPool(threadNumber);
+        vector<Board> boards(threadNumber, mainBoard);
+        for (int i = 0; i < threadNumber; i++) {
+            workers[i].nodes = 0;
+            workers[i].bestMove = Move();
+            workers[i].minimal = minimal;
+            workers[i].stopSearch = false;
+            workers[i].nnueEvaluator = mainNnueEvaluator;
+            workers[i].occuredPositionsHelper = mainOccuredPositionsHelper;
+            mainBoard.initNNUE(workers[i].nnueEvaluator);
+            for (ll j = 0; j < 256; j++) {
+                for (ll j1 = 0; j1 < 2; j1++) {
+                    workers[i].killers[j][j1] = Move();
+                    workers[i].killersAge[j][j1] = 0;
+                }
+            }
+        }
+
+        // for (int i = 1; i < threadNumber; i++)
+        //     threadPool[i] = thread(&Worker::IDsearch, &workers[i], ref(boards[i]), maxDepth, softBound, hardBound, nodesLimit, nodesH, false, 0, ref(workers));
+
+        workers[0].IDsearchDatagen(ref(boards[0]), maxDepth, nodesLimit, nodesH);
+
+        // for (int i = 1; i < threadNumber; i++) {
+        // 	workers[i].stopSearch = true;
+        // 	threadPool[i].join();
+        // }
     }
 };
 
