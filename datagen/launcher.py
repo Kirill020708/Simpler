@@ -102,9 +102,6 @@ def terminateProcesses():
 
 
 def main():
-    os.makedirs("datagenFiles", exist_ok=True)
-    os.makedirs("datagenFiles/data", exist_ok=True)
-    os.makedirs("datagenFiles/stats", exist_ok=True)
 
     parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -154,6 +151,9 @@ def main():
 
 
     current_path = args.homePath
+    os.makedirs(current_path+"/datagenFiles", exist_ok=True)
+    os.makedirs(current_path+"/datagenFiles/data", exist_ok=True)
+    os.makedirs(current_path+"/datagenFiles/stats", exist_ok=True)
 
     if args.stats:
         aggregate_stats()
