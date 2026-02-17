@@ -320,7 +320,7 @@ struct MoveGeneration {
                 pieceMaterial[capturedPiece] + isPromotion * (pieceMaterial[QUEEN] - pieceMaterial[PAWN]);
 
             eval += evalStack[captureNumber - 1];
-            if (eval - pieceMaterial[attackingPiece] > 0 || attackingPiece == KING) {
+            if (attackingPiece == KING) {
                 break;
             }
             eval = -eval;
