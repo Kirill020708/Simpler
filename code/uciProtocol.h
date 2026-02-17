@@ -246,12 +246,12 @@ struct UCIcommunicationHepler {
             int basetime = 0;
             bool timeBound = 0;
             if (mainBoard.boardColor == WHITE && wtime != -1) {
-                timeToThink = wtime * 0.025 + winc;
+                timeToThink = wtime * 0.05 + winc / 2;
                 basetime = wtime;
                 timeBound = true;
             }
             if (mainBoard.boardColor == BLACK && btime != -1) {
-                timeToThink = btime * 0.025 + binc;
+                timeToThink = btime * 0.05 + binc / 2;
                 basetime = btime;
                 timeBound = true;
             }
