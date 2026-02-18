@@ -325,6 +325,7 @@ struct DataGenerator {
             }
             // threadPool[0]=thread(&DataGenerator::playGame,this,0);
         }
+        this_thread::sleep_for(std::chrono::milliseconds(1000));
         exit(0);
     }
 };
