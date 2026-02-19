@@ -650,7 +650,8 @@ struct Worker {
                 sseEval = moveListGenerator.seeTable[move.getStartSquare()][move.getTargetSquare()];
             	if(doTTmoveBeforeMovegen && currentMove == 0)
             		sseEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
-            }
+            } else
+            	sseEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
 
             bool beingMated = (alpha <= -MATE_SCORE_MAX_PLY ||
             				   bestScore <= -MATE_SCORE_MAX_PLY ||
@@ -691,14 +692,25 @@ struct Worker {
 	                continue;
 	            }
 
-	            // Captures SEE pruning
-	            if (movesSearched > 0 &&
-	            	!isPvNode &&
-	            	!inCheck &&
-	                sseEval <= -(100 + historyValueF * 70) * depth) {
+	            if (!isMoveInteresting) {
+		            // Quiets SEE pruning
+		            if (movesSearched > 0 &&
+		            	!isPvNode &&
+		                !isMoveInteresting &&
+		                sseEval <= -(70) * depth) {
 
-	                continue;
-	            }
+		                continue;
+		            }
+		        } else {
+		            // Captures SEE pruning
+		            if (movesSearched > 0 &&
+		            	!isPvNode &&
+		            	!inCheck &&
+		                sseEval <= -(100 + historyValueF * 70) * depth) {
+
+		                continue;
+		            }
+		        }
 	        }
 
             ull newKey = zobristAfterMove(board, move);
