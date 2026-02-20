@@ -70,6 +70,7 @@ struct alignas(64) Board {
 
     ull zobristKeyPawn;
     ull zobristKeyMinor;
+    ull zobristKeyMajor;
 
     ull zobristKeyWhite;
     ull zobristKeyBlack;
@@ -139,6 +140,7 @@ struct alignas(64) Board {
         zobristKey = 0;
         zobristKeyPawn = 0;
         zobristKeyMinor = 0;
+        zobristKeyMajor = 0;
         zobristKeyWhite = 0;
         zobristKeyBlack = 0;
         for (int square = 0; square < 64; square++) {
@@ -150,6 +152,8 @@ struct alignas(64) Board {
                 zobristKeyPawn ^= zobristKeys.pieceKeys[square][(pieceColor << 3) + piece];
             if (piece == KNIGHT || piece == BISHOP)
                 zobristKeyMinor ^= zobristKeys.pieceKeys[square][(pieceColor << 3) + piece];
+            if (piece == ROOK || piece == QUEEN || piece == KING)
+                zobristKeyMajor ^= zobristKeys.pieceKeys[square][(pieceColor << 3) + piece];
             if(piece != PAWN) {
                 if (pieceColor == WHITE)
                     zobristKeyWhite ^= zobristKeys.pieceKeys[square][(pieceColor << 3) + piece];
@@ -206,6 +210,10 @@ struct alignas(64) Board {
 
             if (piece == KNIGHT || piece == BISHOP){
                 zobristKeyMinor ^= pieceKey;
+            }
+
+            if (piece == ROOK || piece == QUEEN || piece == KING){
+                zobristKeyMajor ^= pieceKey;
             }
             
             if (piece == PAWN) {
@@ -275,6 +283,9 @@ struct alignas(64) Board {
 
         if (pieceType == KNIGHT || pieceType == BISHOP)
             zobristKeyMinor ^= pieceKey;
+
+        if (pieceType == ROOK || pieceType == QUEEN || pieceType == KING)
+            zobristKeyMajor ^= pieceKey;
 
 
         if (pieceType == PAWN)
