@@ -482,6 +482,9 @@ struct Worker {
 
         moveListGenerator.hashMove = ttMove;
 
+        moveGenerator.computePinnedPiecesW(board);
+        moveGenerator.computePinnedPiecesB(board);
+
         int probcutDepthR = 4;
         //ProbCut
         if (!isRoot &&

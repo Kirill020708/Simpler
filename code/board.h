@@ -84,6 +84,10 @@ struct alignas(64) Board {
     bool flippedW = true;
     bool flippedB = true;
 
+
+    Bitboard whitePinned;
+    Bitboard blackPinned;
+
     inline int numberOfPieces() {
         return (whitePieces | blackPieces).popcnt();
     }
