@@ -9,12 +9,13 @@
 
 #endif /* DECLARS */
 
-struct TableEntry {
+struct __attribute__ ((packed)) TableEntry {
     ull key = 0;
     int16_t score = NO_EVAL;
     int16_t eval = NO_EVAL;
     int16_t move = 0;
     char depth = 0, type = NONE;
+    bool ttpv = false;
 
     TableEntry() {
         key = 0;
@@ -24,13 +25,14 @@ struct TableEntry {
         move = 0;
     }
 
-    TableEntry(ull key_, int score_, int eval_, char depth_, char type_, int16_t bestMove_) {
+    TableEntry(ull key_, int score_, int eval_, char depth_, char type_, int16_t bestMove_, bool ttpv_) {
         key = key_;
         score = score_;
         eval = eval_;
         depth = depth_;
         type = type_;
         move = bestMove_;
+        ttpv = ttpv_;
     }
 };
 
@@ -42,7 +44,7 @@ struct TranspositionTable {
 
     // mutex TTmutex;
 
-    inline void write(Board &board, ull key, int score, int eval, int depth, int type, int age, Move bestMove, int depthFromRoot) {
+    inline void write(Board &board, ull key, int score, int eval, int depth, int type, int age, Move bestMove, int depthFromRoot, bool ttpv) {
         // if (tableSize == 0)
         //     return;
         if (abs(score) >= MATE_SCORE_MAX_PLY){
@@ -61,7 +63,7 @@ struct TranspositionTable {
             }
         }
         // TTmutex.lock();
-        table[index] = {key, score, eval, char(depth), char(type), bestMove.move};
+        table[index] = {key, score, eval, char(depth), char(type), bestMove.move, ttpv};
         // TTmutex.unlock();
     }
 
