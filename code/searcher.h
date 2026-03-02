@@ -230,6 +230,9 @@ struct Worker {
             return bestScore;
         }
 
+        moveGenerator.computePinnedPiecesW(board);
+        moveGenerator.computePinnedPiecesB(board);
+
         // moveListGenerator.killerMove=moveListGenerator.hashMove;
         Board boardCopy = board;
         if (ttMove == Move()) {
@@ -473,6 +476,9 @@ struct Worker {
             }
         }
 
+        moveGenerator.computePinnedPiecesW(board);
+        moveGenerator.computePinnedPiecesB(board);
+
         Board boardCopy = board;
 
         Move ttMove = ttEntry.move;
@@ -481,9 +487,6 @@ struct Worker {
             ttMove = bestMove;
 
         moveListGenerator.hashMove = ttMove;
-
-        moveGenerator.computePinnedPiecesW(board);
-        moveGenerator.computePinnedPiecesB(board);
 
         int probcutDepthR = 4;
         //ProbCut
