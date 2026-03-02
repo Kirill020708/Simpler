@@ -943,6 +943,7 @@ struct Worker {
     bool minimal = false;
     bool doNormalization = true;
     int basetime = 1e9;
+    int IDdepth;
 
     void IDsearch(Board &board, int maxDepth, int softBound, int hardBound, int nodesLimit, int nodesH, bool isMainThread, bool printUCI, vector<Worker> &workers) {
         
@@ -969,6 +970,7 @@ struct Worker {
         	rootNodes[i] = 0;
 
         for (int depth = 1; depth <= maxDepth; depth++) {
+        	IDdepth = depth;
             // workers[0].nnueEvaluator.printAccum();
             // cout<<'\n';
             int alpha = -MATE_SCORE, beta = MATE_SCORE;
@@ -1101,8 +1103,8 @@ struct Worker {
             	break;
         }
         
-        if (printUCI)
-        	cout << "bestmove " << bestMove.convertToUCI() << endl;
+        // if (printUCI)
+        // 	cout << "bestmove " << bestMove.convertToUCI() << endl;
     }
 };
 
@@ -1148,6 +1150,14 @@ struct Searcher {
         	workers[i].stopSearch = true;
         	threadPool[i].join();
         }
+
+        int bestWorker = 0;
+        for (int i = 1; i < threadNumber; i++)
+        	if (workers[i].IDdepth > workers[bestWorker].IDdepth || 
+        		(workers[i].IDdepth == workers[bestWorker].IDdepth && workers[i].rootScore > workers[bestWorker].rootScore))
+        		bestWorker = i;
+        if (doInfoOutput)
+        	cout << "bestmove " << workers[bestWorker].bestMove.convertToUCI() << endl;
     }
 
     void datagenSearch(int maxDepth, int nodesLimit, int nodesH) {
