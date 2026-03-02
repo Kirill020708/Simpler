@@ -240,11 +240,6 @@ struct alignas(64) Board {
         int color = occupancy(startSquare);
         int movingPiece = occupancyPiece(startSquare);
 
-        ply2Sq = ply1Sq;
-        ply2Ps = ply1Ps;
-        ply1Sq = targetSquare;
-        ply1Ps = movingPiece;
-
         enPassantColumn = NO_EN_PASSANT;
         if (movingPiece == PAWN) {
             if ((abs(targetSquare - startSquare) & 1) && occupancy(targetSquare) == EMPTY) { // enPassant capture
