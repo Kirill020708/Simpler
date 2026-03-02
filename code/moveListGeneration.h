@@ -77,11 +77,18 @@ struct MoveListGenerator {
             opponentPieces = board.whitePieces;
         }
 
+        bool wasInCheck = moveGenerator.isInCheck(board, color);
+
         Bitboard pieces = friendPieces;
         int currentEvaluation = board.evaluation;
 
         while (pieces > 0) {
             int startSquare = pieces.getFirstBitNumberAndExclude();
+
+            bool isPieceBound = (color == WHITE) ? (board.whitePinned.getBit(startSquare)) : (board.blackPinned.getBit(startSquare));
+            int occup = board.occupancyPiece(startSquare);
+            isPieceBound |= (occup == KING);
+
             Bitboard moves = moveGenerator.moves(board, startSquare);
             if (onlyCaptures) {
                 moves &= opponentPieces;
@@ -91,8 +98,15 @@ struct MoveListGenerator {
             while (moves > 0) {
                 int targetSquare = moves.getFirstBitNumberAndExclude();
 
+                bool isCapt = opponentPieces.getBit(targetSquare);
+
+                bool isMoveBound = isPieceBound;
+
+                if (occup == PAWN && boardHelper.columns[startSquare] != boardHelper.columns[targetSquare] && !isCapt) // En passant
+                    isMoveBound = 1;
+
                 int captureCoeff = 0, isCapture = 0, sseEval;
-                if (opponentPieces.getBit(targetSquare)) {
+                if (isCapt) {
                     isCapture = 1;
                     // cout<<Move(startSquare,targetSquare,0).convertToUCI()<<'
                     // '<<moveGenerator.sseEval(targetSquare,color,startSquare)<<'\n';
@@ -132,10 +146,12 @@ struct MoveListGenerator {
                     promotionMoves[3] = Move(startSquare, targetSquare, QUEEN, (material[QUEEN] + captureCoeff) << captureShift);
                     
                     for (int i = 0; i < 4; i++) {
-                        board.makeMove(promotionMoves[i]);
-                        if (moveGenerator.isInCheck(board, color)) {
-                            board = boardCopy;
-                            continue;
+                        board.makeMoveLight(promotionMoves[i]);
+                        if (wasInCheck || isMoveBound) {
+                            if (moveGenerator.isInCheck(board, color)) {
+                                board = boardCopy;
+                                continue;
+                            }
                         }
                         board = boardCopy;
                         if (promotionMoves[i] == hashMove)
@@ -145,10 +161,12 @@ struct MoveListGenerator {
                         moveList[depth][moveListSize[depth]++] = promotionMoves[i];
                     }
                 } else {
-                    board.makeMove(Move(startSquare, targetSquare, NOPIECE));
-                    if (moveGenerator.isInCheck(board, color)) {
-                        board = boardCopy;
-                        continue;
+                    board.makeMoveLight(Move(startSquare, targetSquare, NOPIECE));
+                    if (wasInCheck || isMoveBound) {
+                        if (moveGenerator.isInCheck(board, color)) {
+                            board = boardCopy;
+                            continue;
+                        }
                     }
                     board = boardCopy;
                     Move move = Move(startSquare, targetSquare, NOPIECE);

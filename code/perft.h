@@ -29,7 +29,7 @@ struct Perftester {
         int sum = 0;
         for (int currentMove = 0; currentMove < moveListGeneratorForPerft.moveListSize[depth]; currentMove++) {
             Move move = moveListGeneratorForPerft.moveList[depth][currentMove];
-            board.makeMove(move);
+            board.makeMoveLight(move);
             sum += perft(board, color == WHITE ? BLACK : WHITE, depth - 1);
             board = boardCopy;
         }
@@ -45,7 +45,7 @@ struct Perftester {
             ll nodes = 0;
             for (int currentMove = 0; currentMove < moveListGeneratorForPerft.moveListSize[depth]; currentMove++) {
                 Move move = moveListGeneratorForPerft.moveList[depth][currentMove];
-                mainBoard.makeMove(move);
+                mainBoard.makeMoveLight(move);
                 int nmb = perft(mainBoard, color == WHITE ? BLACK : WHITE, depth - 1);
                 cout << move.convertToUCI() << ' ' << nmb << '\n';
                 mainBoard = boardCopy;

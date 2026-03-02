@@ -192,6 +192,107 @@ struct alignas(64) Board {
         return {neuronIdxW, neuronIdxB};
     }
 
+    inline void clearPositionLight(int square) {
+        whitePieces &= (~(1ull << square));
+        blackPieces &= (~(1ull << square));
+        pawns &= (~(1ull << square));
+        knights &= (~(1ull << square));
+        bishops &= (~(1ull << square));
+        rooks &= (~(1ull << square));
+        queens &= (~(1ull << square));
+        kings &= (~(1ull << square));
+    }
+
+    inline void putPieceLight(int square, int color, int pieceType) {
+
+        if (color == WHITE)
+            whitePieces |= (1ull << square);
+        if (color == BLACK)
+            blackPieces |= (1ull << square);
+        if (pieceType == PAWN)
+            pawns |= (1ull << square);
+        if (pieceType == KNIGHT)
+            knights |= (1ull << square);
+        if (pieceType == BISHOP)
+            bishops |= (1ull << square);
+        if (pieceType == ROOK)
+            rooks |= (1ull << square);
+        if (pieceType == QUEEN)
+            queens |= (1ull << square);
+        if (pieceType == KING)
+            kings |= (1ull << square);
+
+    }
+
+    inline void movePieceLight(int startSquare, int targetSquare) {
+        int color = occupancy(startSquare);
+        int movingPiece = occupancyPiece(startSquare);
+        clearPositionLight(startSquare);
+        clearPositionLight(targetSquare);
+        putPieceLight(targetSquare, color, movingPiece);
+    }
+
+    inline void makeMoveLight(Move move) {
+
+        boardColor = (boardColor == WHITE) ? BLACK : WHITE;
+        int startSquare = move.getStartSquare();
+        int targetSquare = move.getTargetSquare();
+        int color = occupancy(startSquare);
+        int movingPiece = occupancyPiece(startSquare);
+
+        ply2Sq = ply1Sq;
+        ply2Ps = ply1Ps;
+        ply1Sq = targetSquare;
+        ply1Ps = movingPiece;
+
+        enPassantColumn = NO_EN_PASSANT;
+        if (movingPiece == PAWN) {
+            if ((abs(targetSquare - startSquare) & 1) && occupancy(targetSquare) == EMPTY) { // enPassant capture
+                if (color == WHITE)
+                    clearPositionLight(targetSquare + 8);
+                if (color == BLACK)
+                    clearPositionLight(targetSquare - 8);
+            }
+            clearPositionLight(startSquare);
+            clearPositionLight(targetSquare);
+            if (move.getPromotionFlag() != NOPIECE)
+                movingPiece = move.getPromotionFlag();
+            putPieceLight(targetSquare, color, movingPiece);
+            if (abs(targetSquare - startSquare) == 16) // updEnPassant
+                enPassantColumn = boardHelper.getColumnNumber(startSquare);
+        } else if (movingPiece == KING) {
+            movePieceLight(startSquare, targetSquare);
+            if (((startSquare & 7) <= 3) != ((targetSquare & 7) <= 3)) {
+                if (color == WHITE)
+                    flippedW ^= 1;
+                else
+                    flippedB ^= 1;
+            }
+            if (startSquare == 60 && targetSquare == 58) // white left castling
+                movePieceLight(56, 59);
+            if (startSquare == 60 && targetSquare == 62) // white right castling
+                movePieceLight(63, 61);
+            if (startSquare == 4 && targetSquare == 2) // black left castling
+                movePieceLight(0, 3);
+            if (startSquare == 4 && targetSquare == 6) // black right castling
+                movePieceLight(7, 5);
+            if (color == WHITE)
+                castlingWhiteQueensideBroke = castlingWhiteKingsideBroke = 1;
+            if (color == BLACK)
+                castlingBlackQueensideBroke = castlingBlackKingsideBroke = 1;
+        } else {
+            movePieceLight(startSquare, targetSquare);
+        }
+        if (startSquare == 56 || targetSquare == 56)
+            castlingWhiteQueensideBroke = 1;
+        if (startSquare == 63 || targetSquare == 63)
+            castlingWhiteKingsideBroke = 1;
+        if (startSquare == 0 || targetSquare == 0)
+            castlingBlackQueensideBroke = 1;
+        if (startSquare == 7 || targetSquare == 7)
+            castlingBlackKingsideBroke = 1;
+    }
+
     inline void clearPosition(int square) {
         int piece = occupancyPiece(square);
         int pieceColor = occupancy(square);
@@ -226,14 +327,7 @@ struct alignas(64) Board {
         }
 
         // evaluation -= pieceSquareTable.getPieceEval(piece, square, pieceColor, endgameWeight());
-        whitePieces &= (~(1ull << square));
-        blackPieces &= (~(1ull << square));
-        pawns &= (~(1ull << square));
-        knights &= (~(1ull << square));
-        bishops &= (~(1ull << square));
-        rooks &= (~(1ull << square));
-        queens &= (~(1ull << square));
-        kings &= (~(1ull << square));
+        clearPositionLight(square);
     }
 
     inline void clearPosition(int square, NNUEevaluator &nnueEvaluator) {
@@ -256,22 +350,7 @@ struct alignas(64) Board {
         materialCount += material[pieceType];
         #endif
 
-        if (color == WHITE)
-            whitePieces |= (1ull << square);
-        if (color == BLACK)
-            blackPieces |= (1ull << square);
-        if (pieceType == PAWN)
-            pawns |= (1ull << square);
-        if (pieceType == KNIGHT)
-            knights |= (1ull << square);
-        if (pieceType == BISHOP)
-            bishops |= (1ull << square);
-        if (pieceType == ROOK)
-            rooks |= (1ull << square);
-        if (pieceType == QUEEN)
-            queens |= (1ull << square);
-        if (pieceType == KING)
-            kings |= (1ull << square);
+        putPieceLight(square, color, pieceType);
 
         ull pieceKey = zobristKeys.pieceKeys[square][(color << 3) + pieceType];
 

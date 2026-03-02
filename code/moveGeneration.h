@@ -378,7 +378,7 @@ struct MoveGeneration {
                     isPromotion = (square >= 56);
             }
 
-            board.makeMove(Move(attacker, square, isPromotion * QUEEN));
+            board.makeMoveLight(Move(attacker, square, isPromotion * QUEEN));
             if (attackingPiece == KING) {
                 if (isInCheck(board, color))
                     break;
