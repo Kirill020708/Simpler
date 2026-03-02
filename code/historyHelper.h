@@ -112,12 +112,12 @@ struct HistoryHelper {
 };
 
 struct CorrHistoryHelper {
-	const int sznd = (1 << 14) - 1;
-	int corrHistTablePawn[2][1 << 14];
-	int corrHistTableMinor[2][1 << 14];
+	const int sznd = (1 << 16) - 1;
+	int corrHistTablePawn[2][1 << 16];
+	int corrHistTableMinor[2][1 << 16];
 
-	int corrHistTableWhite[2][1 << 14];
-	int corrHistTableBlack[2][1 << 14];
+	int corrHistTableWhite[2][1 << 16];
+	int corrHistTableBlack[2][1 << 16];
 
 	int corrHistLastmove[2][8][64];
 	int corrHist2ply[2][8][64][8][64];
@@ -184,3 +184,5 @@ struct CorrHistoryHelper {
 		return corrScore;
     }
 };
+
+CorrHistoryHelper corrhistHelper;
