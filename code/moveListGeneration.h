@@ -77,11 +77,17 @@ struct MoveListGenerator {
             opponentPieces = board.whitePieces;
         }
 
+        bool wasInCheck = moveGenerator.isInCheck(board, color);
+
         Bitboard pieces = friendPieces;
         int currentEvaluation = board.evaluation;
 
         while (pieces > 0) {
             int startSquare = pieces.getFirstBitNumberAndExclude();
+
+            bool isPieceBound = (color == WHITE) ? (board.whitePinned.getBit(startSquare)) : (board.blackPinned.getBit(startSquare));
+            isPieceBound |= (board.occupancyPiece(startSquare) == KING);
+
             Bitboard moves = moveGenerator.moves(board, startSquare);
             if (onlyCaptures) {
                 moves &= opponentPieces;
@@ -133,9 +139,11 @@ struct MoveListGenerator {
                     
                     for (int i = 0; i < 4; i++) {
                         board.makeMove(promotionMoves[i]);
-                        if (moveGenerator.isInCheck(board, color)) {
-                            board = boardCopy;
-                            continue;
+                        if (wasInCheck || isPieceBound) {
+                            if (moveGenerator.isInCheck(board, color)) {
+                                board = boardCopy;
+                                continue;
+                            }
                         }
                         board = boardCopy;
                         if (promotionMoves[i] == hashMove)
@@ -146,9 +154,11 @@ struct MoveListGenerator {
                     }
                 } else {
                     board.makeMove(Move(startSquare, targetSquare, NOPIECE));
-                    if (moveGenerator.isInCheck(board, color)) {
-                        board = boardCopy;
-                        continue;
+                    if (wasInCheck || isPieceBound) {
+                        if (moveGenerator.isInCheck(board, color)) {
+                            board = boardCopy;
+                            continue;
+                        }
                     }
                     board = boardCopy;
                     Move move = Move(startSquare, targetSquare, NOPIECE);
