@@ -163,6 +163,7 @@ struct Worker {
     int quiescentSearch(Board &board, int color, int alpha, int beta, int ply) {
 
         constexpr bool isPvNode = nodePvType != NonPV;
+        bool ttpv = isPvNode;
 
     	if (isPvNode)
     		seldepth = max(seldepth, ply + 1);
@@ -185,6 +186,7 @@ struct Worker {
 
         ull currentZobristKey = board.getZobristKey();
         auto ttEntry = transpositionTable.get(board, currentZobristKey, ply);
+        ttpv |= ttEntry.ttpv;
 
         auto prEntry = ttEntry;
         correctTTscore(ttEntry, alpha, beta);
@@ -226,7 +228,7 @@ struct Worker {
         alpha = max(alpha, staticEval);
         if (alpha >= beta) {
             transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, LOWER_BOUND, boardCurrentAge,
-                                              ttEntry.move, ply);
+                                              ttEntry.move, ply, ttpv);
             return bestScore;
         }
 
@@ -293,7 +295,7 @@ struct Worker {
                     alpha = score;
                 if (alpha >= beta) {
                     transpositionTable.write(board, currentZobristKey, score, rawStaticEval, 0, LOWER_BOUND,
-                                                      boardCurrentAge, move, ply);
+                                                      boardCurrentAge, move, ply, ttpv);
                     return bestScore;
                 }
             }
@@ -305,7 +307,7 @@ struct Worker {
             }
         }
         transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, type, boardCurrentAge,
-                                          newTTmove, ply);
+                                          newTTmove, ply, ttpv);
         return bestScore;
     }
 
@@ -319,6 +321,7 @@ struct Worker {
     int search(Board &board, int color, int depth, int isRoot, int alpha, int beta, int ply, int extended, bool cutNode) {
     	
         constexpr bool isPvNode = nodePvType != NonPV;
+        bool ttpv = isPvNode;
 
     	if (isPvNode)
     		seldepth = max(seldepth, ply + 1);
@@ -363,6 +366,7 @@ struct Worker {
         int rawStaticEval, staticEval;
 
         auto ttEntry = transpositionTable.get(board, currentZobristKey, ply);
+        ttpv |= ttEntry.ttpv;
         auto corrEntry = ttEntry;
         correctTTscore(corrEntry, alpha, beta);
 
@@ -415,6 +419,7 @@ struct Worker {
         	!isMovingSideInCheck &&
         	ttEntry.type == NONE &&
         	!isPvNode &&
+        	!ttpv &&
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
@@ -520,7 +525,7 @@ struct Worker {
 
 		            if (score >= probcutBeta) {
 	                    transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth - probcutDepthR, LOWER_BOUND,
-	                                             boardCurrentAge, move, ply);
+	                                             boardCurrentAge, move, ply, ttpv);
 	                    return score;
 		            }
 		        }
@@ -846,7 +851,7 @@ struct Worker {
                     }
 
                     transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth, LOWER_BOUND,
-                                             boardCurrentAge, newTTmove, ply);
+                                             boardCurrentAge, newTTmove, ply, ttpv);
                     return bestScore;
                 }
             }
@@ -875,7 +880,7 @@ struct Worker {
         if (bestScore == -inf)
         	bestScore = alpha;
 
-        transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, depth, type, boardCurrentAge, newTTmove, ply);
+        transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, depth, type, boardCurrentAge, newTTmove, ply, ttpv);
         return bestScore;
     }
 
