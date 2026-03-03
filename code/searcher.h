@@ -510,6 +510,9 @@ struct Worker {
 		        for (int currentMove = 0; currentMove < moveListGenerator.moveListSize[ply]; currentMove++) {
 		            Move move = moveListGenerator.moveList[ply][currentMove];
 
+		            ull newKey = zobristAfterMove(board, move);
+		            transpositionTable.prefetch(newKey);
+		            
 		            board.makeMove(move, nnueEvaluator);
 
 		            int score = -quiescentSearch<NonPV>(board, oppositeColor, -probcutBeta, -probcutBeta + 1, ply + 1);
