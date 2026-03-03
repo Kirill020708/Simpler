@@ -419,6 +419,7 @@ struct Worker {
         	!isMovingSideInCheck &&
         	ttEntry.type == NONE &&
         	!isPvNode &&
+        	!ttpv &&
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
