@@ -113,6 +113,8 @@ struct MoveListGenerator {
                     int attackingPiece = board.occupancyPiece(startSquare);
                     int capturedPiece = board.occupancyPiece(targetSquare);
 
+                    bool isRecapture = (targetSquare == board.ply1Sq);
+
                     int captureEval;
                     captureEval = sseEval = moveGenerator.sseEval(board, targetSquare, color, startSquare);
 
@@ -128,7 +130,9 @@ struct MoveListGenerator {
                     if (captureEval >= -220 - historyScoreF * 100)
                         captureCoeff += (1 << 15);
 
-                    captureCoeff += (material[capturedPiece] + historyScore * 20) + 10;
+                    captureCoeff += (material[capturedPiece]
+                                    + historyScore * 20
+                                    + (isRecapture && !onlyCaptures) * 100) + 10;
 
                     // cout<<Move(startSquare,targetSquare,0).convertToUCI()<<' '<<captureEval<<'\n';
                 } else
