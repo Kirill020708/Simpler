@@ -734,7 +734,7 @@ struct Worker {
 
                 // Late move reduction
                 const int LMR_FULL_MOVES = 2; // number of moves to search with full depth
-                const int LMR_MIN_DEPTH = 3;  // don't reduct depth if it's more or equal to this value
+                const int LMR_MIN_DEPTH = 3 - (!isPvNode);  // don't reduct depth if it's more or equal to this value
 
                 int lmrReduction =
                     floor(lmrLogTable[depth][movesSearched] + 0.5 
