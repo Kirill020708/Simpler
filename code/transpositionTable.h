@@ -9,20 +9,37 @@
 
 #endif /* DECLARS */
 
+struct Flag {
+    int8_t flags = 0;
+
+    Flag() {}
+    Flag(int8_t type, int8_t ttpv) {
+        flags = type + (ttpv << 2);
+    }
+
+    int8_t type() {
+        return flags&3;
+    }
+
+    int8_t ttpv() {
+        return (flags>>2)&1;
+    }
+};
+
 struct __attribute__ ((packed)) TableEntry {
     ull key = 0;
     int16_t score = NO_EVAL;
     int16_t eval = NO_EVAL;
     int16_t move = 0;
-    char depth = 0, type = NONE;
-    bool ttpv = false;
+    char depth = 0;
+    Flag flag;
 
     TableEntry() {
         key = 0;
         score = NO_EVAL;
         depth = 0;
-        type = NONE;
         move = 0;
+        flag = Flag(NONE, 0);
     }
 
     TableEntry(ull key_, int score_, int eval_, char depth_, char type_, int16_t bestMove_, bool ttpv_) {
@@ -30,9 +47,8 @@ struct __attribute__ ((packed)) TableEntry {
         score = score_;
         eval = eval_;
         depth = depth_;
-        type = type_;
         move = bestMove_;
-        ttpv = ttpv_;
+        flag = Flag(type_, ttpv_);
     }
 };
 
@@ -54,11 +70,11 @@ struct TranspositionTable {
                 score -= depthFromRoot;
         }
         int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
-        if (table[index].type != NONE) {
+        if (table[index].flag.type() != NONE) {
             if (table[index].key == key) {
                 if (table[index].depth > depth)
                     return;
-                if (table[index].depth == depth && table[index].type == EXACT)
+                if (table[index].depth == depth && table[index].flag.type() == EXACT)
                     return;
             }
         }
@@ -69,7 +85,7 @@ struct TranspositionTable {
 
     inline void writeStaticEval(ull key, int eval) {
         int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
-        if (table[index].type != NONE && table[index].key == key)
+        if (table[index].flag.type() != NONE && table[index].key == key)
             table[index].eval = eval;
     }
 
@@ -77,7 +93,7 @@ struct TranspositionTable {
         // if (tableSize == 0)
         //     return TableEntry();
         int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
-        if (table[index].type == NONE)
+        if (table[index].flag.type() == NONE)
             return TableEntry();
         if (table[index].key != key)
             return TableEntry();
@@ -104,7 +120,7 @@ struct TranspositionTable {
     int getHashfull() {
         int hits = 0;
         for (int i = 0; i < min(1000ll, tableSize); i++)
-            hits += (table[i].type != NONE);
+            hits += (table[i].flag.type() != NONE);
         if (tableSize && tableSize < 1000)
             hits = hits * 1000 / tableSize;
         return hits;

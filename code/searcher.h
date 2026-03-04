@@ -150,11 +150,11 @@ struct Worker {
 
     void correctTTscore(TableEntry &ttEntry, int alpha, int beta) {
 
-        if (ttEntry.type == LOWER_BOUND && // when calculated TT node we got alpha>=beta
+        if (ttEntry.flag.type() == LOWER_BOUND && // when calculated TT node we got alpha>=beta
             ttEntry.score < beta)
             ttEntry.score = NO_EVAL;
 
-        if (ttEntry.type == UPPER_BOUND &&
+        if (ttEntry.flag.type() == UPPER_BOUND &&
         	ttEntry.score > alpha)
             ttEntry.score = NO_EVAL;
     }
@@ -186,12 +186,12 @@ struct Worker {
 
         ull currentZobristKey = board.getZobristKey();
         auto ttEntry = transpositionTable.get(board, currentZobristKey, ply);
-        ttpv |= ttEntry.ttpv;
+        ttpv |= ttEntry.flag.ttpv();
 
         auto prEntry = ttEntry;
         correctTTscore(ttEntry, alpha, beta);
 
-        int nodeType = ttEntry.type;
+        int nodeType = ttEntry.flag.type();
 
         if (ttEntry.score != NO_EVAL)
             return ttEntry.score;
@@ -366,11 +366,11 @@ struct Worker {
         int rawStaticEval, staticEval;
 
         auto ttEntry = transpositionTable.get(board, currentZobristKey, ply);
-        ttpv |= ttEntry.ttpv;
+        ttpv |= ttEntry.flag.ttpv();
         auto corrEntry = ttEntry;
         correctTTscore(corrEntry, alpha, beta);
 
-        int nodeType = ttEntry.type;
+        int nodeType = ttEntry.flag.type();
 
         if (corrEntry.score != NO_EVAL &&
         	ttEntry.depth >= depth &&
@@ -417,7 +417,7 @@ struct Worker {
         // Reverse futility pruning
         if (!isRoot &&
         	!isMovingSideInCheck &&
-        	ttEntry.type == NONE &&
+        	nodeType == NONE &&
         	!isPvNode &&
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
@@ -469,7 +469,7 @@ struct Worker {
                 int qEval = quiescentSearch<NonPV>(board, color, alpha - 1, alpha, ply + 1);
 
                 if (depth == 1 ||
-                	(depth <= 2 && ttEntry.type != NONE && ttEntry.score < alpha - margin - 50))
+                	(depth <= 2 && nodeType != NONE && ttEntry.score < alpha - margin - 50))
                 	return qEval;
 
                 if (qEval < alpha)
@@ -503,7 +503,7 @@ struct Worker {
 
         	int probcutBeta = beta + 200;
 
-        	if (ttEntry.type == NONE || ttEntry.score >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
+        	if (nodeType == NONE || ttEntry.score >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
 
 	        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
 
