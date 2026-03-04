@@ -733,7 +733,7 @@ struct Worker {
             if (movesSearched) { // Principal variation search
 
                 // Late move reduction
-                const int LMR_FULL_MOVES = 2; // number of moves to search with full depth
+                const int LMR_FULL_MOVES = 2 - (!isPvNode); // number of moves to search with full depth
                 const int LMR_MIN_DEPTH = 3;  // don't reduct depth if it's more or equal to this value
 
                 int lmrReduction =
