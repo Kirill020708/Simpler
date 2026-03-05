@@ -672,12 +672,11 @@ struct Worker {
             // Conditions for moveloop pruning
             if (!beingMated &&
             	!isRoot &&
-            	currentMove > 0 &&
-            	!isMovingSideInCheck) {
+            	currentMove > 0) {
 
             	// Late move pruning (LMP)
 	            if (!isPvNode &&
-	            	movesSearched > 3 + depth * depth * (1 - isTTCapture * 0.5) &&
+	            	movesSearched > 3 + depth * depth * (1 - isTTCapture * 0.5 + isMovingSideInCheck * 0.5) &&
 	            	historyValue < 0) {
 
 	            	break;
@@ -687,6 +686,7 @@ struct Worker {
 	            if (!isPvNode &&
 	            	movesSearched > 0 &&
 	            	!isMoveInteresting &&
+            		!isMovingSideInCheck &&
 	            	historyValue < -100 * depth * depth) {
 
 	            	continue;
@@ -698,6 +698,7 @@ struct Worker {
 	            if (movesSearched > 0 &&
 	            	staticEval < alpha - fpMargin &&
 	                !isMoveInteresting &&
+	                !isMovingSideInCheck &&
 	                !searchStack[ply].excludeTTmove
 	            ) {
 
@@ -708,6 +709,7 @@ struct Worker {
 	            if (movesSearched > 0 &&
 	            	!isPvNode &&
 	            	!inCheck &&
+	            	!isMovingSideInCheck &&
 	                sseEval <= -(100 + historyValueF * 70) * depth) {
 
 	                continue;
