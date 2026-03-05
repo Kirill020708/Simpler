@@ -672,12 +672,11 @@ struct Worker {
             // Conditions for moveloop pruning
             if (!beingMated &&
             	!isRoot &&
-            	currentMove > 0 &&
-            	!isMovingSideInCheck) {
+            	currentMove > 0) {
 
             	// Late move pruning (LMP)
 	            if (!isPvNode &&
-	            	movesSearched > 3 + depth * depth * (1 - isTTCapture * 0.5) &&
+	            	movesSearched > 3 + depth * depth * (1 - isTTCapture * 0.5 + isMovingSideInCheck * 0.5) &&
 	            	historyValue < 0) {
 
 	            	break;
@@ -687,13 +686,13 @@ struct Worker {
 	            if (!isPvNode &&
 	            	movesSearched > 0 &&
 	            	!isMoveInteresting &&
-	            	historyValue < -100 * depth * depth) {
+	            	historyValue < -(100 + 100 * isMovingSideInCheck) * depth * depth) {
 
 	            	continue;
 	            }
 
 	            // Futility pruning (FP)
-	            int fpMargin = max((150 + historyValueF * 75 - isTTCapture * 100), float(0)) * depth * depth;
+	            int fpMargin = max((150 + historyValueF * 75 - isTTCapture * 100 + isMoveInteresting * 80), float(0)) * depth * depth;
 
 	            if (movesSearched > 0 &&
 	            	staticEval < alpha - fpMargin &&
@@ -708,7 +707,7 @@ struct Worker {
 	            if (movesSearched > 0 &&
 	            	!isPvNode &&
 	            	!inCheck &&
-	                sseEval <= -(100 + historyValueF * 70) * depth) {
+	                sseEval <= -(100 + historyValueF * 70 + isMovingSideInCheck * 50) * depth) {
 
 	                continue;
 	            }
