@@ -262,7 +262,7 @@ struct Worker {
             }
 
 
-            int seeEval = moveListGenerator.seeTable[move.getStartSquare()][move.getTargetSquare()];
+            int seeEval = moveListGenerator.seeTable[ply][move.getStartSquare()][move.getTargetSquare()];
         	if(move == ttMove)
         		seeEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
 
@@ -660,7 +660,7 @@ struct Worker {
             bool isPromotion = (move.getPromotionFlag() > 0);
             int sseEval = 0;
             if (isCapture){
-                sseEval = moveListGenerator.seeTable[move.getStartSquare()][move.getTargetSquare()];
+                sseEval = moveListGenerator.seeTable[ply][move.getStartSquare()][move.getTargetSquare()];
             	if(doTTmoveBeforeMovegen && currentMove == 0)
             		sseEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
             }

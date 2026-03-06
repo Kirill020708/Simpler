@@ -60,7 +60,7 @@ struct MoveListGenerator {
 
     int material[6] = {0, 100, 300, 300, 500, 900};
 
-    int seeTable[64][64];
+    int16_t seeTable[maxDepth][64][64];
 
     inline void generateMoves(Board &board, HistoryHelper &historyHelper, int color, int depth, bool doSort,
                               bool onlyCaptures) {
@@ -116,7 +116,7 @@ struct MoveListGenerator {
                     int captureEval;
                     captureEval = sseEval = moveGenerator.sseEval(board, targetSquare, color, startSquare);
 
-                    seeTable[startSquare][targetSquare] = sseEval;
+                    seeTable[depth][startSquare][targetSquare] = sseEval;
 
                     int historyScore = historyHelper.getScore(board, color, Move(startSquare, targetSquare, NOPIECE));
                     int normHistoryScore = historyScore - historyHelper.maxHistoryScore;
