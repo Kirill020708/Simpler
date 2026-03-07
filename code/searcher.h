@@ -758,16 +758,21 @@ struct Worker {
                 if (inCheck)
                 	doLMRcapture = false;
 
+                int newDepth = depth;
+
                 if (movesSearched >= LMR_FULL_MOVES && !isMovingSideInCheck && depth >= LMR_MIN_DEPTH &&
                     doLMRcapture 
                 ) {
                     score = -search<NonPV>(board, oppositeColor, depth - 1 - lmrReduction, 0, -(alpha + 1), -alpha,
                                     ply + 1, extended, true);
-                } else
+                } else {
                     score = alpha + 1; // if LMR is restricted, do this to do PVS
+                    if (lmrReduction >= 3)
+                        newDepth--;
+                }
 
                 if (score > alpha) {
-                    score = -search<NonPV>(board, oppositeColor, depth - 1 + extendDepth, 0, -(alpha + 1), -alpha,
+                    score = -search<NonPV>(board, oppositeColor, newDepth - 1 + extendDepth, 0, -(alpha + 1), -alpha,
                                     ply + 1, extended + extendDepth, !cutNode);
                     if (isPvNode && score > alpha && score < beta)
                         score =
