@@ -119,16 +119,16 @@ struct Worker {
 
     ull zobristAfterMove(Board &board, Move move) {
 
-    	char color = board.boardColor;
+        char color = board.boardColor;
 
-	    bool castlingWhiteQueensideBroke = board.castlingWhiteQueensideBroke;
-	    bool castlingWhiteKingsideBroke = board.castlingWhiteKingsideBroke;
-	    bool castlingBlackQueensideBroke = board.castlingBlackQueensideBroke;
-	    bool castlingBlackKingsideBroke = board.castlingBlackKingsideBroke;
+        bool castlingWhiteQueensideBroke = board.castlingWhiteQueensideBroke;
+        bool castlingWhiteKingsideBroke = board.castlingWhiteKingsideBroke;
+        bool castlingBlackQueensideBroke = board.castlingBlackQueensideBroke;
+        bool castlingBlackKingsideBroke = board.castlingBlackKingsideBroke;
 
-	    char enPassantColumn = board.enPassantColumn;
+        char enPassantColumn = board.enPassantColumn;
 
-	    ull zobristKey = board.zobristKey;
+        ull zobristKey = board.zobristKey;
 
         board.calculateZobristAfterMove(move);
 
@@ -136,16 +136,16 @@ struct Worker {
 
         board.boardColor = color;
 
-	    board.castlingWhiteQueensideBroke = castlingWhiteQueensideBroke;
-	    board.castlingWhiteKingsideBroke = castlingWhiteKingsideBroke;
-	    board.castlingBlackQueensideBroke = castlingBlackQueensideBroke;
-	    board.castlingBlackKingsideBroke = castlingBlackKingsideBroke;
+        board.castlingWhiteQueensideBroke = castlingWhiteQueensideBroke;
+        board.castlingWhiteKingsideBroke = castlingWhiteKingsideBroke;
+        board.castlingBlackQueensideBroke = castlingBlackQueensideBroke;
+        board.castlingBlackKingsideBroke = castlingBlackKingsideBroke;
 
-	    board.enPassantColumn = enPassantColumn;
+        board.enPassantColumn = enPassantColumn;
 
-	    board.zobristKey = zobristKey;
+        board.zobristKey = zobristKey;
 
-	    return newKey;
+        return newKey;
     }
 
     void correctTTscore(TableEntry &ttEntry, int alpha, int beta) {
@@ -155,7 +155,7 @@ struct Worker {
             ttEntry.score = NO_EVAL;
 
         if (ttEntry.flag.type() == UPPER_BOUND &&
-        	ttEntry.score > alpha)
+            ttEntry.score > alpha)
             ttEntry.score = NO_EVAL;
     }
 
@@ -165,22 +165,22 @@ struct Worker {
         constexpr bool isPvNode = nodePvType != NonPV;
         bool ttpv = isPvNode;
 
-    	if (isPvNode)
-    		seldepth = max(seldepth, ply + 1);
+        if (isPvNode)
+            seldepth = max(seldepth, ply + 1);
 
         if (stopSearch || nodes >= nodesLim) {
             stopSearch = true;
             return 0;
         }
 
-    	if ((nodes & 1023) == 0) {
-        	std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
+        if ((nodes & 1023) == 0) {
+            std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
             ll timeThinked = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - searchStartTime).count();
             if (timeThinked >= hardTimeBound) {
-	            stopSearch = true;
-	            return 0;
-	        }
-	    }
+                stopSearch = true;
+                return 0;
+            }
+        }
 
         nodes++;
 
@@ -199,7 +199,7 @@ struct Worker {
         Move ttMove = ttEntry.move;
 
         if (!moveGenerator.isMoveLegal(board, ttMove) || board.isQuietMove(ttMove))
-        	ttMove = Move();
+            ttMove = Move();
 
         moveListGenerator.hashMove = ttMove;
 
@@ -207,13 +207,13 @@ struct Worker {
         if (moveListGenerator.isStalled(board, color) || evaluator.insufficientMaterialDraw(board))
             return evaluator.evaluateStalledPosition(board, color, ply);
         else {
-        	if (ttEntry.eval != NO_EVAL)
-        		rawStaticEval = ttEntry.eval;
-        	else {
-            	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
-            	transpositionTable.writeStaticEval(currentZobristKey, rawStaticEval);
-        	}
-        	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+            if (ttEntry.eval != NO_EVAL)
+                rawStaticEval = ttEntry.eval;
+            else {
+                rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
+                transpositionTable.writeStaticEval(currentZobristKey, rawStaticEval);
+            }
+            staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
         }
 
         ttEntry = prEntry;
@@ -238,7 +238,7 @@ struct Worker {
         // moveListGenerator.killerMove=moveListGenerator.hashMove;
         Board boardCopy = board;
         if (ttMove == Move()) {
-        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
+            moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
         }
 
 
@@ -249,7 +249,7 @@ struct Worker {
         Move newTTmove = Move();
 
         if (ttMove != Move())
-        	moveListGenerator.moveListSize[ply] = 1;
+            moveListGenerator.moveListSize[ply] = 1;
 
         bool searchedTTmove = false;
 
@@ -257,17 +257,17 @@ struct Worker {
             Move move = moveListGenerator.moveList[ply][currentMove];
 
             if(ttMove != Move() && !searchedTTmove) {
-            	move = ttMove;
-            	searchedTTmove = true;
+                move = ttMove;
+                searchedTTmove = true;
             }
 
 
             int seeEval = moveListGenerator.seeTable[ply][move.getStartSquare()][move.getTargetSquare()];
-        	if(move == ttMove)
-        		seeEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
+            if(move == ttMove)
+                seeEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
 
-        	if (staticEval + 100 < alpha && seeEval <= 0)
-        		continue;
+            if (staticEval + 100 < alpha && seeEval <= 0)
+                continue;
 
             ull newKey = zobristAfterMove(board, move);
             transpositionTable.prefetch(newKey);
@@ -301,9 +301,9 @@ struct Worker {
             }
 
             if (move == ttMove) {
-		        moveListGenerator.hashMove = ttMove;
+                moveListGenerator.hashMove = ttMove;
 
-            	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
+                moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
             }
         }
         transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, type, boardCurrentAge,
@@ -317,40 +317,40 @@ struct Worker {
 
     int staticEvaluationHistory[maxDepth];
 
-	template<NodeType nodePvType>
+    template<NodeType nodePvType>
     int search(Board &board, int color, int depth, int isRoot, int alpha, int beta, int ply, int extended, bool cutNode) {
-    	
+        
         constexpr bool isPvNode = nodePvType != NonPV;
         bool ttpv = isPvNode;
 
-    	if (isPvNode)
-    		seldepth = max(seldepth, ply + 1);
+        if (isPvNode)
+            seldepth = max(seldepth, ply + 1);
 
         if (stopSearch || nodes >= nodesLim) {
             stopSearch = true;
             return 0;
         }
 
-    	if ((nodes & 1023) == 0) {
-        	std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
+        if ((nodes & 1023) == 0) {
+            std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
             ll timeThinked = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - searchStartTime).count();
             if (timeThinked >= hardTimeBound) {
-	            stopSearch = true;
-	            return 0;
-	        }
-	    }
+                stopSearch = true;
+                return 0;
+            }
+        }
 
-	    if (!isRoot) {
-	    	alpha = max(alpha, -MATE_SCORE + ply);
-	    	beta = min(beta, MATE_SCORE - ply);
-	    	if (alpha >= beta)
-	    		return alpha;
-	    }
+        if (!isRoot) {
+            alpha = max(alpha, -MATE_SCORE + ply);
+            beta = min(beta, MATE_SCORE - ply);
+            if (alpha >= beta)
+                return alpha;
+        }
 
         nodes++;
 
         if (!isRoot && board.age - board.lastIrreversibleMoveAge > 100)
-        	return DRAW_SCORE;
+            return DRAW_SCORE;
 
         ull currentZobristKey = board.getZobristKey();
 
@@ -373,20 +373,20 @@ struct Worker {
         int nodeType = ttEntry.flag.type();
 
         if (corrEntry.score != NO_EVAL &&
-        	ttEntry.depth >= depth &&
-        	!isRoot &&
-        	!isPvNode &&
-        	!searchStack[ply].excludeTTmove)
+            ttEntry.depth >= depth &&
+            !isRoot &&
+            !isPvNode &&
+            !searchStack[ply].excludeTTmove)
 
             return corrEntry.score;
 
-    	if (ttEntry.eval != NO_EVAL)
-    		rawStaticEval = ttEntry.eval;
-    	else {
-        	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
+        if (ttEntry.eval != NO_EVAL)
+            rawStaticEval = ttEntry.eval;
+        else {
+            rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
             transpositionTable.writeStaticEval(currentZobristKey, rawStaticEval);
-    	}
-    	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+        }
+        staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
 
         auto scorrEntry = ttEntry;
         correctTTscore(scorrEntry, staticEval, staticEval);
@@ -410,15 +410,15 @@ struct Worker {
         }
 
         bool isMateScores = (abs(alpha) >= MATE_SCORE_MAX_PLY ||
-					    	 abs(beta) >= MATE_SCORE_MAX_PLY ||
-					    	 abs(staticEval) >= MATE_SCORE_MAX_PLY);
+                             abs(beta) >= MATE_SCORE_MAX_PLY ||
+                             abs(staticEval) >= MATE_SCORE_MAX_PLY);
 
 
         // Reverse futility pruning
         if (!isRoot &&
-        	!isMovingSideInCheck &&
-        	nodeType == NONE &&
-        	!isPvNode &&
+            !isMovingSideInCheck &&
+            nodeType == NONE &&
+            !isPvNode &&
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
@@ -429,7 +429,7 @@ struct Worker {
         }
 
         if (depth <= 0){
-        	nodes--;
+            nodes--;
             return quiescentSearch<nodePvType>(board, color, alpha, beta, ply);
         }
 
@@ -437,7 +437,7 @@ struct Worker {
 
         // Null move pruning
         if (!isRoot &&
-        	!isMovingSideInCheck &&
+            !isMovingSideInCheck &&
             ((board.whitePieces | board.blackPieces) ^ (board.pawns | board.kings)) >
                 0 &&              // pieces except kings and pawns exist (to prevent zugzwang)
             staticEval >= beta + 12 &&
@@ -446,8 +446,8 @@ struct Worker {
             !isMateScores) {
 
             int R = floor(4 +
-            	depth / 5.0 +
-            	min((staticEval - beta) / 200.0, 5.0));
+                depth / 5.0 +
+                min((staticEval - beta) / 200.0, 5.0));
 
             int prevEnPassColumn = board.makeNullMove();
             int score = -search<NonPV>(board, oppositeColor, depth - 1 - R, 0, -beta, -beta + 1, ply + 1, extended, !cutNode);
@@ -458,10 +458,10 @@ struct Worker {
         }
 
         if (!isRoot &&
-        	!isPvNode &&
-        	!isMovingSideInCheck &&
-        	!searchStack[ply].excludeTTmove &&
-        	!isMateScores) { // Razoring
+            !isPvNode &&
+            !isMovingSideInCheck &&
+            !searchStack[ply].excludeTTmove &&
+            !isMateScores) { // Razoring
 
             int margin = 150 * depth * depth + 200;
 
@@ -469,14 +469,14 @@ struct Worker {
                 int qEval = quiescentSearch<NonPV>(board, color, alpha - 1, alpha, ply + 1);
 
                 if (depth == 1 ||
-                	(depth <= 2 && nodeType != NONE && ttEntry.score < alpha - margin - 50))
-                	return qEval;
+                    (depth <= 2 && nodeType != NONE && ttEntry.score < alpha - margin - 50))
+                    return qEval;
 
                 if (qEval < alpha)
                     return qEval;
 
                 if (depth > 1 && depth <= 3 && qEval > beta + 200)
-                	depth--;
+                    depth--;
             }
         }
 
@@ -495,43 +495,43 @@ struct Worker {
         int probcutDepthR = 4;
         //ProbCut
         if (!isRoot &&
-        	depth >= probcutDepthR &&
-        	!isPvNode && 
-        	!isMovingSideInCheck &&
-        	!searchStack[ply].excludeTTmove &&
-        	!isMateScores) {
+            depth >= probcutDepthR &&
+            !isPvNode && 
+            !isMovingSideInCheck &&
+            !searchStack[ply].excludeTTmove &&
+            !isMateScores) {
 
-        	int probcutBeta = beta + 200;
+            int probcutBeta = beta + 200;
 
-        	if (nodeType == NONE || ttEntry.score >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
+            if (nodeType == NONE || ttEntry.score >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
 
-	        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
+                moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
 
-		        for (int currentMove = 0; currentMove < moveListGenerator.moveListSize[ply]; currentMove++) {
-		            Move move = moveListGenerator.moveList[ply][currentMove];
+                for (int currentMove = 0; currentMove < moveListGenerator.moveListSize[ply]; currentMove++) {
+                    Move move = moveListGenerator.moveList[ply][currentMove];
 
-		            ull newKey = zobristAfterMove(board, move);
-		            transpositionTable.prefetch(newKey);
-		            
-		            board.makeMove(move, nnueEvaluator);
+                    ull newKey = zobristAfterMove(board, move);
+                    transpositionTable.prefetch(newKey);
+                    
+                    board.makeMove(move, nnueEvaluator);
 
-		            int score = -quiescentSearch<NonPV>(board, oppositeColor, -probcutBeta, -probcutBeta + 1, ply + 1);
+                    int score = -quiescentSearch<NonPV>(board, oppositeColor, -probcutBeta, -probcutBeta + 1, ply + 1);
 
-		            if (score >= probcutBeta)
-		            	score = -search<NonPV>(board, oppositeColor, depth - probcutDepthR, 0, -probcutBeta, -probcutBeta + 1,
-	                                    ply + 1, extended, !cutNode);
+                    if (score >= probcutBeta)
+                        score = -search<NonPV>(board, oppositeColor, depth - probcutDepthR, 0, -probcutBeta, -probcutBeta + 1,
+                                        ply + 1, extended, !cutNode);
 
-		            board = boardCopy;
+                    board = boardCopy;
 
-		            nnueEvaluator.ply--;
+                    nnueEvaluator.ply--;
 
-		            if (score >= probcutBeta) {
-	                    transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth - probcutDepthR, LOWER_BOUND,
-	                                             boardCurrentAge, move, ply, ttpv);
-	                    return score;
-		            }
-		        }
-		    }
+                    if (score >= probcutBeta) {
+                        transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth - probcutDepthR, LOWER_BOUND,
+                                                 boardCurrentAge, move, ply, ttpv);
+                        return score;
+                    }
+                }
+            }
         }
 
 
@@ -541,15 +541,15 @@ struct Worker {
         moveListGenerator.killerBackup = killers[ply][1];
 
         if (killersAge[ply][0] < killersAge[ply][1]) {
-        	swap(killerMove, killerBackup);
-        	swap(moveListGenerator.killerMove, moveListGenerator.killerBackup);
+            swap(killerMove, killerBackup);
+            swap(moveListGenerator.killerMove, moveListGenerator.killerBackup);
         }
 
 
         // Internal Iterative Reductions (IIR)
         if (depth >= 6 &&
-        	isPvNode &&
-        	nodeType == NONE) {
+            isPvNode &&
+            nodeType == NONE) {
 
             depth--;
         }
@@ -560,48 +560,48 @@ struct Worker {
         bool doTTmoveBeforeMovegen = true;
 
         if(ttMove == Move() || searchStack[ply].excludeTTmove){
-        	doTTmoveBeforeMovegen = false;
-        	historyHelper.whiteAttacks = whiteAttacks;
-        	historyHelper.blackAttacks = blackAttacks;
-        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES);
-        	if (moveListGenerator.moveListSize[ply] == 0)
-        		return evaluator.evaluateStalledPosition(board, color, ply);
+            doTTmoveBeforeMovegen = false;
+            historyHelper.whiteAttacks = whiteAttacks;
+            historyHelper.blackAttacks = blackAttacks;
+            moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES);
+            if (moveListGenerator.moveListSize[ply] == 0)
+                return evaluator.evaluateStalledPosition(board, color, ply);
         } else {
-        	moveListGenerator.moveListSize[ply] = 1;
+            moveListGenerator.moveListSize[ply] = 1;
         }
 
         // Singular extensions
         int extendTTmove = 0;
         if (
-        	extended <= 30 &&
-        	ply < maxDepth - 10 &&
-        	ttMove != Move() &&
-        	depth >= 7 &&
-        	ttEntry.depth >= depth - 3 &&
-        	!searchStack[ply].excludeTTmove &&
-        	nodeType != UPPER_BOUND &&
-        	abs(MATE_SCORE) - abs(ttEntry.score) > maxDepth
-        	){
+            extended <= 30 &&
+            ply < maxDepth - 10 &&
+            ttMove != Move() &&
+            depth >= 7 &&
+            ttEntry.depth >= depth - 3 &&
+            !searchStack[ply].excludeTTmove &&
+            nodeType != UPPER_BOUND &&
+            abs(MATE_SCORE) - abs(ttEntry.score) > maxDepth
+            ){
 
-        	searchStack[ply + 1].excludeTTmove = true;
-        	searchStack[ply + 1].excludeMove = ttMove;
-        	int singularBeta = ttEntry.score - depth;
-        	int singularScore = search<nodePvType>(board, color, depth / 2, 0, singularBeta - 1, singularBeta, ply + 1, extended, cutNode);
+            searchStack[ply + 1].excludeTTmove = true;
+            searchStack[ply + 1].excludeMove = ttMove;
+            int singularBeta = ttEntry.score - depth;
+            int singularScore = search<nodePvType>(board, color, depth / 2, 0, singularBeta - 1, singularBeta, ply + 1, extended, cutNode);
 
-        	searchStack[ply + 1].excludeTTmove = false;
+            searchStack[ply + 1].excludeTTmove = false;
 
-        	if (singularScore < singularBeta){
+            if (singularScore < singularBeta){
 
-        		singularExtended++;
+                singularExtended++;
 
-        		extendTTmove = 1;
+                extendTTmove = 1;
 
-        		// Double extentions
-        		if (!isPvNode && singularScore < singularBeta - 30)
-        			extendTTmove++;
+                // Double extentions
+                if (!isPvNode && singularScore < singularBeta - 30)
+                    extendTTmove++;
 
-        	} else if (singularScore >= beta && MATE_SCORE - abs(singularScore) > maxDepth)
-        		return beta; // Multicut
+            } else if (singularScore >= beta && MATE_SCORE - abs(singularScore) > maxDepth)
+                return beta; // Multicut
             else if (ttEntry.score >= beta)
                 extendTTmove = -1; // Negative extensions
         }
@@ -618,7 +618,7 @@ struct Worker {
         bool searchedTTmove = false;
 
         if (ttMove != Move() && doTTmoveBeforeMovegen) {
-        	moveListGenerator.moveListSize[ply] = 1;
+            moveListGenerator.moveListSize[ply] = 1;
         }
 
         searchStack[ply].pvLine = vector<Move>();
@@ -632,20 +632,20 @@ struct Worker {
             }
 
             if (doTTmoveBeforeMovegen && !searchedTTmove) {
-            	move = ttMove;
-            	searchedTTmove = true;
+                move = ttMove;
+                searchedTTmove = true;
             }
 
 
-        	historyHelper.whiteAttacks = whiteAttacks;
-        	historyHelper.blackAttacks = blackAttacks;
+            historyHelper.whiteAttacks = whiteAttacks;
+            historyHelper.blackAttacks = blackAttacks;
 
             int historyValue = historyHelper.getScore(board, color, move) - historyHelper.maxHistoryScore;
             float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
 
             bool isKiller = (
-        		move == killers[ply][0] ||
-        		move == killers[ply][1]);
+                move == killers[ply][0] ||
+                move == killers[ply][1]);
 
             int extendDepth = 0;
 
@@ -661,58 +661,60 @@ struct Worker {
             int sseEval = 0;
             if (isCapture){
                 sseEval = moveListGenerator.seeTable[ply][move.getStartSquare()][move.getTargetSquare()];
-            	if(doTTmoveBeforeMovegen && currentMove == 0)
-            		sseEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
+                if(doTTmoveBeforeMovegen && currentMove == 0)
+                    sseEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
             }
 
             bool beingMated = (alpha <= -MATE_SCORE_MAX_PLY ||
-            				   bestScore <= -MATE_SCORE_MAX_PLY ||
-            				   isMateScores);
+                               bestScore <= -MATE_SCORE_MAX_PLY ||
+                               isMateScores);
+
+            int baseLMRdepth = max(1, int(depth - (lmrLogTable[depth][movesSearched] + 0.5)));
 
             // Conditions for moveloop pruning
             if (!beingMated &&
-            	!isRoot &&
-            	currentMove > 0 &&
-            	!isMovingSideInCheck) {
+                !isRoot &&
+                currentMove > 0 &&
+                !isMovingSideInCheck) {
 
-            	// Late move pruning (LMP)
-	            if (!isPvNode &&
-	            	movesSearched > 3 + depth * depth * (1 - isTTCapture * 0.5) &&
-	            	historyValue < 0) {
+                // Late move pruning (LMP)
+                if (!isPvNode &&
+                    movesSearched > 3 + depth * depth * (1 - isTTCapture * 0.5) &&
+                    historyValue < 0) {
 
-	            	break;
-	            }
-	            
-	            // History pruning
-	            if (!isPvNode &&
-	            	movesSearched > 0 &&
-	            	!isMoveInteresting &&
-	            	historyValue < -200 * depth) {
+                    break;
+                }
+                
+                // History pruning
+                if (!isPvNode &&
+                    movesSearched > 0 &&
+                    !isMoveInteresting &&
+                    historyValue < -200 * depth) {
 
-	            	continue;
-	            }
+                    continue;
+                }
 
-	            // Futility pruning (FP)
-	            int fpMargin = max((150 + historyValueF * 75 - isTTCapture * 100), float(0)) * depth * depth;
+                // Futility pruning (FP)
+                int fpMargin = max((150 + historyValueF * 75 - isTTCapture * 100), float(0)) * baseLMRdepth * baseLMRdepth;
 
-	            if (movesSearched > 0 &&
-	            	staticEval < alpha - fpMargin &&
-	                !isMoveInteresting &&
-	                !searchStack[ply].excludeTTmove
-	            ) {
+                if (movesSearched > 0 &&
+                    staticEval < alpha - fpMargin &&
+                    !isMoveInteresting &&
+                    !searchStack[ply].excludeTTmove
+                ) {
 
-	                continue;
-	            }
+                    continue;
+                }
 
-	            // Captures SEE pruning
-	            if (movesSearched > 0 &&
-	            	!isPvNode &&
-	            	!inCheck &&
-	                sseEval <= -(100 + historyValueF * 70) * depth) {
+                // Captures SEE pruning
+                if (movesSearched > 0 &&
+                    !isPvNode &&
+                    !inCheck &&
+                    sseEval <= -(100 + historyValueF * 70) * depth) {
 
-	                continue;
-	            }
-	        }
+                    continue;
+                }
+            }
 
             ull newKey = zobristAfterMove(board, move);
             transpositionTable.prefetch(newKey);
@@ -738,14 +740,14 @@ struct Worker {
 
                 int lmrReduction =
                     floor(lmrLogTable[depth][movesSearched] + 0.5 
-                    	- 1 * (isPvNode)
-                    	- 1.5 * historyValueF
-                    	+ 0.5 * (!improving)
-                    	+ 1 * (isTTCapture)
-                    	+ 1 * cutNode
-                    	- 1 * ttpv
-                    	- 1 * (isCapture)
-                    	- 0.002 * sseEval
+                        - 1 * (isPvNode)
+                        - 1.5 * historyValueF
+                        + 0.5 * (!improving)
+                        + 1 * (isTTCapture)
+                        + 1 * cutNode
+                        - 1 * ttpv
+                        - 1 * (isCapture)
+                        - 0.002 * sseEval
                         - 1 * (isKiller)); // reduction of depth
 
                 if (lmrReduction < 0)
@@ -756,7 +758,7 @@ struct Worker {
 
                 bool doLMRcapture = true;
                 if (inCheck)
-                	doLMRcapture = false;
+                    doLMRcapture = false;
 
                 if (movesSearched >= LMR_FULL_MOVES && !isMovingSideInCheck && depth >= LMR_MIN_DEPTH &&
                     doLMRcapture 
@@ -781,7 +783,7 @@ struct Worker {
             nnueEvaluator.ply--;
 
             if (isRoot)
-            	rootNodes[move.move] += (nodes - prevNodes);
+                rootNodes[move.move] += (nodes - prevNodes);
 
             movesSearched++;
             if (!isMoveInteresting)
@@ -797,8 +799,8 @@ struct Worker {
                 bestScore = score;
                 newTTmove = move;
                 if (isPvNode) {
-                	searchStack[ply].pvLine = searchStack[ply + 1].pvLine;
-                	searchStack[ply].pvLine.push_back(move);
+                    searchStack[ply].pvLine = searchStack[ply + 1].pvLine;
+                    searchStack[ply].pvLine.push_back(move);
                 }
                 searchStack[ply].bestMove = move;
                 if (isRoot) {
@@ -811,39 +813,39 @@ struct Worker {
                     if (board.isQuietMove(move)) {
                         // update killer move
 
-                    	if (killers[ply][0] == move)
-                    		killersAge[ply][0] = nodes;
-                    	else if (killers[ply][1] == move)
-                    		killersAge[ply][1] = nodes;
-                    	else if (killers[ply][0] == Move()) {
-                    		killers[ply][0] = move;
-                    		killersAge[ply][0] = nodes;
-                    	}
-                    	else if (killers[ply][1] == Move()) {
-                    		killers[ply][1] = move;
-                    		killersAge[ply][1] = nodes;
-                    	}
-                    	else if (killersAge[ply][0] < killersAge[ply][1]) {
-                    		killers[ply][0] = move;
-                    		killersAge[ply][0] = nodes;
-                    	} else {
-                    		killers[ply][1] = move;
-                    		killersAge[ply][1] = nodes;
-                    	}
+                        if (killers[ply][0] == move)
+                            killersAge[ply][0] = nodes;
+                        else if (killers[ply][1] == move)
+                            killersAge[ply][1] = nodes;
+                        else if (killers[ply][0] == Move()) {
+                            killers[ply][0] = move;
+                            killersAge[ply][0] = nodes;
+                        }
+                        else if (killers[ply][1] == Move()) {
+                            killers[ply][1] = move;
+                            killersAge[ply][1] = nodes;
+                        }
+                        else if (killersAge[ply][0] < killersAge[ply][1]) {
+                            killers[ply][0] = move;
+                            killersAge[ply][0] = nodes;
+                        } else {
+                            killers[ply][1] = move;
+                            killersAge[ply][1] = nodes;
+                        }
 
                     }
 
                     if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
-                    	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
-                    	if (score > staticEval)
-                    		corrhistHelper.update(color, board, (score - staticEval) * depth / 8);
+                        staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+                        if (score > staticEval)
+                            corrhistHelper.update(color, board, (score - staticEval) * depth / 8);
                     }
 
-		        	historyHelper.whiteAttacks = whiteAttacks;
-		        	historyHelper.blackAttacks = blackAttacks;
+                    historyHelper.whiteAttacks = whiteAttacks;
+                    historyHelper.blackAttacks = blackAttacks;
 
-		        	int historyBonus = 10 * depth + 0;
-		        	int maluseBonus = 10 * depth + 0;
+                    int historyBonus = 10 * depth + 0;
+                    int maluseBonus = 10 * depth + 0;
 
                     historyHelper.update(board, color, move, historyBonus);
 
@@ -860,28 +862,28 @@ struct Worker {
             }
 
             if (doTTmoveBeforeMovegen && currentMove == 0) {
-	        	historyHelper.whiteAttacks = whiteAttacks;
-	        	historyHelper.blackAttacks = blackAttacks;
+                historyHelper.whiteAttacks = whiteAttacks;
+                historyHelper.blackAttacks = blackAttacks;
 
-		        moveListGenerator.hashMove = ttMove;
-		        moveListGenerator.killerMove = killers[ply][killerMove];
-		        moveListGenerator.killerBackup = killers[ply][killerBackup];
+                moveListGenerator.hashMove = ttMove;
+                moveListGenerator.killerMove = killers[ply][killerMove];
+                moveListGenerator.killerBackup = killers[ply][killerBackup];
 
-            	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES);
+                moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES);
             }
         }
 
         if (type == UPPER_BOUND)
-        	newTTmove = Move();
+            newTTmove = Move();
 
         if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
             staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
-        	if (type == EXACT || bestScore < staticEval)
-        		corrhistHelper.update(color, board, (bestScore - staticEval) * depth / 8);
+            if (type == EXACT || bestScore < staticEval)
+                corrhistHelper.update(color, board, (bestScore - staticEval) * depth / 8);
         }
 
         if (bestScore == -inf)
-        	bestScore = alpha;
+            bestScore = alpha;
 
         transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, depth, type, boardCurrentAge, newTTmove, ply, ttpv);
         return bestScore;
@@ -934,9 +936,9 @@ struct Worker {
             int alpha = -MATE_SCORE, beta = MATE_SCORE;
 
             if (depth == 1)
-            	search<PV>(board, board.boardColor, depth, 1, alpha, beta, 0, 0, false);
+                search<PV>(board, board.boardColor, depth, 1, alpha, beta, 0, 0, false);
             else
-            	aspirationSearch(board, depth, score);
+                aspirationSearch(board, depth, score);
 
             score = rootScore;
 
@@ -974,7 +976,7 @@ struct Worker {
         searchStartTime = std::chrono::steady_clock::now();
 
         for (int i = 0; i < (1 << 16); i++)
-        	rootNodes[i] = 0;
+            rootNodes[i] = 0;
 
         for (int depth = 1; depth <= maxDepth; depth++) {
             // workers[0].nnueEvaluator.printAccum();
@@ -982,135 +984,135 @@ struct Worker {
             int alpha = -MATE_SCORE, beta = MATE_SCORE;
 
             if (depth == 1)
-            	search<PV>(board, board.boardColor, depth, 1, alpha, beta, 0, 0, false);
+                search<PV>(board, board.boardColor, depth, 1, alpha, beta, 0, 0, false);
             else
-            	aspirationSearch(board, depth, score);
+                aspirationSearch(board, depth, score);
 
             score = rootScore;
 
-	        if (bestMove == Move()) {
-	        	auto ttEntry = transpositionTable.get(board, board.getZobristKey(), 0);
-	        	if (ttEntry.move != Move() && moveGenerator.isMoveLegal(board, ttEntry.move))
-	        		bestMove = ttEntry.move;
-	        	else {
-	        		moveListGenerator.generateMoves(board, historyHelper, color, 0, DO_SORT, ALL_MOVES);
-	        		bestMove = moveListGenerator.moveList[0][0];
-	        	}
-	        }
+            if (bestMove == Move()) {
+                auto ttEntry = transpositionTable.get(board, board.getZobristKey(), 0);
+                if (ttEntry.move != Move() && moveGenerator.isMoveLegal(board, ttEntry.move))
+                    bestMove = ttEntry.move;
+                else {
+                    moveListGenerator.generateMoves(board, historyHelper, color, 0, DO_SORT, ALL_MOVES);
+                    bestMove = moveListGenerator.moveList[0][0];
+                }
+            }
 
             if (isMainThread) {
-            	std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
-	            ll timeThinked = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - searchStartTime).count();
+                std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
+                ll timeThinked = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - searchStartTime).count();
 
-	            scores[depth] = score;
-	            bestMoves[depth] = bestMove;
-	            dnodes[depth] = nodes - prevNodes;
-	            prevNodes = nodes;
-	            times[depth] = max(1ll, timeThinked - prevTimeThinked);
-	            prevTimeThinked = timeThinked;
+                scores[depth] = score;
+                bestMoves[depth] = bestMove;
+                dnodes[depth] = nodes - prevNodes;
+                prevNodes = nodes;
+                times[depth] = max(1ll, timeThinked - prevTimeThinked);
+                prevTimeThinked = timeThinked;
 
-	            // for(int i=1;i<workers[0].pvLineSize;i++)
-	            // 	cout<<workers[0].pvLine[i].convertToUCI()<<' ';
+                // for(int i=1;i<workers[0].pvLineSize;i++)
+                //  cout<<workers[0].pvLine[i].convertToUCI()<<' ';
 
-	            bool stopIDsearch = false;
+                bool stopIDsearch = false;
 
-	            if (nodes >= min(nodesLimit, nodesH))
-	                stopIDsearch = true;
+                if (nodes >= min(nodesLimit, nodesH))
+                    stopIDsearch = true;
 
-	            int timeUntilHardBound = hardBound - timeThinked;
-	            if (timeUntilHardBound <= 0 || stopSearch)
-	            	stopIDsearch = true;
+                int timeUntilHardBound = hardBound - timeThinked;
+                if (timeUntilHardBound <= 0 || stopSearch)
+                    stopIDsearch = true;
 
-	            if (depth > 1)
-	                branchFactor =
-	                    (branchFactor + clamp(float(dnodes[depth]) / dnodes[depth - 1], float(1.3), float(6))) / 2;
+                if (depth > 1)
+                    branchFactor =
+                        (branchFactor + clamp(float(dnodes[depth]) / dnodes[depth - 1], float(1.3), float(6))) / 2;
 
-	            int estimatedTimeForNextDepth = times[depth] * branchFactor;
+                int estimatedTimeForNextDepth = times[depth] * branchFactor;
 
-	            int bestMoveStreak = 1;
-	            for (int i = depth - 1; i >= 1; i--) {
-	            	if (bestMoves[depth] != bestMoves[i])
-	            		break;
-	            	bestMoveStreak++;
-	            }
+                int bestMoveStreak = 1;
+                for (int i = depth - 1; i >= 1; i--) {
+                    if (bestMoves[depth] != bestMoves[i])
+                        break;
+                    bestMoveStreak++;
+                }
 
-	            float bestmoveStabilityMult[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
+                float bestmoveStabilityMult[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
 
-	            bestMoveStreak = min(bestMoveStreak, 5);
+                bestMoveStreak = min(bestMoveStreak, 5);
 
-	            if (nodes == 0)
-	            	nodes = 1;
+                if (nodes == 0)
+                    nodes = 1;
 
-	            float bestmoveNodePart = float(rootNodes[bestMove.move]) / nodes;
+                float bestmoveNodePart = float(rootNodes[bestMove.move]) / nodes;
 
-	            int targetTime = softBound 
-	            * bestmoveStabilityMult[bestMoveStreak - 1]
-	            * (1.7 - bestmoveNodePart);
+                int targetTime = softBound 
+                * bestmoveStabilityMult[bestMoveStreak - 1]
+                * (1.7 - bestmoveNodePart);
 
-	            if (timeThinked >= targetTime) {
-	            	stopIDsearch = true;
-	            }
+                if (timeThinked >= targetTime) {
+                    stopIDsearch = true;
+                }
 
-	            // cout<<estimatedTimeForNextDepth<<'\n';
-	            // if (timeThinked >= softBound) {
-	            //     if (depth >= 3) {
-	            //         if (bestMoves[depth] == bestMoves[depth - 1] &&
-	            //             bestMoves[depth] == bestMoves[depth - 2]) { // if best move is stable, abort the search
-	            //             stopIDsearch = true;
-	            //         }
-	            //         if (timeUntilHardBound < estimatedTimeForNextDepth) {
-	            //             stopIDsearch = true;
-	            //         }
-	            //     }
-	            // }
+                // cout<<estimatedTimeForNextDepth<<'\n';
+                // if (timeThinked >= softBound) {
+                //     if (depth >= 3) {
+                //         if (bestMoves[depth] == bestMoves[depth - 1] &&
+                //             bestMoves[depth] == bestMoves[depth - 2]) { // if best move is stable, abort the search
+                //             stopIDsearch = true;
+                //         }
+                //         if (timeUntilHardBound < estimatedTimeForNextDepth) {
+                //             stopIDsearch = true;
+                //         }
+                //     }
+                // }
 
-            	int totalNodes = 0;
-            	for (int i = 0; i < workers.size(); i++)
-            		totalNodes += workers[i].nodes;
+                int totalNodes = 0;
+                for (int i = 0; i < workers.size(); i++)
+                    totalNodes += workers[i].nodes;
 
-            	if (printUCI && (!minimal || stopIDsearch || depth == maxDepth)) {
-	                cout << "info depth " << depth;
-	                cout << " seldepth ";
-	                cout << seldepth;
-	                cout << " score ";
-	                if (MATE_SCORE - abs(score) > maxDepth){
-	                    cout << "cp ";
-	                	if (doNormalization)
-	                		cout << normalizeNNUEscore(score, board.getNormalizeMaterial());
-	                	else
-	                		cout << score;
-	                }
-	                else {
-	                    cout << "mate ";
-	                    if (score > 0)
-	                        cout << (MATE_SCORE - score + 1) / 2;
-	                    else
-	                        cout << (-MATE_SCORE - score - 1) / 2;
-	                }
-	                cout << " nodes " << totalNodes;
-	                cout << " nps " << (totalNodes * (long long)(1000)) / (timeThinked + 1);
-	                cout << " hashfull " << transpositionTable.getHashfull();
-	                cout << " time " << timeThinked;
-	                cout << " pv ";
-	                if (basetime - timeThinked >= 10) {
-		                reverse(searchStack[0].pvLine.begin(), searchStack[0].pvLine.end());
-		                // for (auto move:searchStack[0].pvLine)
-		                // 	cout << move.convertToUCI() << ' ';
-		            }
-		            	cout << bestMove.convertToUCI();
-	                cout << endl;
-	            }
+                if (printUCI && (!minimal || stopIDsearch || depth == maxDepth)) {
+                    cout << "info depth " << depth;
+                    cout << " seldepth ";
+                    cout << seldepth;
+                    cout << " score ";
+                    if (MATE_SCORE - abs(score) > maxDepth){
+                        cout << "cp ";
+                        if (doNormalization)
+                            cout << normalizeNNUEscore(score, board.getNormalizeMaterial());
+                        else
+                            cout << score;
+                    }
+                    else {
+                        cout << "mate ";
+                        if (score > 0)
+                            cout << (MATE_SCORE - score + 1) / 2;
+                        else
+                            cout << (-MATE_SCORE - score - 1) / 2;
+                    }
+                    cout << " nodes " << totalNodes;
+                    cout << " nps " << (totalNodes * (long long)(1000)) / (timeThinked + 1);
+                    cout << " hashfull " << transpositionTable.getHashfull();
+                    cout << " time " << timeThinked;
+                    cout << " pv ";
+                    if (basetime - timeThinked >= 10) {
+                        reverse(searchStack[0].pvLine.begin(), searchStack[0].pvLine.end());
+                        // for (auto move:searchStack[0].pvLine)
+                        //  cout << move.convertToUCI() << ' ';
+                    }
+                        cout << bestMove.convertToUCI();
+                    cout << endl;
+                }
 
                 if (stopIDsearch)
-                	break;
+                    break;
             }
 
             if (stopSearch)
-            	break;
+                break;
         }
         
         if (printUCI)
-        	cout << "bestmove " << bestMove.convertToUCI() << endl;
+            cout << "bestmove " << bestMove.convertToUCI() << endl;
     }
 };
 
@@ -1153,8 +1155,8 @@ struct Searcher {
         workers[0].IDsearch(ref(boards[0]), maxDepth, softBound, hardBound, nodesLimit, nodesH, true, doInfoOutput, ref(workers));
 
         for (int i = 1; i < threadNumber; i++) {
-        	workers[i].stopSearch = true;
-        	threadPool[i].join();
+            workers[i].stopSearch = true;
+            threadPool[i].join();
         }
     }
 
@@ -1186,8 +1188,8 @@ struct Searcher {
         workers[0].IDsearchDatagen(ref(boards[0]), maxDepth, nodesLimit, nodesH);
 
         // for (int i = 1; i < threadNumber; i++) {
-        // 	workers[i].stopSearch = true;
-        // 	threadPool[i].join();
+        //  workers[i].stopSearch = true;
+        //  threadPool[i].join();
         // }
     }
 };
