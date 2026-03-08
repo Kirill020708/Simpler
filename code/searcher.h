@@ -669,6 +669,8 @@ struct Worker {
             				   bestScore <= -MATE_SCORE_MAX_PLY ||
             				   isMateScores);
 
+            int baseLMRdepth = max(1, int(depth - (lmrLogTable[depth][movesSearched] + 0.5)));
+
             // Conditions for moveloop pruning
             if (!beingMated &&
             	!isRoot &&
@@ -677,7 +679,7 @@ struct Worker {
 
             	// Late move pruning (LMP)
 	            if (!isPvNode &&
-	            	movesSearched > 3 + depth * depth * (1 - isTTCapture * 0.5) &&
+	            	movesSearched > 3 + baseLMRdepth * baseLMRdepth * (1 - isTTCapture * 0.5) &&
 	            	historyValue < 0) {
 
 	            	break;
