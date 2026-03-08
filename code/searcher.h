@@ -269,6 +269,9 @@ struct Worker {
         	if (staticEval + 100 < alpha && seeEval <= 0)
         		continue;
 
+            if (staticEval + 300 + seeEval * 2.5 < alpha)
+                continue;
+
             ull newKey = zobristAfterMove(board, move);
             transpositionTable.prefetch(newKey);
 
