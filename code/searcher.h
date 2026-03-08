@@ -850,7 +850,8 @@ struct Worker {
                     for (int previousMoves = 0; previousMoves < currentMove;
                          previousMoves++) { // negate all searched non-capture moves
                         Move prevMove = moveListGenerator.moveList[ply][previousMoves];
-                        historyHelper.update(board, color, prevMove, -maluseBonus);
+                        if (!isCapture || board.occupancy(prevMove.getTargetSquare()) != EMPTY)
+                            historyHelper.update(board, color, prevMove, -maluseBonus);
                     }
 
                     transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth, LOWER_BOUND,
