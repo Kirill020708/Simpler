@@ -22,6 +22,7 @@ struct HistoryHelper {
     int counterHistory[2][8][64][8][64];
     int contPly2History[2][8][64][8][64];
     int captHistoryScore[2][8][64][8];
+    int captHistoryQs[2][8][64][8];
     int maxHistoryScore = 511;
 
     Bitboard whiteAttacks, blackAttacks;
@@ -30,7 +31,7 @@ struct HistoryHelper {
     	memset(historyScore, 0, sizeof(historyScore));
     }
 
-    inline void update(Board &board, int color, Move move, int score) {
+    inline void update(Board &board, int color, Move move, int score, bool isQs) {
         if (score < -maxHistoryScore)
             score = -maxHistoryScore;
         if (score > maxHistoryScore)
@@ -68,12 +69,16 @@ struct HistoryHelper {
 	    	int movedPiece = board.occupancyPiece(move.getStartSquare());
 	    	int capturedPiece = board.occupancyPiece(tr);
 
-	        captHistoryScore[color][movedPiece][tr][capturedPiece] +=
-	            score - captHistoryScore[color][movedPiece][tr][capturedPiece] * abs(score) / maxHistoryScore;
+	    	if (!isQs)
+		        captHistoryScore[color][movedPiece][tr][capturedPiece] +=
+		            score - captHistoryScore[color][movedPiece][tr][capturedPiece] * abs(score) / maxHistoryScore;
+		    else
+		        captHistoryQs[color][movedPiece][tr][capturedPiece] +=
+		            score - captHistoryQs[color][movedPiece][tr][capturedPiece] * abs(score) / maxHistoryScore;
 	    }
     }
 
-    inline int getScore(Board &board, int color, Move move) {
+    inline int getScore(Board &board, int color, Move move, bool isQs) {
 
         int tr = move.getTargetSquare();
 
@@ -105,8 +110,12 @@ struct HistoryHelper {
 	    	int movedPiece = board.occupancyPiece(move.getStartSquare());
 	    	int capturedPiece = board.occupancyPiece(tr);
 
-	        return (captHistoryScore[color][movedPiece][tr][capturedPiece]) +
-	               maxHistoryScore;
+	    	if (!isQs)
+		        return (captHistoryScore[color][movedPiece][tr][capturedPiece]) +
+		               maxHistoryScore;
+		    else
+		        return (captHistoryQs[color][movedPiece][tr][capturedPiece]) +
+		               maxHistoryScore;
 	    }
     }
 };

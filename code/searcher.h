@@ -294,6 +294,18 @@ struct Worker {
                 if (alpha < score)
                     alpha = score;
                 if (alpha >= beta) {
+
+                    int historyBonus = 10;
+                    int maluseBonus = 10;
+
+                    historyHelper.update(board, color, move, historyBonus, 1);
+
+                    for (int previousMoves = 0; previousMoves < currentMove;
+                         previousMoves++) { // negate all searched non-capture moves
+                        Move prevMove = moveListGenerator.moveList[ply][previousMoves];
+                        historyHelper.update(board, color, prevMove, -maluseBonus, 1);
+                    }
+
                     transpositionTable.write(board, currentZobristKey, score, rawStaticEval, 0, LOWER_BOUND,
                                                       boardCurrentAge, move, ply, ttpv);
                     return bestScore;
@@ -640,7 +652,7 @@ struct Worker {
         	historyHelper.whiteAttacks = whiteAttacks;
         	historyHelper.blackAttacks = blackAttacks;
 
-            int historyValue = historyHelper.getScore(board, color, move) - historyHelper.maxHistoryScore;
+            int historyValue = historyHelper.getScore(board, color, move, 0) - historyHelper.maxHistoryScore;
             float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
 
             bool isKiller = (
@@ -845,12 +857,12 @@ struct Worker {
 		        	int historyBonus = 10 * depth + 0;
 		        	int maluseBonus = 10 * depth + 0;
 
-                    historyHelper.update(board, color, move, historyBonus);
+                    historyHelper.update(board, color, move, historyBonus, 0);
 
                     for (int previousMoves = 0; previousMoves < currentMove;
                          previousMoves++) { // negate all searched non-capture moves
                         Move prevMove = moveListGenerator.moveList[ply][previousMoves];
-                        historyHelper.update(board, color, prevMove, -maluseBonus);
+                        historyHelper.update(board, color, prevMove, -maluseBonus, 0);
                     }
 
                     transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth, LOWER_BOUND,
