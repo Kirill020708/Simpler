@@ -387,6 +387,11 @@ struct MoveGeneration {
             evalStack[captureNumber++] =
                 pieceMaterial[capturedPiece] + isPromotion * (pieceMaterial[QUEEN] - pieceMaterial[PAWN]);
 
+            if (evalStack[captureNumber - 1] - pieceMaterial[attackingPiece] > 0){
+                evalStack[captureNumber++] = pieceMaterial[attackingPiece];
+                break;
+            }
+
             eval += evalStack[captureNumber - 1];
             if (attackingPiece == KING) {
                 break;
