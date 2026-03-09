@@ -42,6 +42,7 @@ struct StackState {
     Move excludeMove;
     Move bestMove;
     vector<Move> pvLine;
+    float lastHistory;
 };
 
 enum NodeType {
@@ -422,7 +423,7 @@ struct Worker {
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
-            int margin = (30 - improving * 15) * max(depth, 1) * max(depth, 1);
+            int margin = (30 - improving * 15 + searchStack[ply].lastHistory * 5) * max(depth, 1) * max(depth, 1);
 
             if (staticEval >= beta + margin)
                 return (staticEval + beta) / 2;
@@ -450,6 +451,9 @@ struct Worker {
             	min((staticEval - beta) / 200.0, 5.0));
 
             int prevEnPassColumn = board.makeNullMove();
+
+            searchStack[ply + 1].lastHistory = 0;
+
             int score = -search<NonPV>(board, oppositeColor, depth - 1 - R, 0, -beta, -beta + 1, ply + 1, extended, !cutNode);
             board.makeNullMove();
             board.enPassantColumn = prevEnPassColumn;
@@ -513,6 +517,10 @@ struct Worker {
 		            ull newKey = zobristAfterMove(board, move);
 		            transpositionTable.prefetch(newKey);
 		            
+                    int historyValue = historyHelper.getScore(board, color, move) - historyHelper.maxHistoryScore;
+                    float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
+                    searchStack[ply + 1].lastHistory = historyValueF;
+
 		            board.makeMove(move, nnueEvaluator);
 
 		            int score = -quiescentSearch<NonPV>(board, oppositeColor, -probcutBeta, -probcutBeta + 1, ply + 1);
@@ -585,6 +593,8 @@ struct Worker {
 
         	searchStack[ply + 1].excludeTTmove = true;
         	searchStack[ply + 1].excludeMove = ttMove;
+            searchStack[ply + 1].lastHistory = searchStack[ply].lastHistory;
+
         	int singularBeta = ttEntry.score - depth;
         	int singularScore = search<nodePvType>(board, color, depth / 2, 0, singularBeta - 1, singularBeta, ply + 1, extended, cutNode);
 
@@ -642,6 +652,8 @@ struct Worker {
 
             int historyValue = historyHelper.getScore(board, color, move) - historyHelper.maxHistoryScore;
             float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
+
+            searchStack[ply + 1].lastHistory = historyValueF;
 
             bool isKiller = (
         		move == killers[ply][0] ||
