@@ -372,6 +372,8 @@ struct Worker {
 
         int nodeType = ttEntry.flag.type();
 
+        bool tthit = (nodeType != NONE);
+
         if (corrEntry.score != NO_EVAL &&
         	ttEntry.depth >= depth &&
         	!isRoot &&
@@ -441,6 +443,7 @@ struct Worker {
             ((board.whitePieces | board.blackPieces) ^ (board.pawns | board.kings)) >
                 0 &&              // pieces except kings and pawns exist (to prevent zugzwang)
             staticEval >= beta + 12 &&
+            !(tthit && (nodeType == UPPER_BOUND || ttEntry.eval < beta)) &&
             !isPvNode &&
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
