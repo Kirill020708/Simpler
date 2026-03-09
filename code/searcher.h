@@ -422,7 +422,7 @@ struct Worker {
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
-            int margin = (30 - improving * 15) * max(depth, 1) * max(depth, 1);
+            int margin = (30 - improving * 15) * max(depth, 0) * max(depth, 0);
 
             if (staticEval >= beta + margin)
                 return (staticEval + beta) / 2;
