@@ -11,7 +11,7 @@
 
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "incbin.h"
-INCBIN(NETWORK, "code/multilayer.nnue");
+INCBIN(NETWORK, "code/dualact.nnue");
 
 const int inputSize = 64 * 12, hl1Size = 512, hl2Size = 16, hl3Size = 32;
 const int w1BlockSize = 4 * hl2Size;
@@ -89,7 +89,7 @@ struct NNUEevaluator {
 
     alignas(64) __int8_t w1[outputBuckets][hl1Size / 2][w1BlockSize];
     alignas(64) int b1[outputBuckets][hl2Size];
-    alignas(64) int w2[outputBuckets][hl2Size][hl3Size];
+    alignas(64) int w2[outputBuckets][hl2Size * 2][hl3Size];
     alignas(64) int b2[outputBuckets][hl3Size];
     alignas(64) int w3[outputBuckets][hl3Size];
     alignas(64) int b3[outputBuckets];
@@ -245,8 +245,10 @@ struct NNUEevaluator {
         alignas(64) uint8_t hl1Activations[hl1Size * 2];
 
         __m256i zerosm = _mm256_set1_epi16(-1);
+        __m256i zerol = _mm256_set1_epi16(0);
         __m256i qas = _mm256_set1_epi16(Q0);
         __m256i ql = _mm256_set1_epi16(Q);
+        __m256i qql = _mm256_set1_epi32(Q * Q);
 
         int accAdd = hl1Size * (color == BLACK);
         for (int i = 0; i < hl1Size; i += 16) {
@@ -343,15 +345,17 @@ struct NNUEevaluator {
         // 1167/(255*255/(2**9)*128/64)
         L2_0 = _mm256_srai_epi32(L2_0, 8);
         L2_0 = _mm256_add_epi32(L2_0, _mm256_load_si256((__m256i *)&b1[bucket][0]));
-        L2_0 = _mm256_and_si256(L2_0, _mm256_cmpgt_epi16(L2_0, zerosm));
-        L2_0 = _mm256_blendv_epi8(L2_0, ql, _mm256_cmpgt_epi16(L2_0, ql));
+        auto L2_0c = _mm256_and_si256(L2_0, _mm256_cmpgt_epi16(L2_0, zerosm));
+        L2_0c = _mm256_blendv_epi8(L2_0c, ql, _mm256_cmpgt_epi16(L2_0c, ql));
         L2_0 = _mm256_mullo_epi32(L2_0, L2_0);
+        L2_0 = _mm256_min_epi32(L2_0, qql);
 
         L2_1 = _mm256_srai_epi32(L2_1, 8);
         L2_1 = _mm256_add_epi32(L2_1, _mm256_load_si256((__m256i *)&b1[bucket][hl2Size / 2]));
-        L2_1 = _mm256_and_si256(L2_1, _mm256_cmpgt_epi16(L2_1, zerosm));
-        L2_1 = _mm256_blendv_epi8(L2_1, ql, _mm256_cmpgt_epi16(L2_1, ql));
+        auto L2_1c = _mm256_and_si256(L2_1, _mm256_cmpgt_epi16(L2_1, zerosm));
+        L2_1c = _mm256_blendv_epi8(L2_1c, ql, _mm256_cmpgt_epi16(L2_1c, ql));
         L2_1 = _mm256_mullo_epi32(L2_1, L2_1);
+        L2_1 = _mm256_min_epi32(L2_1, qql);
 
         // _mm256_store_si256((__m256i *)&abc[0], L2_0);
         // for(int i = 0;i<8;i++)
@@ -360,9 +364,17 @@ struct NNUEevaluator {
         // for(int i = 0;i<8;i++)
         //     cout<<abc[i]<<' ';
 
-        alignas(64) int hl2Activations[hl2Size];
-        _mm256_store_si256((__m256i *)&hl2Activations[0], L2_0);
-        _mm256_store_si256((__m256i *)&hl2Activations[hl2Size / 2], L2_1);
+        // alignas(64) int hl2Activations[hl2Size];
+        // _mm256_store_si256((__m256i *)&hl2Activations[0], L2_0);
+        // _mm256_store_si256((__m256i *)&hl2Activations[hl2Size / 2], L2_1);
+
+        alignas(64) int hl2Activations[hl2Size * 2];
+        _mm256_store_si256((__m256i *)&hl2Activations[0], _mm256_slli_epi32(L2_0c, 6));
+        _mm256_store_si256((__m256i *)&hl2Activations[hl2Size / 2], _mm256_slli_epi32(L2_1c, 6));
+        _mm256_store_si256((__m256i *)&hl2Activations[hl2Size], L2_0);
+        _mm256_store_si256((__m256i *)&hl2Activations[hl2Size + hl2Size / 2], L2_1);
+
+
 
         // cout<<endl<<endl;
 
@@ -374,7 +386,7 @@ struct NNUEevaluator {
         alignas(64) int hl3Layer[hl3Size];
         memset(hl3Layer, 0, sizeof(hl3Layer));
 
-        for (int i = 0; i < hl2Size; i++) {
+        for (int i = 0; i < hl2Size * 2; i++) {
             __m256 act = _mm256_set1_epi32(*(int32_t*)&hl2Activations[i]);
             for(int j = 0; j < hl3Size; j += 8) {
                 // hl3Layer[j] += hl2Activations[i] * w2[bucket][i][j];
@@ -510,7 +522,7 @@ struct NNUEevaluator {
             for (int i = 0; i < hl2Size; i++)
                 b1[bucket][i] = getValue(data, iter, 32);
 
-        for (int i = 0; i < hl2Size; i++)
+        for (int i = 0; i < hl2Size * 2; i++)
             for (int bucket = 0; bucket < outputBuckets; bucket++)
                 for (int j = 0; j < hl3Size; j++)
                     w2[bucket][i][j] = getValue(data, iter, 32);

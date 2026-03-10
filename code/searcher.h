@@ -501,7 +501,7 @@ struct Worker {
         	!searchStack[ply].excludeTTmove &&
         	!isMateScores) {
 
-        	int probcutBeta = beta + 200;
+        	int probcutBeta = beta + 200 - improving * 50;
 
         	if (nodeType == NONE || ttEntry.score >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
 
@@ -687,7 +687,7 @@ struct Worker {
 	            if (!isPvNode &&
 	            	movesSearched > 0 &&
 	            	!isMoveInteresting &&
-	            	historyValue < -200 * depth) {
+	            	historyValue < -(200 - isTTCapture * 60) * depth) {
 
 	            	continue;
 	            }
@@ -758,16 +758,21 @@ struct Worker {
                 if (inCheck)
                 	doLMRcapture = false;
 
+                int newDepth = depth;
+
                 if (movesSearched >= LMR_FULL_MOVES && !isMovingSideInCheck && depth >= LMR_MIN_DEPTH &&
                     doLMRcapture 
                 ) {
                     score = -search<NonPV>(board, oppositeColor, depth - 1 - lmrReduction, 0, -(alpha + 1), -alpha,
                                     ply + 1, extended, true);
-                } else
+                } else {
                     score = alpha + 1; // if LMR is restricted, do this to do PVS
+                    if (lmrReduction >= 3)
+                        newDepth--;
+                }
 
                 if (score > alpha) {
-                    score = -search<NonPV>(board, oppositeColor, depth - 1 + extendDepth, 0, -(alpha + 1), -alpha,
+                    score = -search<NonPV>(board, oppositeColor, newDepth - 1 + extendDepth, 0, -(alpha + 1), -alpha,
                                     ply + 1, extended + extendDepth, !cutNode);
                     if (isPvNode && score > alpha && score < beta)
                         score =
@@ -850,7 +855,8 @@ struct Worker {
                     for (int previousMoves = 0; previousMoves < currentMove;
                          previousMoves++) { // negate all searched non-capture moves
                         Move prevMove = moveListGenerator.moveList[ply][previousMoves];
-                        historyHelper.update(board, color, prevMove, -maluseBonus);
+                        if (!isCapture || board.occupancy(prevMove.getTargetSquare()) != EMPTY)
+                            historyHelper.update(board, color, prevMove, -maluseBonus);
                     }
 
                     transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth, LOWER_BOUND,
