@@ -687,7 +687,7 @@ struct Worker {
 	            if (!isPvNode &&
 	            	movesSearched > 0 &&
 	            	!isMoveInteresting &&
-	            	historyValue < -200 * depth) {
+	            	historyValue < -(200 - isTTCapture * 60) * depth) {
 
 	            	continue;
 	            }
