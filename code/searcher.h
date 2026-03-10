@@ -695,7 +695,7 @@ struct Worker {
 	            }
 
 	            // Futility pruning (FP)
-	            int fpMargin = max((150 + historyValueF * 75 - isTTCapture * 100), float(0)) * depth * depth;
+	            int fpMargin = max((150 + historyValueF * 75 - isTTCapture * 100 - (!improving) * 30), float(0)) * depth * depth;
 
 	            if (movesSearched > 0 &&
 	            	staticEval < alpha - fpMargin &&
