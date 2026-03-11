@@ -602,7 +602,7 @@ struct Worker {
         		extendTTmove = 1;
 
         		// Double extentions
-        		if (!isPvNode && singularScore < singularBeta - 30)
+        		if (singularScore < singularBeta - (30 + isPvNode * 50))
         			extendTTmove++;
                 if (!isPvNode && !isTTCapture && singularScore < singularBeta - 80)
                     extendTTmove++;
