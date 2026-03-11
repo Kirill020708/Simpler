@@ -379,9 +379,15 @@ struct Worker {
         	ttEntry.depth >= depth &&
         	!isRoot &&
         	!isPvNode &&
-        	!searchStack[ply].excludeTTmove)
+        	!searchStack[ply].excludeTTmove) {
+
+            if (ttEntry.score >= beta && ttEntry.move != Move()) {
+                int historyBonus = 10 * depth + 0;
+                historyHelper.update(board, color, ttEntry.move, historyBonus);
+            }
 
             return corrEntry.score;
+        }
 
     	if (ttEntry.eval != NO_EVAL)
     		rawStaticEval = ttEntry.eval;
