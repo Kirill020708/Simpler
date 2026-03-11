@@ -221,11 +221,14 @@ struct Worker {
         if (ttEntry.score != NO_EVAL)
             staticEval = ttEntry.score;
 
-        int bestScore = staticEval;
-
         bool isMovingSideInCheck = moveGenerator.isInCheck(board, color);
 
-        alpha = max(alpha, staticEval);
+        if (isMovingSideInCheck)
+            staticEval = -MATE_SCORE;
+
+        int bestScore = staticEval;
+
+        alpha = max(alpha, bestScore);
         if (alpha >= beta) {
             transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, LOWER_BOUND, boardCurrentAge,
                                               ttEntry.move, ply, ttpv);
@@ -238,7 +241,7 @@ struct Worker {
         // moveListGenerator.killerMove=moveListGenerator.hashMove;
         Board boardCopy = board;
         if (ttMove == Move()) {
-        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
+        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, !isMovingSideInCheck);
         }
 
 
@@ -266,7 +269,7 @@ struct Worker {
         	if(move == ttMove)
         		seeEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
 
-        	if (staticEval + 100 < alpha && seeEval <= 0)
+        	if (!isMovingSideInCheck && staticEval + 100 < alpha && seeEval <= 0)
         		continue;
 
             ull newKey = zobristAfterMove(board, move);
