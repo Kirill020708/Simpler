@@ -490,6 +490,9 @@ struct Worker {
 
         Move ttMove = ttEntry.move;
 
+        if (!moveGenerator.isMoveLegal(board, ttMove))
+            ttMove = Move();
+
         if (isRoot && depth > 1)
             ttMove = bestMove;
 

@@ -414,6 +414,11 @@ struct MoveGeneration {
     bool isMoveLegal(Board &board, Move move) {
         int startSquare = move.getStartSquare();
         int targetSquare = move.getTargetSquare();
+        int startSqOcc = board.occupancy(startSquare);
+        if (startSqOcc == board.occupancy(targetSquare))
+            return false;
+        if (startSqOcc != board.boardColor)
+            return false;
         if (!moves(board, startSquare).getBit(targetSquare))
             return false;
         Board boardCopy = board;
