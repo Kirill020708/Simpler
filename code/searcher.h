@@ -379,15 +379,9 @@ struct Worker {
         	ttEntry.depth >= depth &&
         	!isRoot &&
         	!isPvNode &&
-        	!searchStack[ply].excludeTTmove) {
-
-            if (ttEntry.score >= beta && ttEntry.move != Move()) {
-                int historyBonus = 10 * depth + 0;
-                historyHelper.update(board, color, ttEntry.move, historyBonus);
-            }
-
+        	!searchStack[ply].excludeTTmove)
+            
             return corrEntry.score;
-        }
 
     	if (ttEntry.eval != NO_EVAL)
     		rawStaticEval = ttEntry.eval;
@@ -740,57 +734,80 @@ struct Worker {
 
             int prevNodes = nodes;
 
+
+            const int LMR_FULL_MOVES = 2; // number of moves to search with full depth
+            const int LMR_MIN_DEPTH = 3;  // don't reduct depth if it's more or equal to this value
+
+            bool doLMR = true;
+            if (inCheck ||
+                movesSearched < LMR_FULL_MOVES ||
+                depth < LMR_MIN_DEPTH)
+
+                doLMR = false;
+
+
+            int lmrReduction =
+                floor(lmrLogTable[depth][movesSearched] + 0.5 
+                    - 1 * (isPvNode)
+                    - 1.5 * historyValueF
+                    + 0.5 * (!improving)
+                    + 1 * (isTTCapture)
+                    + 1 * cutNode
+                    - 1 * ttpv
+                    - 1 * (isCapture)
+                    - 0.002 * sseEval
+                    - 1 * (isKiller)); // reduction of depth
+
+            if (lmrReduction < 0)
+                lmrReduction = 0;
+
+            lmrReduction = min(lmrReduction, depth - 1);
+
             int score;
-            if (movesSearched) { // Principal variation search
 
-                // Late move reduction
-                const int LMR_FULL_MOVES = 2; // number of moves to search with full depth
-                const int LMR_MIN_DEPTH = 3;  // don't reduct depth if it's more or equal to this value
-
-                int lmrReduction =
-                    floor(lmrLogTable[depth][movesSearched] + 0.5 
-                    	- 1 * (isPvNode)
-                    	- 1.5 * historyValueF
-                    	+ 0.5 * (!improving)
-                    	+ 1 * (isTTCapture)
-                    	+ 1 * cutNode
-                    	- 1 * ttpv
-                    	- 1 * (isCapture)
-                    	- 0.002 * sseEval
-                        - 1 * (isKiller)); // reduction of depth
-
-                if (lmrReduction < 0)
-                    lmrReduction = 0;
-
-                lmrReduction = min(lmrReduction, depth - 1);
-
-
-                bool doLMRcapture = true;
-                if (inCheck)
-                	doLMRcapture = false;
-
-                int newDepth = depth;
-
-                if (movesSearched >= LMR_FULL_MOVES && !isMovingSideInCheck && depth >= LMR_MIN_DEPTH &&
-                    doLMRcapture 
-                ) {
-                    score = -search<NonPV>(board, oppositeColor, depth - 1 - lmrReduction, 0, -(alpha + 1), -alpha,
+            if (doLMR) {
+                score = -search<NonPV>(board, oppositeColor, depth - 1 - lmrReduction, 0, -(alpha + 1), -alpha,
                                     ply + 1, extended, true);
-                } else {
-                    score = alpha + 1; // if LMR is restricted, do this to do PVS
-                    if (lmrReduction >= 3)
-                        newDepth--;
-                }
 
                 if (score > alpha) {
-                    score = -search<NonPV>(board, oppositeColor, newDepth - 1 + extendDepth, 0, -(alpha + 1), -alpha,
+                    score = -search<NonPV>(board, oppositeColor, depth - 1 + extendDepth, 0, -(alpha + 1), -alpha,
                                     ply + 1, extended + extendDepth, !cutNode);
-                    if (isPvNode && score > alpha && score < beta)
-                        score =
-                            -search<nodePvType>(board, oppositeColor, depth - 1 + extendDepth, 0, -beta, -alpha, ply + 1, extended + extendDepth, !cutNode);
                 }
-            } else
+
+            } else if (!isPvNode || movesSearched > 0) {
+                score = -search<NonPV>(board, oppositeColor, depth - 1 + extendDepth - (lmrReduction >= 3), 0, -(alpha + 1), -alpha,
+                                    ply + 1, extended + extendDepth, !cutNode);
+            }
+
+            if (isPvNode && (movesSearched == 0 || score > alpha)) {
                 score = -search<nodePvType>(board, oppositeColor, depth - 1 + extendDepth, 0, -beta, -alpha, ply + 1, extended + extendDepth, !cutNode);
+            }
+
+
+            // if (doLMR) { // Late move reduction
+
+            //     int newDepth = depth;
+
+            //     if (movesSearched >= LMR_FULL_MOVES && !isMovingSideInCheck && depth >= LMR_MIN_DEPTH &&
+            //         doLMRcapture 
+            //     ) {
+            //         score = -search<NonPV>(board, oppositeColor, depth - 1 - lmrReduction, 0, -(alpha + 1), -alpha,
+            //                         ply + 1, extended, true);
+            //     } else {
+            //         score = alpha + 1; // if LMR is restricted, do this to do PVS
+            //         if (lmrReduction >= 3)
+            //             newDepth--;
+            //     }
+
+            //     if (score > alpha) {
+            //         score = -search<NonPV>(board, oppositeColor, newDepth - 1 + extendDepth, 0, -(alpha + 1), -alpha,
+            //                         ply + 1, extended + extendDepth, !cutNode);
+            //         if (isPvNode && score > alpha && score < beta)
+            //             score =
+            //                 -search<nodePvType>(board, oppositeColor, depth - 1 + extendDepth, 0, -beta, -alpha, ply + 1, extended + extendDepth, !cutNode);
+            //     }
+            // } else
+            //     score = -search<nodePvType>(board, oppositeColor, depth - 1 + extendDepth, 0, -beta, -alpha, ply + 1, extended + extendDepth, !cutNode);
 
             board = boardCopy;
 
