@@ -31,7 +31,7 @@ struct __attribute__ ((packed)) TableEntry {
     int16_t score = NO_EVAL;
     int16_t eval = NO_EVAL;
     int16_t move = 0;
-    char depth = 0;
+    int8_t depth = 0;
     Flag flag;
 
     TableEntry() {
@@ -52,11 +52,69 @@ struct __attribute__ ((packed)) TableEntry {
     }
 };
 
+struct Cluster {
+    TableEntry entries[3];
+
+    inline void write(TableEntry ttEntry) {
+        int lowestDepthEntry = 0, emptyEntry = -1;
+
+        for (int entry = 0; entry < 3; entry++) {
+            int8_t type = entries[entry].flag.type();
+            if (type != NONE &&
+                entries[entry].key == ttEntry.key) {
+
+                if (entries[entry].depth > ttEntry.depth)
+                    return;
+                if (entries[entry].depth == ttEntry.depth && type == EXACT)
+                    return;
+                entries[entry] = ttEntry;
+                return;
+            }
+
+            if (type == NONE)
+                emptyEntry = entry;
+            else if (entries[lowestDepthEntry].depth > entries[entry].depth)
+                lowestDepthEntry = entry;
+        }
+
+        if (emptyEntry != -1)
+            entries[emptyEntry] = ttEntry;
+        else
+            entries[lowestDepthEntry] = ttEntry;
+    }
+
+    inline void writeStaticEval(uint16_t key, int16_t eval) {
+        int lowestDepthEntry = 0, emptyEntry = -1;
+
+        for (int entry = 0; entry < 3; entry++) {
+            int8_t type = entries[entry].flag.type();
+            if (type != NONE &&
+                entries[entry].key == key) {
+
+                entries[entry].eval = eval;
+                return;
+            }
+        }
+    }
+
+    inline TableEntry get(uint16_t key) {
+        for (int entry = 0; entry < 3; entry++) {
+            int8_t type = entries[entry].flag.type();
+            if (type != NONE &&
+                entries[entry].key == key) {
+
+                return entries[entry];
+            }
+        }
+        return TableEntry();
+    }
+};
+
 bool alwaysReplace = false;
 
 struct TranspositionTable {
     ll tableSize = 0;
-    vector<TableEntry> table;
+    vector<Cluster> table;
     int b16 = 0b1111'1111'1111'1111;
 
     // mutex TTmutex;
@@ -72,24 +130,23 @@ struct TranspositionTable {
         }
         int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
         uint16_t key16 = key & b16;
-        if (table[index].flag.type() != NONE) {
-            if (table[index].key == key16) {
-                if (table[index].depth > depth)
-                    return;
-                if (table[index].depth == depth && table[index].flag.type() == EXACT)
-                    return;
-            }
-        }
+        // if (table[index].flag.type() != NONE) {
+        //     if (table[index].key == key16) {
+        //         if (table[index].depth > depth)
+        //             return;
+        //         if (table[index].depth == depth && table[index].flag.type() == EXACT)
+        //             return;
+        //     }
+        // }
         // TTmutex.lock();
-        table[index] = {key16, score, eval, char(depth), char(type), bestMove.move, ttpv};
+        table[index].write({key16, score, eval, char(depth), char(type), bestMove.move, ttpv});
         // TTmutex.unlock();
     }
 
     inline void writeStaticEval(ull key, int eval) {
         int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
         uint16_t key16 = key & b16;
-        if (table[index].flag.type() != NONE && table[index].key == key16)
-            table[index].eval = eval;
+        table[index].writeStaticEval(key16, eval);
     }
 
     inline TableEntry get(Board &board, ull key, int depthFromRoot) {
@@ -97,18 +154,19 @@ struct TranspositionTable {
         //     return TableEntry();
         int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
         uint16_t key16 = key & b16;
-        if (table[index].flag.type() == NONE)
-            return TableEntry();
-        if (table[index].key != key16)
-            return TableEntry();
+        // if (table[index].flag.type() == NONE)
+        //     return TableEntry();
+        // if (table[index].key != key16)
+        //     return TableEntry();
 
-        auto entry = table[index];
-
-        if (abs(entry.score) >= MATE_SCORE_MAX_PLY && entry.score != NO_EVAL){
-            if (entry.score > 0)
-                entry.score -= depthFromRoot;
-            else
-                entry.score += depthFromRoot;
+        auto entry = table[index].get(key16);
+        if (entry.flag.type() != NONE) {
+            if (abs(entry.score) >= MATE_SCORE_MAX_PLY && entry.score != NO_EVAL){
+                if (entry.score > 0)
+                    entry.score -= depthFromRoot;
+                else
+                    entry.score += depthFromRoot;
+            }
         }
 
         return entry;
@@ -123,8 +181,8 @@ struct TranspositionTable {
 
     int getHashfull() {
         int hits = 0;
-        for (int i = 0; i < min(1000ll, tableSize); i++)
-            hits += (table[i].flag.type() != NONE);
+        // for (int i = 0; i < min(1000ll, tableSize); i++)
+        //     hits += (table[i].flag.type() != NONE);
         if (tableSize && tableSize < 1000)
             hits = hits * 1000 / tableSize;
         return hits;
