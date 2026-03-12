@@ -27,7 +27,7 @@ struct Flag {
 };
 
 struct __attribute__ ((packed)) TableEntry {
-    ull key = 0;
+    uint16_t key = 0;
     int16_t score = NO_EVAL;
     int16_t eval = NO_EVAL;
     int16_t move = 0;
@@ -42,7 +42,7 @@ struct __attribute__ ((packed)) TableEntry {
         flag = Flag(NONE, 0);
     }
 
-    TableEntry(ull key_, int score_, int eval_, char depth_, char type_, int16_t bestMove_, bool ttpv_) {
+    TableEntry(uint16_t key_, int score_, int eval_, char depth_, char type_, int16_t bestMove_, bool ttpv_) {
         key = key_;
         score = score_;
         eval = eval_;
@@ -57,6 +57,7 @@ bool alwaysReplace = false;
 struct TranspositionTable {
     ll tableSize = 0;
     vector<TableEntry> table;
+    int b16 = 0b1111'1111'1111'1111;
 
     // mutex TTmutex;
 
@@ -70,8 +71,9 @@ struct TranspositionTable {
                 score -= depthFromRoot;
         }
         int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
+        uint16_t key16 = key & b16;
         if (table[index].flag.type() != NONE) {
-            if (table[index].key == key) {
+            if (table[index].key == key16) {
                 if (table[index].depth > depth)
                     return;
                 if (table[index].depth == depth && table[index].flag.type() == EXACT)
@@ -79,13 +81,14 @@ struct TranspositionTable {
             }
         }
         // TTmutex.lock();
-        table[index] = {key, score, eval, char(depth), char(type), bestMove.move, ttpv};
+        table[index] = {key16, score, eval, char(depth), char(type), bestMove.move, ttpv};
         // TTmutex.unlock();
     }
 
     inline void writeStaticEval(ull key, int eval) {
         int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
-        if (table[index].flag.type() != NONE && table[index].key == key)
+        uint16_t key16 = key & b16;
+        if (table[index].flag.type() != NONE && table[index].key == key16)
             table[index].eval = eval;
     }
 
@@ -93,9 +96,10 @@ struct TranspositionTable {
         // if (tableSize == 0)
         //     return TableEntry();
         int index = (__uint128_t(key) * __uint128_t(tableSize)) >> 64;
+        uint16_t key16 = key & b16;
         if (table[index].flag.type() == NONE)
             return TableEntry();
-        if (table[index].key != key)
+        if (table[index].key != key16)
             return TableEntry();
 
         auto entry = table[index];
