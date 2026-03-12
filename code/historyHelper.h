@@ -17,11 +17,12 @@
 #endif /* MOVE */
 
 struct HistoryHelper {
-    int historyScore[2][64][64][2][2];
-    int pieceSquareHistory[2][8][64][2][2];
-    int counterHistory[2][8][64][8][64];
-    int contPly2History[2][8][64][8][64];
-    int captHistoryScore[2][8][64][8];
+    int16_t historyScore[2][64][64][2][2];
+    int16_t pieceSquareHistory[2][8][64][2][2];
+    int16_t counterHistory[2][8][64][8][64];
+    int16_t contPly2History[2][8][64][8][64];
+    int16_t contPly4History[2][8][64][8][64];
+    int16_t captHistoryScore[2][8][64][8];
     int maxHistoryScore = 511;
 
     Bitboard whiteAttacks, blackAttacks;
@@ -62,6 +63,9 @@ struct HistoryHelper {
 	        contPly2History[color][board.ply2Ps][board.ply2Sq][board.occupancyPiece(st)][tr] +=
 	            score - contPly2History[color][board.ply2Ps][board.ply2Sq][board.occupancyPiece(st)][tr] * abs(score) / maxHistoryScore;
 
+	        contPly4History[color][board.ply4Ps][board.ply4Sq][board.occupancyPiece(st)][tr] +=
+	            score - contPly4History[color][board.ply4Ps][board.ply4Sq][board.occupancyPiece(st)][tr] * abs(score) / maxHistoryScore;
+
 
 
 	    } else {
@@ -97,6 +101,8 @@ struct HistoryHelper {
 	        history += (counterHistory[color][board.ply1Ps][board.ply1Sq][board.occupancyPiece(st)][tr]);
 
 	        history += (contPly2History[color][board.ply2Ps][board.ply2Sq][board.occupancyPiece(st)][tr]);
+
+	        history += (contPly4History[color][board.ply4Ps][board.ply4Sq][board.occupancyPiece(st)][tr]);
 
 	        history /= 2;
 	        return history + maxHistoryScore; // to prevent negative values
