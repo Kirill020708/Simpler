@@ -855,7 +855,13 @@ struct Worker {
 		        	historyHelper.whiteAttacks = whiteAttacks;
 		        	historyHelper.blackAttacks = blackAttacks;
 
-                    int hsDepth = depth + (!isMovingSideInCheck && staticEval <= alpha);
+                    int hsDepth = depth;
+                    if (!isMovingSideInCheck) {
+                        if (staticEval <= alpha)
+                            hsDepth++;
+                        if (staticEval >= beta)
+                            hsDepth--;
+                    }
 		        	int historyBonus = 10 * hsDepth + 0;
 		        	int maluseBonus = 10 * hsDepth + 0;
 
