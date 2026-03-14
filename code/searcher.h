@@ -604,8 +604,14 @@ struct Worker {
 
         		extendTTmove = 1;
 
+                historyHelper.whiteAttacks = whiteAttacks;
+                historyHelper.blackAttacks = blackAttacks;
+
+                int historyValue = historyHelper.getScore(board, color, ttMove) - historyHelper.maxHistoryScore;
+                float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
+
         		// Double extentions
-        		if (!isPvNode && singularScore < singularBeta - 30)
+        		if (!isPvNode && singularScore < singularBeta - (30 - historyValueF * 10))
         			extendTTmove++;
                 if (!isPvNode && !isTTCapture && singularScore < singularBeta - 80)
                     extendTTmove++;
