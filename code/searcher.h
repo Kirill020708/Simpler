@@ -42,6 +42,7 @@ struct StackState {
     Move excludeMove;
     Move bestMove;
     vector<Move> pvLine;
+    int cutoffNumber = 0;
 };
 
 enum NodeType {
@@ -365,6 +366,8 @@ struct Worker {
 
         if (!isRoot && evaluator.insufficientMaterialDraw(board))
             return evaluator.evaluateStalledPosition(board, color, ply);
+
+        searchStack[ply + 2].cutoffNumber = 0;
 
         int rawStaticEval, staticEval;
 
@@ -751,6 +754,7 @@ struct Worker {
                     	+ 0.5 * (!improving)
                     	+ 1 * (isTTCapture)
                     	+ 1 * cutNode
+                        + 1 * (searchStack[ply + 1].cutoffNumber > 3)
                     	- 1 * ttpv
                     	- 1 * (isCapture)
                     	- 0.002 * sseEval
@@ -870,6 +874,9 @@ struct Worker {
 
                     transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth, LOWER_BOUND,
                                              boardCurrentAge, newTTmove, ply, ttpv);
+
+                    searchStack[ply].cutoffNumber++;
+
                     return bestScore;
                 }
             }
