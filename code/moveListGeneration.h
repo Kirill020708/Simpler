@@ -128,7 +128,9 @@ struct MoveListGenerator {
                     if (captureEval >= -220 - historyScoreF * 100)
                         captureCoeff += (1 << 15);
 
-                    captureCoeff += (material[capturedPiece] + historyScore * 20) + 10;
+                    captureCoeff += (material[capturedPiece] + ((onlyCaptures) ?
+                                                                -material[attackingPiece]:
+                                                                (historyScore * 20))) + 10;
 
                     // cout<<Move(startSquare,targetSquare,0).convertToUCI()<<' '<<captureEval<<'\n';
                 } else
