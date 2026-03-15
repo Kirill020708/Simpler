@@ -758,11 +758,7 @@ struct Worker {
                     	- 0.002 * sseEval
                         - 1 * (isKiller)); // reduction of depth
 
-                if (lmrReduction < 0)
-                    lmrReduction = 0;
-
-                lmrReduction = min(lmrReduction, depth - 1);
-
+                lmrReduction = clamp(lmrReduction, -isPvNode, depth - 1);
 
                 bool doLMRcapture = true;
                 if (inCheck)
