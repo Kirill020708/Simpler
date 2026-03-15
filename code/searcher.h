@@ -238,9 +238,14 @@ struct Worker {
         moveGenerator.computePinnedPiecesW(board);
         moveGenerator.computePinnedPiecesB(board);
 
+        Bitboard whiteAttacks = moveGenerator.computeAttackBitboardsW(board);
+        Bitboard blackAttacks = moveGenerator.computeAttackBitboardsB(board);
+
         // moveListGenerator.killerMove=moveListGenerator.hashMove;
         Board boardCopy = board;
         if (ttMove == Move()) {
+            historyHelper.whiteAttacks = whiteAttacks;
+            historyHelper.blackAttacks = blackAttacks;
         	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, !isMovingSideInCheck);
         }
 
@@ -305,6 +310,9 @@ struct Worker {
 
             if (move == ttMove) {
 		        moveListGenerator.hashMove = ttMove;
+                
+                historyHelper.whiteAttacks = whiteAttacks;
+                historyHelper.blackAttacks = blackAttacks;
 
             	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
             }
