@@ -391,7 +391,7 @@ struct Worker {
     	}
         int corrScore = corrhistHelper.getScore(color, board);
     	staticEval = rawStaticEval + corrScore;
-        bool corrplexity = (abs(corrScore) >= 100);
+        int corrplexity = abs(corrScore);
 
         auto scorrEntry = ttEntry;
         correctTTscore(scorrEntry, staticEval, staticEval);
@@ -427,7 +427,7 @@ struct Worker {
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
-            int margin = (30 - improving * 15 + corrplexity * 20) * max(depth, 1) * max(depth, 1);
+            int margin = (30 - improving * 15 + corrplexity / 4) * max(depth, 1) * max(depth, 1);
 
             if (staticEval >= beta + margin)
                 return (staticEval + beta) / 2;
