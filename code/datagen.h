@@ -50,19 +50,17 @@ struct DataGenerator {
 
         mainBoard = Board();
 
-        MoveListGenerator moveListGenerator;
-
         bool firstPos = true;
 
         while (true) {
             curMoveNumber++;
             if (curMoveNumber <= curRandomMoveCount) {
 
-                moveListGenerator.generateMoves(mainBoard, searcher.workers[0].historyHelper,
+                searcher.workers[0].moveListGenerator.generateMoves(mainBoard, searcher.workers[0].historyHelper,
                                                                    mainBoard.boardColor, 0, DONT_SORT,
                                                                    ALL_MOVES);
-                int movesCount = moveListGenerator.moveListSize[0];
-                Move randomMove = moveListGenerator.moveList[0][rngT() % movesCount];
+                int movesCount = searcher.workers[0].moveListGenerator.moveListSize[0];
+                Move randomMove = searcher.workers[0].moveListGenerator.moveList[0][rngT() % movesCount];
                 mainBoard.makeMove(randomMove);
 
                 if (curMoveNumber == curRandomMoveCount) {
@@ -212,7 +210,7 @@ struct DataGenerator {
             }
             // cout<<curMoveNumber<<'\n';
 
-            if (moveListGenerator.isStalled(mainBoard, mainBoard.boardColor) ||
+            if (searcher.workers[0].moveListGenerator.isStalled(mainBoard, mainBoard.boardColor) ||
                 evaluator.insufficientMaterialDraw(mainBoard)) {
 
                 int resultEval = evaluator.evaluateStalledPosition(mainBoard, mainBoard.boardColor, 0);
