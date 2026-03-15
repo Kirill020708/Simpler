@@ -73,6 +73,8 @@ struct UCIcommunicationHepler {
 
     thread searcherThread;
 
+    bool stopListening;
+
     int hardNodesOpt = 1e9;
 
     void reallocateHashMemory(int MBsize) {
@@ -348,14 +350,13 @@ struct UCIcommunicationHepler {
                     dataGenerator.outputDir = (tokens[i + 1]);
             }
             dataGenerator.generateData(gamesNumber);
+            stopListening = 1;
         }
     }
 
-    bool stopListening;
-
     void listenInput() {
         stopListening = 0;
-        while (true) {
+        while (!stopListening) {
             string command;
             getline(cin, command);
             parseCommand(command);
