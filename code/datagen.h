@@ -57,8 +57,7 @@ struct DataGenerator {
             if (curMoveNumber <= curRandomMoveCount) {
 
                 searcher.workers[0].moveListGenerator.generateMoves(mainBoard, searcher.workers[0].historyHelper,
-                                                                   mainBoard.boardColor, 0, DONT_SORT,
-                                                                   ALL_MOVES);
+                                                                    mainBoard.boardColor, 0, DONT_SORT, ALL_MOVES);
                 int movesCount = searcher.workers[0].moveListGenerator.moveListSize[0];
                 Move randomMove = searcher.workers[0].moveListGenerator.moveList[0][rngT() % movesCount];
                 mainBoard.makeMove(randomMove);
@@ -286,14 +285,12 @@ struct DataGenerator {
 
         std::chrono::steady_clock::time_point timeStart = std::chrono::steady_clock::now();
 
-
         while (true) {
             playGame();
             curGame++;
 
-            for (auto bt : resultsBin) {
-                outBin.write(reinterpret_cast<char *>(&bt), sizeof(bt));
-            }
+            outBin.write(resultsBin.data(), resultsBin.size());
+            outBin.flush();
 
             std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
             long long elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - timeStart).count();
