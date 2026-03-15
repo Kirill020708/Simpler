@@ -77,15 +77,15 @@ struct UCIcommunicationHepler {
 
     void reallocateHashMemory(int MBsize) {
         long long bSize = ll(MBsize) * 1024 * 1024;
-        int TTEntrySize = sizeof(TableEntry);
+        int TTEntrySize = sizeof(Cluster);
 
-        transpositionTable.table.resize(bSize / TTEntrySize, TableEntry());
+        transpositionTable.table.resize(bSize / TTEntrySize, Cluster());
         transpositionTable.table.shrink_to_fit();
         transpositionTable.tableSize = transpositionTable.table.size();
     }
 
     void clearHash() {
-        transpositionTable.table = vector<TableEntry>(transpositionTable.table.size(), TableEntry());
+        transpositionTable.table = vector<Cluster>(transpositionTable.table.size(), Cluster());
     }
 
     void parseCommand(string command) {

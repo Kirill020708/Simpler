@@ -230,7 +230,7 @@ struct Worker {
 
         alpha = max(alpha, bestScore);
         if (alpha >= beta) {
-            transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, LOWER_BOUND, boardCurrentAge,
+            transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, LOWER_BOUND,
                                               ttEntry.move, ply, ttpv);
             return bestScore;
         }
@@ -298,7 +298,7 @@ struct Worker {
                     alpha = score;
                 if (alpha >= beta) {
                     transpositionTable.write(board, currentZobristKey, score, rawStaticEval, 0, LOWER_BOUND,
-                                                      boardCurrentAge, move, ply, ttpv);
+                                                      move, ply, ttpv);
                     return bestScore;
                 }
             }
@@ -309,7 +309,7 @@ struct Worker {
             	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
             }
         }
-        transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, type, boardCurrentAge,
+        transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, type,
                                           newTTmove, ply, ttpv);
         return bestScore;
     }
@@ -535,7 +535,7 @@ struct Worker {
 
 		            if (score >= probcutBeta) {
 	                    transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth - probcutDepthR, LOWER_BOUND,
-	                                             boardCurrentAge, move, ply, ttpv);
+	                                             move, ply, ttpv);
 	                    return score;
 		            }
 		        }
@@ -871,7 +871,7 @@ struct Worker {
                     }
 
                     transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth, LOWER_BOUND,
-                                             boardCurrentAge, newTTmove, ply, ttpv);
+                                             newTTmove, ply, ttpv);
                     return bestScore;
                 }
             }
@@ -900,7 +900,7 @@ struct Worker {
         if (bestScore == -inf)
         	bestScore = alpha;
 
-        transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, depth, type, boardCurrentAge, newTTmove, ply, ttpv);
+        transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, depth, type, newTTmove, ply, ttpv);
         return bestScore;
     }
 
@@ -1143,6 +1143,7 @@ struct Searcher {
     }
 
     void iterativeDeepeningSearch(int maxDepth, int softBound, int hardBound, int nodesLimit, int nodesH) {
+        transpositionTable.age++;
         workers[0].nodesLim = nodesH;
         stopIDsearch = false;
         int color = mainBoard.boardColor;
