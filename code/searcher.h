@@ -751,6 +751,7 @@ struct Worker {
                     	- 1 * (isPvNode)
                     	- 1.5 * historyValueF
                     	+ 0.5 * (!improving)
+                        - 1 * (corrplexity)
                     	+ 1 * (isTTCapture)
                     	+ 1 * cutNode
                     	- 1 * ttpv
