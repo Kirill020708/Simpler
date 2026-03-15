@@ -456,7 +456,7 @@ struct MoveGeneration {
     	while (pieces > 0)
     		attacks |= kingMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	return attacks & (~board.whitePieces);
+    	return attacks;
     }
 
     Bitboard computeAttackBitboardsB(Board &board) {
@@ -484,7 +484,7 @@ struct MoveGeneration {
     	while (pieces > 0)
     		attacks |= kingMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	return attacks & (~board.blackPieces);
+    	return attacks;
     }
 };
 

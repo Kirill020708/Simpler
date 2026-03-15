@@ -21,7 +21,7 @@ struct HistoryHelper {
     int pieceSquareHistory[2][8][64][2][2];
     int counterHistory[2][8][64][8][64];
     int contPly2History[2][8][64][8][64];
-    int captHistoryScore[2][8][64][8];
+    int captHistoryScore[2][8][64][8][2][2];
     int maxHistoryScore = 511;
 
     Bitboard whiteAttacks, blackAttacks;
@@ -36,19 +36,19 @@ struct HistoryHelper {
         if (score > maxHistoryScore)
             score = maxHistoryScore; // clamp
 
+	    int st = move.getStartSquare();
 	    int tr = move.getTargetSquare();
 
-        if (board.occupancy(tr) == EMPTY) {
-	        int st = move.getStartSquare();
+        int stTh, trTh;
+        if (color == WHITE) {
+        	stTh = (blackAttacks & (1ull << st)) > 0;
+        	trTh = (blackAttacks & (1ull << tr)) > 0;
+        } else {
+        	stTh = (whiteAttacks & (1ull << st)) > 0;
+        	trTh = (whiteAttacks & (1ull << tr)) > 0;
+        }
 
-	        int stTh, trTh;
-	        if (color == WHITE) {
-	        	stTh = (blackAttacks & (1ull << st)) > 0;
-	        	trTh = (blackAttacks & (1ull << tr)) > 0;
-	        } else {
-	        	stTh = (whiteAttacks & (1ull << st)) > 0;
-	        	trTh = (whiteAttacks & (1ull << tr)) > 0;
-	        }
+        if (board.occupancy(tr) == EMPTY) {
 
 	        historyScore[color][st][tr][stTh][trTh] +=
 	            score - historyScore[color][st][tr][stTh][trTh] * abs(score) / maxHistoryScore;
@@ -68,26 +68,26 @@ struct HistoryHelper {
 	    	int movedPiece = board.occupancyPiece(move.getStartSquare());
 	    	int capturedPiece = board.occupancyPiece(tr);
 
-	        captHistoryScore[color][movedPiece][tr][capturedPiece] +=
-	            score - captHistoryScore[color][movedPiece][tr][capturedPiece] * abs(score) / maxHistoryScore;
+	        captHistoryScore[color][movedPiece][tr][capturedPiece][stTh][trTh] +=
+	            score - captHistoryScore[color][movedPiece][tr][capturedPiece][stTh][trTh] * abs(score) / maxHistoryScore;
 	    }
     }
 
     inline int getScore(Board &board, int color, Move move) {
 
+    	int st = move.getStartSquare();
         int tr = move.getTargetSquare();
 
-        if (board.occupancy(tr) == EMPTY) {
-        	int st = move.getStartSquare();
+        int stTh, trTh;
+        if (color == WHITE) {
+        	stTh = (blackAttacks & (1ull << st)) > 0;
+        	trTh = (blackAttacks & (1ull << tr)) > 0;
+        } else {
+        	stTh = (whiteAttacks & (1ull << st)) > 0;
+        	trTh = (whiteAttacks & (1ull << tr)) > 0;
+        }
 
-	        int stTh, trTh;
-	        if (color == WHITE) {
-	        	stTh = (blackAttacks & (1ull << st)) > 0;
-	        	trTh = (blackAttacks & (1ull << tr)) > 0;
-	        } else {
-	        	stTh = (whiteAttacks & (1ull << st)) > 0;
-	        	trTh = (whiteAttacks & (1ull << tr)) > 0;
-	        }
+        if (board.occupancy(tr) == EMPTY) {
 
 	        int history = 0;
 	        
@@ -105,7 +105,7 @@ struct HistoryHelper {
 	    	int movedPiece = board.occupancyPiece(move.getStartSquare());
 	    	int capturedPiece = board.occupancyPiece(tr);
 
-	        return (captHistoryScore[color][movedPiece][tr][capturedPiece]) +
+	        return (captHistoryScore[color][movedPiece][tr][capturedPiece][stTh][trTh]) +
 	               maxHistoryScore;
 	    }
     }
