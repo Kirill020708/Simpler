@@ -290,7 +290,6 @@ struct DataGenerator {
             curGame++;
 
             outBin.write(resultsBin.data(), resultsBin.size());
-            outBin.flush();
 
             std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
             long long elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - timeStart).count();
@@ -320,6 +319,7 @@ struct DataGenerator {
             }
             // threadPool[0]=thread(&DataGenerator::playGame,this,0);
         }
+        outBin.flush();
     }
 };
 
