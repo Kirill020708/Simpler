@@ -322,7 +322,7 @@ struct UCIcommunicationHepler {
         }
 
         if (mainCommand == "datagen") {
-            uciHelper.reallocateHashMemory(1);
+            reallocateHashMemory(1);
             int gamesNumber = 1;
             for (int i = 1; i < tokens.size(); i++) {
                 if (tokens[i] == "softnodes")
