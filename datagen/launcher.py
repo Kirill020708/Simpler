@@ -187,6 +187,7 @@ def main():
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                start_new_session=True,
                 text=True
             )
             
