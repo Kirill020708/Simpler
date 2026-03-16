@@ -179,19 +179,19 @@ def main():
         processes = []
         for i in range(args.threads):
             thread_id = i + 1
+            seed = random.randint(0,10000000)
+            input_template = f"""datagen seed {seed} outputDir {current_path} softnodes {args.softnodes} hardnodes {args.hardnodes} games {args.games} id {thread_id} resignMoveCount {args.resignMoveCount} resignScore {args.resignScore} drawMoveCount {args.drawMoveCount} minDrawMoveCount {args.minDrawMoveCount} drawScore {args.drawScore}"""
+            command = [args.file, input_template]
             process = subprocess.Popen(
-                [args.file],
-                stdin=subprocess.PIPE,
+                command,
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 text=True
             )
-            seed = random.randint(0,10000000)
-            input_template = f"""datagen seed {seed} outputDir {current_path} softnodes {args.softnodes} hardnodes {args.hardnodes} games {args.games} id {thread_id} resignMoveCount {args.resignMoveCount} resignScore {args.resignScore} drawMoveCount {args.drawMoveCount} minDrawMoveCount {args.minDrawMoveCount} drawScore {args.drawScore}"""
+            
             if args.debug:
                 print(input_template)
-            process.stdin.write(input_template)
-            process.stdin.close()
             processes.append(process)
 
 if __name__ == "__main__":
