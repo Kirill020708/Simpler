@@ -354,11 +354,18 @@ struct UCIcommunicationHepler {
         }
     }
 
+    string startupScript;
+
     void listenInput() {
         stopListening = 0;
+        bool firstLaunch = 1;
         while (!stopListening) {
             string command;
-            getline(cin, command);
+            if(firstLaunch && startupScript != "") {
+                command = startupScript;
+                firstLaunch = 0;
+            } else
+                getline(cin, command);
             parseCommand(command);
         }
     }
