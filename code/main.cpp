@@ -131,8 +131,10 @@ int main(int argc, char *argv[]) {
                 mainBoard = boardCopy;
 	    	}
 
-	    	exit(0);
+	    	return 0;
 	    }
+
+        uciHelper.startupScript = args;
     }
 
     // mainBoard.initNNUE(mainNnueEvaluator);
