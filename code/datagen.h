@@ -56,8 +56,7 @@ struct DataGenerator {
             curMoveNumber++;
             if (curMoveNumber <= curRandomMoveCount) {
 
-                searcher.workers[0].moveListGenerator.generateMoves(mainBoard, searcher.workers[0].historyHelper,
-                                                                    mainBoard.boardColor, 0, DONT_SORT, ALL_MOVES);
+                searcher.workers[0].moveListGenerator.generateMovesForPerft(mainBoard, mainBoard.boardColor, 0);
                 int movesCount = searcher.workers[0].moveListGenerator.moveListSize[0];
                 Move randomMove = searcher.workers[0].moveListGenerator.moveList[0][rngT() % movesCount];
                 mainBoard.makeMove(randomMove);
@@ -134,7 +133,6 @@ struct DataGenerator {
 
             } else {
                 positionsNumber++;
-                cerr << mainBoard.generateFEN() << endl;
                 searcher.datagenSearch(256, softNodesLimit, hardNodesLimit);
                 int score = searcher.workers[0].rootScore;
 
