@@ -160,6 +160,7 @@ def main():
     os.makedirs(current_path+"/datagenFiles", exist_ok=True)
     os.makedirs(current_path+"/datagenFiles/data", exist_ok=True)
     os.makedirs(current_path+"/datagenFiles/stats", exist_ok=True)
+    os.makedirs(current_path+"/datagenFiles/logs", exist_ok=True)
 
     if args.stats:
         aggregate_stats()
@@ -182,10 +183,12 @@ def main():
             seed = random.randint(0,10000000)
             input_template = f"""datagen seed {seed} outputDir {current_path} softnodes {args.softnodes} hardnodes {args.hardnodes} games {args.games} id {thread_id} resignMoveCount {args.resignMoveCount} resignScore {args.resignScore} drawMoveCount {args.drawMoveCount} minDrawMoveCount {args.minDrawMoveCount} drawScore {args.drawScore}"""
             command = [args.file, input_template]
+            logPath = current_path+f"/datagenFiles/logs/log{thread_id}.txt"
+            logfile = open(logPath, "w")
             process = subprocess.Popen(
                 command,
                 stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
+                stdout=logfile,
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,
                 text=True
