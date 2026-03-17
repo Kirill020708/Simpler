@@ -622,6 +622,19 @@ struct Worker {
         		return beta; // Multicut
             else if (ttEntry.score >= beta)
                 extendTTmove = -1; // Negative extensions
+        } else {
+            if (!searchStack[ply].excludeTTmove &&
+                ttMove != Move()) {
+
+                int historyValue = historyHelper.getScore(board, color, ttMove) - historyHelper.maxHistoryScore;
+                float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
+
+                if (isPvNode &&
+                    ttMove.getTargetSquare() == board.ply1Sq &&
+                    historyValue > 0)
+
+                    extendTTmove++;
+            }
         }
 
         int bestScore = -inf;
