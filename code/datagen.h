@@ -134,6 +134,7 @@ struct DataGenerator {
 
             } else {
                 positionsNumber++;
+                cerr << mainBoard.generateFEN() << endl;
                 searcher.datagenSearch(256, softNodesLimit, hardNodesLimit);
                 int score = searcher.workers[0].rootScore;
 
@@ -284,6 +285,9 @@ struct DataGenerator {
         long long curGame = 0;
 
         std::chrono::steady_clock::time_point timeStart = std::chrono::steady_clock::now();
+
+        cout << workerId << endl;
+        cerr << workerId << endl;
 
         while (true) {
             playGame();
