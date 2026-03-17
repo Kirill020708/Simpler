@@ -161,6 +161,7 @@ def main():
     os.makedirs(current_path+"/datagenFiles/data", exist_ok=True)
     os.makedirs(current_path+"/datagenFiles/stats", exist_ok=True)
     os.makedirs(current_path+"/datagenFiles/logs", exist_ok=True)
+    os.makedirs(current_path+"/datagenFiles/errorLogs", exist_ok=True)
 
     if args.stats:
         aggregate_stats()
@@ -185,11 +186,13 @@ def main():
             command = [args.file, input_template]
             logPath = current_path+f"/datagenFiles/logs/log{thread_id}.txt"
             logfile = open(logPath, "w")
+            errlogPath = current_path+f"/datagenFiles/errorLogs/log{thread_id}.txt"
+            errlogfile = open(errlogPath, "w")
             process = subprocess.Popen(
                 command,
                 stdin=subprocess.DEVNULL,
                 stdout=logfile,
-                stderr=subprocess.DEVNULL,
+                stderr=errlogfile,
                 start_new_session=True,
                 text=True
             )
