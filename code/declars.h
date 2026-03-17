@@ -62,12 +62,16 @@ const int MATE_SCORE_MAX_PLY = MATE_SCORE - 257;
 
 #define memoryUsageMB 64
 
-float lmrLogTable[257][257];
+float lmrLogTableQuiets[257][257];
+float lmrLogTableCaptures[257][257];
 
 void initLmrTable() {
-	for (int i = 1; i <= 256; i++)
-		for (int j = 1; j <= 256; j++)
-			lmrLogTable[i][j] = log(float(i)) * log(float(j)) / 3.0;
+    for (int i = 1; i <= 256; i++)
+        for (int j = 1; j <= 256; j++)
+            lmrLogTableQuiets[i][j] = log(float(i)) * log(float(j)) / 3.0;
+    for (int i = 1; i <= 256; i++)
+        for (int j = 1; j <= 256; j++)
+            lmrLogTableCaptures[i][j] = log(float(i)) * log(float(j)) / 4.0;
 }
 
 vector<string> splitStr(string s, string c) { // splits a string by (c) substrings (for parsing)
