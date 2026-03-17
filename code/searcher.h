@@ -468,7 +468,7 @@ struct Worker {
         	!searchStack[ply].excludeTTmove &&
         	!isMateScores) { // Razoring
 
-            int margin = 150 * depth * depth + 200;
+            int margin = (150 - (!improving) * 30) * depth * depth + 200;
 
             if (staticEval + margin < alpha) {
                 int qEval = quiescentSearch<NonPV>(board, color, alpha - 1, alpha, ply + 1);
@@ -606,8 +606,14 @@ struct Worker {
 
         		extendTTmove = 1;
 
+                historyHelper.whiteAttacks = whiteAttacks;
+                historyHelper.blackAttacks = blackAttacks;
+
+                int historyValue = historyHelper.getScore(board, color, ttMove) - historyHelper.maxHistoryScore;
+                float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
+
         		// Double extentions
-        		if (!isPvNode && singularScore < singularBeta - 30)
+        		if (!isPvNode && singularScore < singularBeta - (30 - historyValueF * 10))
         			extendTTmove++;
                 if (!isPvNode && !isTTCapture && singularScore < singularBeta - 80)
                     extendTTmove++;
@@ -697,7 +703,7 @@ struct Worker {
 	            if (!isPvNode &&
 	            	movesSearched > 0 &&
 	            	!isMoveInteresting &&
-	            	historyValue < -(200 - isTTCapture * 60) * depth) {
+	            	historyValue < -(200 - isTTCapture * 60 - 50 * (!improving)) * depth) {
 
 	            	continue;
 	            }
