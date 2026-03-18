@@ -173,6 +173,7 @@ struct UCIcommunicationHepler {
                         cout << "     ";
                     else {
                         mainBoard.clearPosition(square, mainNnueEvaluator);
+                        mainBoard.initNNUE(mainNnueEvaluator);
                         int newNnueEval = mainNnueEvaluator.evaluate(mainBoard.boardColor, mainBoard.getOutputBucket());
                         if (mainBoard.boardColor == BLACK)
                             newNnueEval = -newNnueEval;
