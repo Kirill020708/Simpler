@@ -781,6 +781,10 @@ struct Worker {
                 ) {
                     score = -search<NonPV>(board, oppositeColor, depth - 1 - lmrReduction, 0, -(alpha + 1), -alpha,
                                     ply + 1, extended, true);
+
+                    if (score < bestScore + 0)
+                        newDepth--;
+                    
                 } else {
                     score = alpha + 1; // if LMR is restricted, do this to do PVS
                     if (lmrReduction >= 3)
