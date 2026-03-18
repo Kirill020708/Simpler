@@ -414,6 +414,14 @@ struct Worker {
             }
         }
 
+        bool worsening = false;
+        if (!isMovingSideInCheck && ply >= 1) {
+            if (staticEvaluationHistory[ply - 1] != NONE_SCORE &&
+                staticEvaluationHistory[ply] > -staticEvaluationHistory[ply - 1])
+
+                worsening = true;
+        }
+
         bool isMateScores = (abs(alpha) >= MATE_SCORE_MAX_PLY ||
 					    	 abs(beta) >= MATE_SCORE_MAX_PLY ||
 					    	 abs(staticEval) >= MATE_SCORE_MAX_PLY);
@@ -427,7 +435,7 @@ struct Worker {
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
-            int margin = (30 - improving * 15 + corrplexity * 20) * max(depth, 1) * max(depth, 1);
+            int margin = (30 - improving * 15 + corrplexity * 20 - worsening * 5) * max(depth, 1) * max(depth, 1);
 
             if (staticEval >= beta + margin)
                 return (staticEval + beta) / 2;
