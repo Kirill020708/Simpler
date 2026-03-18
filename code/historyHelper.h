@@ -21,7 +21,6 @@ struct HistoryHelper {
     int16_t pieceSquareHistory[2][8][64][2][2];
     int16_t counterHistory[2][8][64][8][64];
     int16_t contPly2History[2][8][64][8][64];
-    int16_t contPly4History[2][8][64][8][64];
     int16_t captHistoryScore[2][8][64][8];
     int16_t maxHistoryScore = 511;
 
@@ -63,8 +62,8 @@ struct HistoryHelper {
 	        contPly2History[color][board.ply2Ps][board.ply2Sq][board.occupancyPiece(st)][tr] +=
 	            score - contPly2History[color][board.ply2Ps][board.ply2Sq][board.occupancyPiece(st)][tr] * abs(score) / maxHistoryScore;
 
-	        contPly4History[color][board.ply4Ps][board.ply4Sq][board.occupancyPiece(st)][tr] +=
-	            score - contPly4History[color][board.ply4Ps][board.ply4Sq][board.occupancyPiece(st)][tr] * abs(score) / maxHistoryScore;
+	        contPly2History[color][board.ply4Ps][board.ply4Sq][board.occupancyPiece(st)][tr] +=
+	            score - contPly2History[color][board.ply4Ps][board.ply4Sq][board.occupancyPiece(st)][tr] * abs(score) / maxHistoryScore;
 
 	    } else {
 	    	int movedPiece = board.occupancyPiece(move.getStartSquare());
@@ -100,7 +99,7 @@ struct HistoryHelper {
 
 	        history += (contPly2History[color][board.ply2Ps][board.ply2Sq][board.occupancyPiece(st)][tr]);
 
-	        history += (contPly4History[color][board.ply4Ps][board.ply4Sq][board.occupancyPiece(st)][tr]);
+	        history += (contPly2History[color][board.ply4Ps][board.ply4Sq][board.occupancyPiece(st)][tr]);
 
 	        history /= 2;
 	        return history + maxHistoryScore; // to prevent negative values
