@@ -206,6 +206,38 @@ struct NNUEevaluator {
         return x * x;
     }
 
+    inline __m128i pack(__m256i activations) {
+        return _mm_packus_epi16(_mm256_castsi256_si128(activations), _mm256_extracti128_si256(activations, 1));
+    }
+
+    inline void activateAcc(const __int16_t *accumulator, uint8_t *out) {
+        const __m256i zero = _mm256_setzero_si256();
+        const __m256i one = _mm256_set1_epi16(Q0);
+
+        for (int i = 0; i < hl1Size; i += 16) {
+            __m256i ac = _mm256_load_si256((const __m256i *)(accumulator + i));
+            ac = _mm256_max_epi16(ac, zero);
+            ac = _mm256_min_epi16(ac, one);
+            ac = _mm256_mulhi_epi16(_mm256_slli_epi16(ac, 7), ac);
+            _mm_store_si128((__m128i *)(out + i), pack(ac));
+        }
+    }
+
+    inline __m256i maddubs(__m256i u, __m256i i) {
+        return _mm256_maddubs_epi16(u, i);
+    }
+
+    inline __m256i maddwd(__m256i a, __m256i b) {
+        return _mm256_madd_epi16(a, b);
+    }
+
+    inline __m256i dpbusdx2(__m256i sum, uint32_t packed0, __m256i weights0, uint32_t packed1, __m256i weights1,
+                            __m256i ones) {
+        __m256i partial0 = maddubs(_mm256_set1_epi32(packed0), weights0);
+        __m256i partial1 = maddubs(_mm256_set1_epi32(packed1), weights1);
+        return _mm256_add_epi32(sum, maddwd(_mm256_add_epi16(partial0, partial1), ones));
+    }
+
     void printAccum() {
         for (ll i = 0; i < hl1Size; i++)
             cout << hlSumW[i] << ' ';
@@ -241,132 +273,46 @@ struct NNUEevaluator {
 
     int evaluate(int color, int bucket) {
         cleanAccumulators();
-        alignas(64) uint16_t hl1Activations1[hl1Size * 2];
-        alignas(64) uint8_t hl1Activations[hl1Size * 2];
 
-        __m256i zerosm = _mm256_set1_epi16(-1);
-        __m256i zerol = _mm256_set1_epi16(0);
-        __m256i qas = _mm256_set1_epi16(Q0);
-        __m256i ql = _mm256_set1_epi16(Q);
-        __m256i qql = _mm256_set1_epi32(Q * Q);
-
-        int accAdd = hl1Size * (color == BLACK);
-        for (int i = 0; i < hl1Size; i += 16) {
-            __m256i ac1 = _mm256_load_si256((__m256i *)&hlSumW[ply][i]);
-            ac1 = _mm256_and_si256(ac1, _mm256_cmpgt_epi16(ac1, zerosm));
-            ac1 = _mm256_blendv_epi8(ac1, qas, _mm256_cmpgt_epi16(ac1, qas));
-
-            ac1 = _mm256_mulhi_epi16(_mm256_slli_epi16(ac1, 7), ac1);
-
-            _mm256_store_si256((__m256i *)&hl1Activations1[i + accAdd], ac1);
-        }
-
-        accAdd = hl1Size * (color == WHITE);
-        for (int i = 0; i < hl1Size; i += 16) {
-            __m256i ac1 = _mm256_load_si256((__m256i *)&hlSumB[ply][i]);
-            ac1 = _mm256_and_si256(ac1, _mm256_cmpgt_epi16(ac1, zerosm));
-            ac1 = _mm256_blendv_epi8(ac1, qas, _mm256_cmpgt_epi16(ac1, qas));
-            
-            ac1 = _mm256_mulhi_epi16(_mm256_slli_epi16(ac1, 7), ac1);
-
-            _mm256_store_si256((__m256i *)&hl1Activations1[i + accAdd], ac1);
-        }
-
-        // for (int i = 0; i < hl1Size; i += 16) {
-        //     __m256i ac1 = _mm256_load_si256((__m256i *)&hlSumW[i]);
-        //     ac1 = _mm256_and_si256(ac1, _mm256_cmpgt_epi16(ac1, zerosm));
-        //     ac1 = _mm256_blendv_epi8(ac1, qas, _mm256_cmpgt_epi16(ac1, qas));
-        //     ac1 = _mm256_slli_epi16(ac1, 7);
-
-        //     __m256i ac2 = _mm256_load_si256((__m256i *)&hlSumW[i + hl1Size / 2]);
-        //     ac2 = _mm256_and_si256(ac2, _mm256_cmpgt_epi16(ac2, zerosm));
-        //     ac2 = _mm256_blendv_epi8(ac2, qas, _mm256_cmpgt_epi16(ac2, qas));
-
-        //     ac1 = _mm256_mulhi_epi16(ac1, ac2);
-
-        //     _mm256_store_si256((__m256i *)&hl1Activations1[i + hl1Size / 2 * (color == BLACK)], ac1);
-        // }
-
-        // for (int i = 0; i < hl1Size / 2; i += 16) {
-        //     __m256i ac1 = _mm256_load_si256((__m256i *)&hlSumB[i]);
-        //     ac1 = _mm256_and_si256(ac1, _mm256_cmpgt_epi16(ac1, zerosm));
-        //     ac1 = _mm256_blendv_epi8(ac1, qas, _mm256_cmpgt_epi16(ac1, qas));
-        //     ac1 = _mm256_slli_epi16(ac1, 7);
-
-        //     __m256i ac2 = _mm256_load_si256((__m256i *)&hlSumB[i + hl1Size / 2]);
-        //     ac2 = _mm256_and_si256(ac2, _mm256_cmpgt_epi16(ac2, zerosm));
-        //     ac2 = _mm256_blendv_epi8(ac2, qas, _mm256_cmpgt_epi16(ac2, qas));
-
-        //     ac1 = _mm256_mulhi_epi16(ac1, ac2);
-
-        //     _mm256_store_si256((__m256i *)&hl1Activations1[i + hl1Size / 2 * (color == WHITE)], ac1);
-        // }
-
-        for (int i = 0; i < hl1Size * 2; i++)
-            hl1Activations[i] = hl1Activations1[i];
+        const __m256i q = _mm256_set1_epi16(Q);
+        const __m256i qq = _mm256_set1_epi32(Q * Q);
+        const __m256i ones = _mm256_set1_epi16(1);
+        const __m256i zerosm = _mm256_set1_epi16(-1);
 
         __m256i L2_0 = _mm256_setzero_si256();
         __m256i L2_1 = _mm256_setzero_si256();
-        // ll sm0=0;
+        alignas(64) uint8_t activatedFt[hl1Size * 2];
 
-        for (int i = 0; i < hl1Size / 2; i++) {
+        const auto stm_acc = color == WHITE ? &hlSumW[ply][0] : &hlSumB[ply][0];
+        const auto ntm_acc = color == WHITE ? &hlSumB[ply][0] : &hlSumW[ply][0];
+        
+        activateAcc(stm_acc, &activatedFt[0]);
+        activateAcc(ntm_acc, &activatedFt[hl1Size]);
 
-            // ll j0 = i * 4;
-            // ll sm1=0;
-            // for(int j=0;j<4;j++) {
-            //     sm1+=int(hl1Activations[i*4+j])*w1[bucket][i][j];
-            //     cout<<int(hl1Activations[i*4+j])<<' '<<int(w1[bucket][i][j])<<endl;
-            // }
-            // sm0+=sm1;
-            __m256 act = _mm256_set1_epi32(*(int32_t*)&hl1Activations[i * 4]);
+        const uint32_t *packedFt = (const uint32_t *)activatedFt;
+        for (int i = 0; i < hl1Size / 2; i += 2) {
+            __m256i w10 = _mm256_load_si256((const __m256i *)&w1[bucket][i][0]);
+            __m256i w11 = _mm256_load_si256((const __m256i *)&w1[bucket][i + 1][0]);
+            __m256i w10sq = _mm256_load_si256((const __m256i *)&w1[bucket][i][2 * hl2Size]);
+            __m256i w11sq = _mm256_load_si256((const __m256i *)&w1[bucket][i + 1][2 * hl2Size]);
 
-            auto p = _mm256_maddubs_epi16(act,_mm256_load_si256((__m256i *)&w1[bucket][i][0]));
-            // cout<<_mm256_extract_epi16(p, 0)<<endl;
-            // cout<<_mm256_extract_epi16(p, 1)<<endl;
-            // cout<<_mm256_extract_epi16(p, 2)<<endl;
-            // cout<<_mm256_extract_epi16(p, 3)<<endl;
-            // cout<<"! " <<_mm256_extract_epi8(act, 2)<<endl;
-            // cout<<sm1<<' '<<_mm256_extract_epi32(p, 0)<<endl;
-            // cout<<endl<<endl;
-
-
-            L2_0 = _mm256_add_epi32(L2_0, _mm256_madd_epi16(_mm256_maddubs_epi16(act, 
-                                                                _mm256_load_si256((__m256i *)&w1[bucket][i][0])), _mm256_set1_epi16(1)));
-            L2_1 = _mm256_add_epi32(L2_1, _mm256_madd_epi16(_mm256_maddubs_epi16(act, 
-                                                                _mm256_load_si256((__m256i *)&w1[bucket][i][2 * hl2Size])), _mm256_set1_epi16(1)));
-
-            // cout<<_mm256_extract_epi32(L2_0, 0)<<' '<<sm0<<endl;
+            L2_0 = dpbusdx2(L2_0, packedFt[i], w10, packedFt[i + 1], w11, ones);
+            L2_1 = dpbusdx2(L2_1, packedFt[i], w10sq, packedFt[i + 1], w11sq, ones);
         }
-        // int abc[8];
-        // cout<<sm0<<endl;
-        // _mm256_store_si256((__m256i *)&abc[0], L2_0);
-        // for(int i = 0;i<8;i++)
-        //     cout<<abc[i]<<' ';
-        // 1167/(255*255/(2**9)*128/64)
+
         L2_0 = _mm256_srai_epi32(L2_0, 8);
         L2_0 = _mm256_add_epi32(L2_0, _mm256_load_si256((__m256i *)&b1[bucket][0]));
         auto L2_0c = _mm256_and_si256(L2_0, _mm256_cmpgt_epi16(L2_0, zerosm));
-        L2_0c = _mm256_blendv_epi8(L2_0c, ql, _mm256_cmpgt_epi16(L2_0c, ql));
+        L2_0c = _mm256_blendv_epi8(L2_0c, q, _mm256_cmpgt_epi16(L2_0c, q));
         L2_0 = _mm256_mullo_epi32(L2_0, L2_0);
-        L2_0 = _mm256_min_epi32(L2_0, qql);
+        L2_0 = _mm256_min_epi32(L2_0, qq);
 
         L2_1 = _mm256_srai_epi32(L2_1, 8);
         L2_1 = _mm256_add_epi32(L2_1, _mm256_load_si256((__m256i *)&b1[bucket][hl2Size / 2]));
         auto L2_1c = _mm256_and_si256(L2_1, _mm256_cmpgt_epi16(L2_1, zerosm));
-        L2_1c = _mm256_blendv_epi8(L2_1c, ql, _mm256_cmpgt_epi16(L2_1c, ql));
+        L2_1c = _mm256_blendv_epi8(L2_1c, q, _mm256_cmpgt_epi16(L2_1c, q));
         L2_1 = _mm256_mullo_epi32(L2_1, L2_1);
-        L2_1 = _mm256_min_epi32(L2_1, qql);
-
-        // _mm256_store_si256((__m256i *)&abc[0], L2_0);
-        // for(int i = 0;i<8;i++)
-        //     cout<<abc[i]<<' ';
-        // _mm256_store_si256((__m256i *)&abc[0], L2_1);
-        // for(int i = 0;i<8;i++)
-        //     cout<<abc[i]<<' ';
-
-        // alignas(64) int hl2Activations[hl2Size];
-        // _mm256_store_si256((__m256i *)&hl2Activations[0], L2_0);
-        // _mm256_store_si256((__m256i *)&hl2Activations[hl2Size / 2], L2_1);
+        L2_1 = _mm256_min_epi32(L2_1, qq);
 
         alignas(64) int hl2Activations[hl2Size * 2];
         _mm256_store_si256((__m256i *)&hl2Activations[0], _mm256_slli_epi32(L2_0c, 6));
@@ -374,23 +320,12 @@ struct NNUEevaluator {
         _mm256_store_si256((__m256i *)&hl2Activations[hl2Size], L2_0);
         _mm256_store_si256((__m256i *)&hl2Activations[hl2Size + hl2Size / 2], L2_1);
 
-
-
-        // cout<<endl<<endl;
-
-        // cout<<endl;
-        // for(int i=0;i<hl2Size;i++)
-        //     cout<<hl2Activations[i]<<' ';
-        // cout<<endl;
-
         alignas(64) int hl3Layer[hl3Size];
         memset(hl3Layer, 0, sizeof(hl3Layer));
 
         for (int i = 0; i < hl2Size * 2; i++) {
-            __m256 act = _mm256_set1_epi32(*(int32_t*)&hl2Activations[i]);
+            __m256i act = _mm256_set1_epi32(hl2Activations[i]);
             for(int j = 0; j < hl3Size; j += 8) {
-                // hl3Layer[j] += hl2Activations[i] * w2[bucket][i][j];
-                // cout<<w2[bucket][i][j]<<'\n';
                 _mm256_store_si256((__m256i *)&hl3Layer[j], 
                     _mm256_add_epi32(_mm256_load_si256((__m256i *)&hl3Layer[j]), 
                         _mm256_mullo_epi32(
@@ -399,16 +334,12 @@ struct NNUEevaluator {
             }
         }
 
-        // cout<<endl;
-        // for(int i=0;i<hl3Size;i++)
-        //     cout<<hl3Layer[i]<<' ';
-        // cout<<endl;
-
         int sum = 0;
         for (int i = 0; i < 32; i++) {
             sum += clamp(hl3Layer[i] + b2[bucket][i], 0, Q*Q*Q) * w3[bucket][i];
         }
         sum += b3[bucket];
+
         sum = int64_t(sum) * SCALE / (Q*Q*Q*Q);
         return sum;
     }
