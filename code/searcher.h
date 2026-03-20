@@ -488,6 +488,9 @@ struct Worker {
         moveGenerator.computePinnedPiecesW(board);
         moveGenerator.computePinnedPiecesB(board);
 
+        killers[ply + 1][0] = killers[ply + 1][1] = Move();
+        killersAge[ply + 1][0] = killersAge[ply + 1][1] = 0;
+
         Board boardCopy = board;
 
         Move ttMove = ttEntry.move;
