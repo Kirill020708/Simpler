@@ -445,7 +445,7 @@ struct Worker {
         	!isMovingSideInCheck &&
             ((board.whitePieces | board.blackPieces) ^ (board.pawns | board.kings)) >
                 0 &&              // pieces except kings and pawns exist (to prevent zugzwang)
-            staticEval >= beta + 12 &&
+            staticEval >= beta + 20 - depth * 1 &&
             !isPvNode &&
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
