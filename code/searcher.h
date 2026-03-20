@@ -539,7 +539,7 @@ struct Worker {
 		            if (score >= probcutBeta) {
 	                    transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth - probcutDepthR, LOWER_BOUND,
 	                                             boardCurrentAge, move, ply, ttpv);
-	                    return score;
+	                    return (abs(score) >= MATE_SCORE_MAX_PLY) ? score : (score + beta) / 2;
 		            }
 		        }
 		    }
