@@ -256,6 +256,8 @@ struct Worker {
 
         bool searchedTTmove = false;
 
+        int movesSearched = 0;
+
         for (int currentMove = 0; currentMove < moveListGenerator.moveListSize[ply]; currentMove++) {
             Move move = moveListGenerator.moveList[ply][currentMove];
 
@@ -264,6 +266,8 @@ struct Worker {
             	searchedTTmove = true;
             }
 
+            int historyValue = historyHelper.getScore(board, color, move) - historyHelper.maxHistoryScore;
+
 
             int seeEval = moveListGenerator.seeTable[ply][move.getStartSquare()][move.getTargetSquare()];
         	if(move == ttMove)
@@ -271,6 +275,9 @@ struct Worker {
 
         	if (!isMovingSideInCheck && staticEval + 100 < alpha && seeEval <= 0)
         		continue;
+
+            if (isMovingSideInCheck && movesSearched >= 4 && historyValue < 0)
+                break;
 
             ull newKey = zobristAfterMove(board, move);
             transpositionTable.prefetch(newKey);
@@ -285,6 +292,8 @@ struct Worker {
             board = boardCopy;
 
             nnueEvaluator.ply--;
+
+            movesSearched++;
 
             isFirstMove = 0;
             if (stopSearch)
