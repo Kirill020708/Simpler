@@ -546,6 +546,21 @@ struct Worker {
         }
 
 
+        int smallProbCutBeta = beta + 600;
+
+        if (!isRoot &&
+            !isPvNode && 
+            !isMovingSideInCheck &&
+            !searchStack[ply].excludeTTmove &&
+            !isMateScores &&
+            ttEntry.flag.type() == LOWER_BOUND &&
+            ttEntry.depth >= depth - probcutDepthR &&
+            ttEntry.score >= smallProbCutBeta){
+
+            return smallProbCutBeta;
+        }
+
+
         int killerMove = 0, killerBackup = 1;
 
         moveListGenerator.killerMove = killers[ply][0];
