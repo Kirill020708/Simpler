@@ -622,7 +622,7 @@ struct Worker {
                     extendTTmove++;
 
         	} else if (singularScore >= beta && MATE_SCORE - abs(singularScore) > maxDepth)
-        		return beta; // Multicut
+        		return (beta + singularScore) / 2; // Multicut
             else if (ttEntry.score >= beta)
                 extendTTmove = -1; // Negative extensions
         }
