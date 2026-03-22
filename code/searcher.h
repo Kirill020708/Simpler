@@ -755,6 +755,9 @@ struct Worker {
                 const int LMR_FULL_MOVES = 2; // number of moves to search with full depth
                 const int LMR_MIN_DEPTH = 3;  // don't reduct depth if it's more or equal to this value
 
+                bool ttpvFailLow = ttpv && (ttEntry.score != NONE_SCORE &&
+                                            ttEntry.score < alpha);
+
                 int lmrReduction =
                     floor(lmrLogTable[depth][movesSearched] + 0.5 
                     	- 1 * (isPvNode)
@@ -762,7 +765,7 @@ struct Worker {
                     	+ 0.5 * (!improving)
                     	+ 1 * (isTTCapture)
                     	+ 1 * cutNode
-                    	- 1 * ttpv
+                    	- 1 * (ttpv - ttpvFailLow)
                     	- 1 * (isCapture)
                     	- 0.002 * sseEval
                         - 1 * (isKiller)); // reduction of depth
