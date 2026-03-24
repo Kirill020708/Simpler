@@ -11,9 +11,9 @@
 
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "incbin.h"
-INCBIN(NETWORK, "code/net.nnue");
+INCBIN(NETWORK, "code/net1024.nnue");
 
-const int inputSize = 64 * 12, hl1Size = 512, hl2Size = 16, hl3Size = 32;
+const int inputSize = 64 * 12, hl1Size = 1024, hl2Size = 16, hl3Size = 32;
 const int w1BlockSize = 4 * hl2Size;
 const int outputBuckets = 8;
 const int Q0 = 255, Q1 = 128, Q = 64, SCALE = 400;
