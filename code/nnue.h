@@ -11,7 +11,7 @@
 
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "incbin.h"
-INCBIN(NETWORK, "code/net1024.nnue");
+INCBIN(NETWORK, "code/pairwise.nnue");
 
 const int inputSize = 64 * 12, hl1Size = 1024, hl2Size = 16, hl3Size = 32;
 const int w1BlockSize = 4 * hl2Size;
@@ -87,7 +87,7 @@ struct NNUEevaluator {
     alignas(64) __int16_t w0[inputSize][hl1Size];
     alignas(64) __int16_t b0[hl1Size];
 
-    alignas(64) __int8_t w1[outputBuckets][hl1Size / 2][w1BlockSize];
+    alignas(64) __int8_t w1[outputBuckets][hl1Size / 4][w1BlockSize];
     alignas(64) int b1[outputBuckets][hl2Size];
     alignas(64) int w2[outputBuckets][hl2Size * 2][hl3Size];
     alignas(64) int b2[outputBuckets][hl3Size];
@@ -214,11 +214,16 @@ struct NNUEevaluator {
         const __m256i zero = _mm256_setzero_si256();
         const __m256i one = _mm256_set1_epi16(Q0);
 
-        for (int i = 0; i < hl1Size; i += 16) {
-            __m256i ac = _mm256_load_si256((const __m256i *)(accumulator + i));
-            ac = _mm256_max_epi16(ac, zero);
-            ac = _mm256_min_epi16(ac, one);
-            ac = _mm256_mulhi_epi16(_mm256_slli_epi16(ac, 7), ac);
+        for (int i = 0; i < hl1Size / 2; i += 16) {
+            __m256i ac1 = _mm256_load_si256((const __m256i *)(accumulator + i));
+            ac1 = _mm256_max_epi16(ac1, zero);
+            ac1 = _mm256_min_epi16(ac1, one);
+
+            __m256i ac2 = _mm256_load_si256((const __m256i *)(accumulator + hl1Size / 2 + i));
+            ac2 = _mm256_max_epi16(ac2, zero);
+            ac2 = _mm256_min_epi16(ac2, one);
+
+            __m256i ac = _mm256_mulhi_epi16(_mm256_slli_epi16(ac1, 7), ac2);
             _mm_store_si128((__m128i *)(out + i), pack(ac));
         }
     }
@@ -281,16 +286,16 @@ struct NNUEevaluator {
 
         __m256i L2_0 = _mm256_setzero_si256();
         __m256i L2_1 = _mm256_setzero_si256();
-        alignas(64) uint8_t activatedFt[hl1Size * 2];
+        alignas(64) uint8_t activatedFt[hl1Size];
 
         const auto stm_acc = color == WHITE ? &hlSumW[ply][0] : &hlSumB[ply][0];
         const auto ntm_acc = color == WHITE ? &hlSumB[ply][0] : &hlSumW[ply][0];
         
         activateAcc(stm_acc, &activatedFt[0]);
-        activateAcc(ntm_acc, &activatedFt[hl1Size]);
+        activateAcc(ntm_acc, &activatedFt[hl1Size / 2]);
 
         const uint32_t *packedFt = (const uint32_t *)activatedFt;
-        for (int i = 0; i < hl1Size / 2; i += 2) {
+        for (int i = 0; i < hl1Size / 4; i += 2) {
             __m256i w10 = _mm256_load_si256((const __m256i *)&w1[bucket][i][0]);
             __m256i w11 = _mm256_load_si256((const __m256i *)&w1[bucket][i + 1][0]);
             __m256i w10sq = _mm256_load_si256((const __m256i *)&w1[bucket][i][2 * hl2Size]);
@@ -441,7 +446,7 @@ struct NNUEevaluator {
         }
         // cout<<'\n';
 
-        for (int i = 0; i < hl1Size * 2; i++)
+        for (int i = 0; i < hl1Size; i++)
             for (int bucket = 0; bucket < outputBuckets; bucket++)
                 for (int j = 0; j < hl2Size; j++) {
                     int i0 = i / 4;
