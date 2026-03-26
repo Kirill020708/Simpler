@@ -787,6 +787,17 @@ struct Evaluator {
         return evaluation;
     }
 
+    int materialScale(int eval, Board &board) {
+        int material = 
+            // 100 * board.pawns.popcnt() +
+            300 * board.knights.popcnt() +
+            300 * board.bishops.popcnt() +
+            500 * board.rooks.popcnt() +
+            900 * board.queens.popcnt();
+
+        return eval * (material + 13184) / 16384;
+    }
+
     int evaluatePosition(Board &board, int color, NNUEevaluator &nnueEvaluator) { // board evaluation with NNUE
 
         if (insufficientMaterialDraw(board))
@@ -797,7 +808,7 @@ struct Evaluator {
         #if defined DO_HCE
             evaluation = evaluatePosition(board) * ((color == WHITE) ? 1 : -1);
         #else
-            evaluation = nnueEvaluator.evaluate(color, board.getOutputBucket());
+            evaluation = materialScale(nnueEvaluator.evaluate(color, board.getOutputBucket()), board);
         #endif
 
         return evaluation;
