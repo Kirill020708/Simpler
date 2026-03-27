@@ -358,7 +358,7 @@ struct Worker {
         ull currentZobristKey = board.getZobristKey();
 
         if (!isRoot) {
-            for (int repAge = board.age - 4; repAge > max(board.lastIrreversibleMoveAge, -1); repAge -= 1)
+            for (int repAge = board.age - 4; repAge > max(board.occuredPositionsIter, -1); repAge -= 1)
                 if (currentZobristKey == occuredPositionsHelper.occuredPositions[repAge])
                     return DRAW_SCORE;
         }
@@ -1190,13 +1190,17 @@ struct Searcher {
         int color = mainBoard.boardColor;
         vector<thread> threadPool(threadNumber);
         vector<Board> boards(threadNumber, mainBoard);
+
+        OccuredPositionsHelper cleanOccuredPositionsHelper = mainOccuredPositionsHelper;
+        cleanOccuredPositionsHelper.cleanStack(mainBoard);
+
         for (int i = 0; i < threadNumber; i++) {
             workers[i].nodes = 0;
             workers[i].bestMove = Move();
             workers[i].minimal = minimal;
             workers[i].stopSearch = false;
             workers[i].nnueEvaluator = mainNnueEvaluator;
-            workers[i].occuredPositionsHelper = mainOccuredPositionsHelper;
+            workers[i].occuredPositionsHelper = cleanOccuredPositionsHelper;
             mainBoard.initNNUE(workers[i].nnueEvaluator);
             for (ll j = 0; j < 256; j++) {
                 for (ll j1 = 0; j1 < 2; j1++) {

@@ -44,12 +44,6 @@
 
 #endif /* NNUE */
 
-struct OccuredPositionsHelper {
-    ull occuredPositions[2560]; // positions occured in current variation; for testing repetition
-};
-
-OccuredPositionsHelper mainOccuredPositionsHelper;
-
 int material[8] = {0, 0, 3, 3, 5, 10, 0};
 
 struct alignas(64) Board {
@@ -82,6 +76,8 @@ struct alignas(64) Board {
     int age = 0;
 
     int lastIrreversibleMoveAge = -1; // age of last irreversible move (capture/pawn move), for testing repetition
+
+    int occuredPositionsIter = -1;
 
     bool flippedW = true;
     bool flippedB = true;
@@ -402,8 +398,10 @@ struct alignas(64) Board {
 
     inline void makeMove(Move move) {
         if ((whitePieces | blackPieces).getBit(move.getTargetSquare()) ||
-            pawns.getBit(move.getStartSquare())) // check if move is irreversible
+            pawns.getBit(move.getStartSquare())) { // check if move is irreversible
             lastIrreversibleMoveAge = age;
+            occuredPositionsIter = age;
+        }
 
         age++;
         boardColor = (boardColor == WHITE) ? BLACK : WHITE;
@@ -482,8 +480,10 @@ struct alignas(64) Board {
 
     inline void makeMove(Move move, NNUEevaluator &nnueEvaluator) {
         if ((whitePieces | blackPieces).getBit(move.getTargetSquare()) ||
-            pawns.getBit(move.getStartSquare())) // check if move is irreversible
+            pawns.getBit(move.getStartSquare())) { // check if move is irreversible
             lastIrreversibleMoveAge = age;
+            occuredPositionsIter = age;
+        }
 
         age++;
         boardColor = (boardColor == WHITE) ? BLACK : WHITE;
@@ -816,3 +816,22 @@ struct alignas(64) Board {
 };
 
 Board mainBoard;
+
+
+struct OccuredPositionsHelper {
+    ull occuredPositions[2560]; // positions occured in current variation; for testing repetition
+
+    void cleanStack(Board &board) {
+        unordered_map<ull, int> hashes;
+
+        for (int i = 0; i < board.age; i++)
+            hashes[occuredPositions[i]]++;
+
+        board.occuredPositionsIter = board.age - 1;
+        for (auto hash : hashes)
+            if (hash.second >= 2)
+                occuredPositions[board.occuredPositionsIter--] = hash.first;
+    }
+};
+
+OccuredPositionsHelper mainOccuredPositionsHelper;
