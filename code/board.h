@@ -698,6 +698,7 @@ struct alignas(64) Board {
             enPassantColumn = enPassantSquare[0] - 'a';
 
         lastIrreversibleMoveAge = age - stoi(ageDiff) - 1;
+        occuredPositionsIter = lastIrreversibleMoveAge;
 
         int wKingPos = (whitePieces & kings).getFirstBitNumber();
         flippedW = (wKingPos & 7) >= 4;
