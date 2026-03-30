@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
                 bool isOk = 1;
 
 	    		while (nmbOfMoves--) {
-	                moveListGenerator.generateMoves(mainBoard, historyHelper,mainBoard.boardColor, 0, DONT_SORT, ALL_MOVES);
+	                moveListGenerator.generateMoves(mainBoard, historyHelper,mainBoard.boardColor, 0, DONT_SORT, ALL_MOVES, 0, 0);
 	                int movesCount = moveListGenerator.moveListSize[0];
                     if (movesCount == 0) {
                         isOk = 0;

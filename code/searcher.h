@@ -97,7 +97,7 @@ struct Worker {
             return bestScore;
 
         Board boardCopy = board;
-        moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
+        moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES, 0, 0);
 
         for (int currentMove = 0; currentMove < moveListGenerator.moveListSize[ply]; currentMove++) {
             Move move = moveListGenerator.moveList[ply][currentMove];
@@ -240,8 +240,9 @@ struct Worker {
 
         // moveListGenerator.killerMove=moveListGenerator.hashMove;
         Board boardCopy = board;
+
         if (ttMove == Move()) {
-        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, !isMovingSideInCheck);
+        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, !isMovingSideInCheck, 0, 0);
         }
 
 
@@ -306,7 +307,7 @@ struct Worker {
             if (move == ttMove) {
 		        moveListGenerator.hashMove = ttMove;
 
-            	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
+            	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES, 0, 0);
             }
         }
         transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, type, boardCurrentAge,
@@ -516,7 +517,7 @@ struct Worker {
 
         	if (nodeType == NONE || ttEntry.score >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
 
-	        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
+	        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES, 0, 0);
 
 		        for (int currentMove = 0; currentMove < moveListGenerator.moveListSize[ply]; currentMove++) {
 		            Move move = moveListGenerator.moveList[ply][currentMove];
@@ -570,13 +571,22 @@ struct Worker {
 
         bool doTTmoveBeforeMovegen = true;
 
+        bool didStaged = 0, didFull = 0;
+
         if(ttMove == Move() || searchStack[ply].excludeTTmove){
         	doTTmoveBeforeMovegen = false;
         	historyHelper.whiteAttacks = whiteAttacks;
         	historyHelper.blackAttacks = blackAttacks;
-        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES);
-        	if (moveListGenerator.moveListSize[ply] == 0)
-        		return evaluator.evaluateStalledPosition(board, color, ply);
+        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES, 1, 0);
+            didStaged = true;
+
+        	if (moveListGenerator.moveListSize[ply] == 0) {
+                moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES, 0, 0);
+                didFull = true;
+
+                if (moveListGenerator.moveListSize[ply] == 0)
+        		    return evaluator.evaluateStalledPosition(board, color, ply);
+            }
         } else {
         	moveListGenerator.moveListSize[ply] = 1;
         }
@@ -632,7 +642,6 @@ struct Worker {
         int movesSearched = 0;
         int quietMovesSearched = 0;
         Move newTTmove = Move();
-        int numberOfMoves = moveListGenerator.moveListSize[ply];
 
         bool searchedTTmove = false;
 
@@ -642,7 +651,23 @@ struct Worker {
 
         searchStack[ply].pvLine = vector<Move>();
 
-        for (int currentMove = 0; currentMove < moveListGenerator.moveListSize[ply]; currentMove++) {
+        int currentMove = -1;
+
+        while (true) {
+            currentMove++;
+
+            if (currentMove == moveListGenerator.moveListSize[ply]) {
+                if(didFull)
+                    break;
+                else {
+                    currentMove = 0;
+                    moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES, 0, 1);
+                    didFull = true;
+                    if (currentMove == moveListGenerator.moveListSize[ply])
+                        break;
+                }
+            }
+
             Move move = moveListGenerator.moveList[ply][currentMove];
 
             if (move == searchStack[ply].excludeMove) {
@@ -886,6 +911,8 @@ struct Worker {
             }
 
             if (doTTmoveBeforeMovegen && currentMove == 0) {
+                doTTmoveBeforeMovegen = 0;
+                
 	        	historyHelper.whiteAttacks = whiteAttacks;
 	        	historyHelper.blackAttacks = blackAttacks;
 
@@ -893,7 +920,8 @@ struct Worker {
 		        moveListGenerator.killerMove = killers[ply][killerMove];
 		        moveListGenerator.killerBackup = killers[ply][killerBackup];
 
-            	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES);
+            	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES, 1, 1);
+                currentMove = -1;
             }
         }
 
@@ -1019,7 +1047,7 @@ struct Worker {
 	        	if (ttEntry.move != Move() && moveGenerator.isMoveLegal(board, ttEntry.move))
 	        		bestMove = ttEntry.move;
 	        	else {
-	        		moveListGenerator.generateMoves(board, historyHelper, color, 0, DO_SORT, ALL_MOVES);
+	        		moveListGenerator.generateMoves(board, historyHelper, color, 0, DO_SORT, ALL_MOVES, 0, 0);
 	        		bestMove = moveListGenerator.moveList[0][0];
 	        	}
 	        }

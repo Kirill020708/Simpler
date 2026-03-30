@@ -62,9 +62,17 @@ struct MoveListGenerator {
 
     int16_t seeTable[maxDepth][64][64];
 
+    Bitboard generated[maxDepth][64];
+
+    MoveListGenerator() {
+        memset(generated, 0, sizeof(generated));
+        memset(moveListSize, 0, sizeof(moveListSize));
+    }
+
     inline void generateMoves(Board &board, HistoryHelper &historyHelper, int color, int depth, bool doSort,
-                              bool onlyCaptures) {
+                              bool onlyCaptures, bool stagedCaptures, bool doStaged) {
         Board boardCopy = board;
+
         moveListSize[depth] = 0;
 
         Bitboard friendPieces, opponentPieces;
@@ -93,6 +101,14 @@ struct MoveListGenerator {
             if (onlyCaptures) {
                 moves &= opponentPieces;
             }
+
+            if (doStaged) {
+                if (stagedCaptures)
+                    generated[depth][startSquare] = 0;
+                else
+                    moves &= (~generated[depth][startSquare]);
+            }
+            
             moves &= (~friendPieces);
 
             while (moves > 0) {
@@ -125,15 +141,25 @@ struct MoveListGenerator {
                     if (captureEval <= -100 && onlyCaptures)
                     	continue;
 
-                    if (captureEval >= -220 - historyScoreF * 100)
+                    if (captureEval >= -220 - historyScoreF * 100) {
+                        if (stagedCaptures)
+                            generated[depth][startSquare] |= (1ull << targetSquare);
+
                         captureCoeff += (1 << 15);
+                    }
+                    else if (stagedCaptures)
+                        continue;
 
                     captureCoeff += (material[capturedPiece] + historyScore * 20) + 10;
 
                     // cout<<Move(startSquare,targetSquare,0).convertToUCI()<<' '<<captureEval<<'\n';
-                } else
+                } else {
+                    if (stagedCaptures)
+                        continue;
+
                     captureCoeff =
                         (1 << 15); // if move isn't capture, make it's value below winning SSE but before loosing
+                }
 
                 if (board.occupancyPiece(startSquare) == PAWN &&
                     ((color == WHITE && targetSquare < 8) || (color == BLACK && targetSquare >= 56))) { // promotion
