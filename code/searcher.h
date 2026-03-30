@@ -577,11 +577,11 @@ struct Worker {
         	doTTmoveBeforeMovegen = false;
         	historyHelper.whiteAttacks = whiteAttacks;
         	historyHelper.blackAttacks = blackAttacks;
-        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES, 1, 0);
+        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES, 1, 1);
             didStaged = true;
 
         	if (moveListGenerator.moveListSize[ply] == 0) {
-                moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES, 0, 0);
+                moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES, 0, 1);
                 didFull = true;
 
                 if (moveListGenerator.moveListSize[ply] == 0)
@@ -912,7 +912,7 @@ struct Worker {
 
             if (doTTmoveBeforeMovegen && currentMove == 0) {
                 doTTmoveBeforeMovegen = 0;
-                
+
 	        	historyHelper.whiteAttacks = whiteAttacks;
 	        	historyHelper.blackAttacks = blackAttacks;
 
