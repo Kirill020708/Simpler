@@ -675,6 +675,9 @@ struct Worker {
                     continue;
             }
 
+            if (move == ttMove && searchedTTmove)
+                continue;
+
             if (doTTmoveBeforeMovegen && !searchedTTmove) {
             	move = ttMove;
             	searchedTTmove = true;
