@@ -598,7 +598,7 @@ struct Worker {
 
         	searchStack[ply + 1].excludeTTmove = true;
         	searchStack[ply + 1].excludeMove = ttMove;
-        	int singularBeta = ttEntry.score - depth;
+        	int singularBeta = ttEntry.score - depth * 1 * (nodeType == EXACT ? 1 : 2);
         	int singularScore = search<nodePvType>(board, color, depth / 2, 0, singularBeta - 1, singularBeta, ply + 1, extended, cutNode);
 
         	searchStack[ply + 1].excludeTTmove = false;
