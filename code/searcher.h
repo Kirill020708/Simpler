@@ -297,8 +297,6 @@ struct Worker {
                 if (alpha < score)
                     alpha = score;
                 if (alpha >= beta) {
-                    transpositionTable.write(board, currentZobristKey, score, rawStaticEval, 0, LOWER_BOUND,
-                                                      boardCurrentAge, move, ply, ttpv);
                     return bestScore;
                 }
             }
@@ -309,8 +307,6 @@ struct Worker {
             	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ONLY_CAPTURES);
             }
         }
-        transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, type, boardCurrentAge,
-                                          newTTmove, ply, ttpv);
         return bestScore;
     }
 
