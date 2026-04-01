@@ -585,46 +585,57 @@ struct Worker {
 
         // Singular extensions
         int extendTTmove = 0;
-        if (
-        	extended <= 30 &&
-        	ply < maxDepth - 10 &&
-        	ttMove != Move() &&
-        	depth >= 7 &&
-        	ttEntry.depth >= depth - 3 &&
-        	!searchStack[ply].excludeTTmove &&
-        	nodeType != UPPER_BOUND &&
-        	abs(MATE_SCORE) - abs(ttEntry.score) > maxDepth
-        	){
+        if (extended <= 30 &&
+            ply < maxDepth - 10) {
+        	
+            if (
+            	ttMove != Move() &&
+            	depth >= 7 &&
+            	ttEntry.depth >= depth - 3 &&
+            	!searchStack[ply].excludeTTmove &&
+            	nodeType != UPPER_BOUND &&
+            	abs(MATE_SCORE) - abs(ttEntry.score) > maxDepth
+            	){
 
-        	searchStack[ply + 1].excludeTTmove = true;
-        	searchStack[ply + 1].excludeMove = ttMove;
-        	int singularBeta = ttEntry.score - depth;
-        	int singularScore = search<nodePvType>(board, color, depth / 2, 0, singularBeta - 1, singularBeta, ply + 1, extended, cutNode);
+            	searchStack[ply + 1].excludeTTmove = true;
+            	searchStack[ply + 1].excludeMove = ttMove;
+            	int singularBeta = ttEntry.score - depth;
+            	int singularScore = search<nodePvType>(board, color, depth / 2, 0, singularBeta - 1, singularBeta, ply + 1, extended, cutNode);
 
-        	searchStack[ply + 1].excludeTTmove = false;
+            	searchStack[ply + 1].excludeTTmove = false;
 
-        	if (singularScore < singularBeta){
+            	if (singularScore < singularBeta){
 
-        		singularExtended++;
+            		singularExtended++;
 
-        		extendTTmove = 1;
+            		extendTTmove = 1;
 
-                historyHelper.whiteAttacks = whiteAttacks;
-                historyHelper.blackAttacks = blackAttacks;
+                    historyHelper.whiteAttacks = whiteAttacks;
+                    historyHelper.blackAttacks = blackAttacks;
 
-                int historyValue = historyHelper.getScore(board, color, ttMove) - historyHelper.maxHistoryScore;
-                float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
+                    int historyValue = historyHelper.getScore(board, color, ttMove) - historyHelper.maxHistoryScore;
+                    float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
 
-        		// Double extentions
-        		if (!isPvNode && singularScore < singularBeta - (30 - historyValueF * 10))
-        			extendTTmove++;
-                if (!isPvNode && !isTTCapture && singularScore < singularBeta - 80)
-                    extendTTmove++;
+            		// Double extentions
+            		if (!isPvNode && singularScore < singularBeta - (30 - historyValueF * 10))
+            			extendTTmove++;
+                    if (!isPvNode && !isTTCapture && singularScore < singularBeta - 80)
+                        extendTTmove++;
 
-        	} else if (singularScore >= beta && MATE_SCORE - abs(singularScore) > maxDepth)
-        		return beta; // Multicut
-            else if (ttEntry.score >= beta)
-                extendTTmove = -1; // Negative extensions
+            	} else if (singularScore >= beta && MATE_SCORE - abs(singularScore) > maxDepth)
+            		return beta; // Multicut
+                else if (ttEntry.score >= beta)
+                    extendTTmove = -1; // Negative extensions
+
+            } else if (
+                depth <= 6 && 
+                isMovingSideInCheck &&
+                staticEval < alpha - 30 &&
+                cutNode
+                ) {
+
+                extendTTmove = 1; // Low depth extension
+            }
         }
 
         int bestScore = -inf;
