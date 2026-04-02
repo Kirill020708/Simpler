@@ -11,14 +11,35 @@
 
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "incbin.h"
-INCBIN(NETWORK, "code/net.nnue");
+INCBIN(NETWORK, "code/kingbuckets.nnue");
 
 const int inputSize = 64 * 12, hl1Size = 1024, hl2Size = 16, hl3Size = 32;
 const int w1BlockSize = 4 * hl2Size;
+const int inputBuckets = 4;
 const int outputBuckets = 8;
 const int Q0 = 255, Q1 = 128, Q = 64, SCALE = 400;
 
 const int DO_HM = 100;
+
+int inputBucketBoard[2][64] = {
+   {3,3,3,3,3,3,3,3,
+    3,3,3,3,3,3,3,3,
+    3,3,3,3,3,3,3,3,
+    3,3,3,3,3,3,3,3,
+    3,3,3,3,3,3,3,3,
+    3,3,3,3,3,3,3,3,
+    2,2,2,2,2,2,2,2,
+    0,0,1,1,1,1,0,0},
+
+   {0,0,1,1,1,1,0,0,
+    2,2,2,2,2,2,2,2,
+    3,3,3,3,3,3,3,3,
+    3,3,3,3,3,3,3,3,
+    3,3,3,3,3,3,3,3,
+    3,3,3,3,3,3,3,3,
+    3,3,3,3,3,3,3,3,
+    3,3,3,3,3,3,3,3}
+};
 
 struct alignas(64) SmallBoard {
     Bitboard whitePieces, blackPieces;
@@ -79,12 +100,20 @@ struct alignas(64) SmallBoard {
             return KING;
         return NOPIECE;
     }
+
+    pair<ll,ll> getBuckets() {
+        int whiteKingPos = (whitePieces & kings).getFirstBitNumber();
+        int blackKingPos = (blackPieces & kings).getFirstBitNumber();
+
+        return {inputBucketBoard[WHITE][whiteKingPos],
+                inputBucketBoard[BLACK][blackKingPos]};
+    }
 };
 
 struct NNUEevaluator {
 
     bool initialized = false;
-    alignas(64) __int16_t w0[inputSize][hl1Size];
+    alignas(64) __int16_t w0[inputBuckets][inputSize][hl1Size];
     alignas(64) __int16_t b0[hl1Size];
 
     alignas(64) __int8_t w1[outputBuckets][hl1Size / 4][w1BlockSize];
@@ -103,6 +132,7 @@ struct NNUEevaluator {
     int updateB[maxDepth + 1][4];
     SmallBoard boardStack[maxDepth + 1]; // need for lazy eval in hm nodes
     int lastCleanAccumulator[maxDepth + 1];
+    pair<int, int> bucketsStack[maxDepth + 1];
 
     NNUEevaluator() {
         ply = 0;
@@ -131,72 +161,72 @@ struct NNUEevaluator {
         updateIter[ply]++;
     }
 
-    void Add(int idx, pair<int, int>updI) {
+    void Add(int idx, pair<int, int>updI, pair<ll, ll>buckets) {
         for (int i = 0; i < hl1Size; i += 16) {
 
             _mm256_store_si256((__m256i *)&hlSumW[idx][i],
                                 _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumW[idx][i]),
-                                                 _mm256_load_si256((__m256i *)&w0[updI.F][i])));
+                                                 _mm256_load_si256((__m256i *)&w0[buckets.F][updI.F][i])));
             _mm256_store_si256((__m256i *)&hlSumB[idx][i],
                                 _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumB[idx][i]),
-                                                 _mm256_load_si256((__m256i *)&w0[updI.S][i])));
+                                                 _mm256_load_si256((__m256i *)&w0[buckets.S][updI.S][i])));
         }
     }
 
     
 
-    void SubAdd(int idx) {
+    void SubAdd(int idx, pair<ll, ll>buckets) {
         for (int i = 0; i < hl1Size; i += 16) {
 
             _mm256_store_si256((__m256i *)&hlSumW[idx][i],
                                 _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumW[idx - 1][i]),
-                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[updateW[idx][1]][i]),
-                                                     _mm256_load_si256((__m256i *)&w0[updateW[idx][0]][i]))));
+                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][1]][i]),
+                                                     _mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][0]][i]))));
 
             _mm256_store_si256((__m256i *)&hlSumB[idx][i],
                                 _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumB[idx - 1][i]),
-                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[updateB[idx][1]][i]),
-                                                     _mm256_load_si256((__m256i *)&w0[updateB[idx][0]][i]))));
+                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][1]][i]),
+                                                     _mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][0]][i]))));
         }
     }
 
-    void SubSubAdd(int idx) {
+    void SubSubAdd(int idx, pair<ll, ll>buckets) {
         for (int i = 0; i < hl1Size; i += 16) {
 
             _mm256_store_si256((__m256i *)&hlSumW[idx][i],
                                 _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumW[idx - 1][i]),
-                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[updateW[idx][2]][i]),
-                                        _mm256_add_epi16(_mm256_load_si256((__m256i *)&w0[updateW[idx][0]][i]),
-                                                     _mm256_load_si256((__m256i *)&w0[updateW[idx][1]][i])))));
+                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][2]][i]),
+                                        _mm256_add_epi16(_mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][0]][i]),
+                                                     _mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][1]][i])))));
 
 
             _mm256_store_si256((__m256i *)&hlSumB[idx][i],
                                 _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumB[idx - 1][i]),
-                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[updateB[idx][2]][i]),
-                                        _mm256_add_epi16(_mm256_load_si256((__m256i *)&w0[updateB[idx][0]][i]),
-                                                     _mm256_load_si256((__m256i *)&w0[updateB[idx][1]][i])))));
+                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][2]][i]),
+                                        _mm256_add_epi16(_mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][0]][i]),
+                                                     _mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][1]][i])))));
 
         }
     }
 
-    void SubAddSubAdd(int idx) {
+    void SubAddSubAdd(int idx, pair<ll, ll>buckets) {
         for (int i = 0; i < hl1Size; i += 16) {
 
             _mm256_store_si256((__m256i *)&hlSumW[idx][i],
                                 _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumW[idx - 1][i]),
                                     _mm256_add_epi16(
-                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[updateW[idx][1]][i]),
-                                                         _mm256_load_si256((__m256i *)&w0[updateW[idx][0]][i])),
-                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[updateW[idx][3]][i]),
-                                                         _mm256_load_si256((__m256i *)&w0[updateW[idx][2]][i])))));
+                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][1]][i]),
+                                                         _mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][0]][i])),
+                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][3]][i]),
+                                                         _mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][2]][i])))));
 
             _mm256_store_si256((__m256i *)&hlSumB[idx][i],
                                 _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumB[idx - 1][i]),
                                     _mm256_add_epi16(
-                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[updateB[idx][1]][i]),
-                                                         _mm256_load_si256((__m256i *)&w0[updateB[idx][0]][i])),
-                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[updateB[idx][3]][i]),
-                                                         _mm256_load_si256((__m256i *)&w0[updateB[idx][2]][i])))));
+                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][1]][i]),
+                                                         _mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][0]][i])),
+                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][3]][i]),
+                                                         _mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][2]][i])))));
 
         }
     }
@@ -258,20 +288,26 @@ struct NNUEevaluator {
             lastCleanAccumulator[i] = i;
             if (updateIter[i] == 5) { // HM
                 clear(i);
+                pair<int, int> buckets = boardStack[i].getBuckets();
+                bucketsStack[i] = buckets;
                 Bitboard pieces = boardStack[i].whitePieces | boardStack[i].blackPieces;
                 while (pieces > 0) {
                     int square = pieces.getFirstBitNumberAndExclude();
                     int piece = boardStack[i].occupancyPiece(square);
                     int pieceColor = boardStack[i].occupancy(square);
                     if (pieceColor != EMPTY)
-                        Add(i, boardStack[i].getNNUEidx(square, piece, pieceColor));
+                        Add(i, boardStack[i].getNNUEidx(square, piece, pieceColor), buckets);
                 }
-            } else if(updateIter[i] == 2) {
-                SubAdd(i);
-            } else if(updateIter[i] == 3) {
-                SubSubAdd(i);
-            } else if(updateIter[i] == 4) {
-                SubAddSubAdd(i);
+            } else {
+                bucketsStack[i] = bucketsStack[i - 1];
+                pair<int, int> buckets = bucketsStack[i];
+                if(updateIter[i] == 2) {
+                    SubAdd(i, buckets);
+                } else if(updateIter[i] == 3) {
+                    SubSubAdd(i, buckets);
+                } else if(updateIter[i] == 4) {
+                    SubAddSubAdd(i, buckets);
+                }
             }
         }
     }
@@ -417,8 +453,8 @@ struct NNUEevaluator {
         // ifstream file(path,ios::binary);
 
         // if(!file){
-        // 	cout<<"Failed to open NNUE file\n";
-        // 	return;
+        //  cout<<"Failed to open NNUE file\n";
+        //  return;
         // }
 
         initialized = true;
@@ -436,9 +472,10 @@ struct NNUEevaluator {
 
 
         int iter = 0;
-        for (int i = 0; i < inputSize; i++)
-            for (int j = 0; j < hl1Size; j++)
-                w0[i][j] = getValue(data, iter, 16);
+        for (int bucket = 0; bucket < inputBuckets; bucket++)
+            for (int i = 0; i < inputSize; i++)
+                for (int j = 0; j < hl1Size; j++)
+                    w0[bucket][i][j] = getValue(data, iter, 16);
 
         for (int j = 0; j < hl1Size; j++) {
             b0[j] = getValue(data, iter, 16);
