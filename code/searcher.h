@@ -198,7 +198,11 @@ struct Worker {
 
         Move ttMove = ttEntry.move;
 
-        if (!moveGenerator.isMoveLegal(board, ttMove) || board.isQuietMove(ttMove))
+        bool isMovingSideInCheck = moveGenerator.isInCheck(board, color);
+
+        if (!moveGenerator.isMoveLegal(board, ttMove) || 
+            (board.isQuietMove(ttMove) && !isMovingSideInCheck))
+            
         	ttMove = Move();
 
         moveListGenerator.hashMove = ttMove;
@@ -220,8 +224,6 @@ struct Worker {
         correctTTscore(ttEntry, staticEval, staticEval);
         if (ttEntry.score != NO_EVAL)
             staticEval = ttEntry.score;
-
-        bool isMovingSideInCheck = moveGenerator.isInCheck(board, color);
 
         if (isMovingSideInCheck)
             staticEval = -MATE_SCORE;
