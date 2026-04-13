@@ -240,10 +240,20 @@ struct Worker {
         moveGenerator.computePinnedPiecesW(board);
         moveGenerator.computePinnedPiecesB(board);
 
+        bool searchQuietMoves = (isMovingSideInCheck ||
+                          (!isPvNode && ttMove != Move() && nodeType != UPPER_BOUND && board.isQuietMove(ttMove)));
+
+        if (!moveGenerator.isMoveLegal(board, ttMove) || 
+            (board.isQuietMove(ttMove) && !searchQuietMoves))
+
+            ttMove = Move();
+
+        moveListGenerator.hashMove = ttMove;
+
         // moveListGenerator.killerMove=moveListGenerator.hashMove;
         Board boardCopy = board;
         if (ttMove == Move()) {
-        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, !isMovingSideInCheck);
+        	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, !searchQuietMoves);
         }
 
 
@@ -308,7 +318,7 @@ struct Worker {
             if (move == ttMove) {
 		        moveListGenerator.hashMove = ttMove;
 
-            	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, !isMovingSideInCheck);
+            	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, !searchQuietMoves);
             }
         }
         transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, type, boardCurrentAge,
