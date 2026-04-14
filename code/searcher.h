@@ -686,9 +686,7 @@ struct Worker {
             		sseEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
             }
 
-            bool beingMated = (alpha <= -MATE_SCORE_MAX_PLY ||
-            				   bestScore <= -MATE_SCORE_MAX_PLY ||
-            				   isMateScores);
+            bool beingMated = (bestScore <= -MATE_SCORE_MAX_PLY);
 
             // Conditions for moveloop pruning
             if (!beingMated &&
