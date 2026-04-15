@@ -14,7 +14,7 @@ rfpFail, int, 512, 0, 1024, 51.2, 0.002
 nmpBaseMargin, int, 20, 0, 80, 4.0, 0.002
 nmpDepthMargin, int, 1024, 0, 10240, 512.0, 0.002
 nmpDepth2Margin, int, 0, 0, 10240, 512.0, 0.002
-nmpRbase, int, 5120, 0, 10240, 128.0, 0.002
+nmpRbase, int, 5120, 0, 10240, 341.0, 0.002
 nmpRdepth, int, 205, 0, 1024, 51.2, 0.002
 nmpRimproving, int, 0, 0, 3072, 153.6, 0.002
 nmpRcutnode, int, 0, -4096, 4096, 409.6, 0.002
