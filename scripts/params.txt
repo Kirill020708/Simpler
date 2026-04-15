@@ -96,7 +96,7 @@ historyMaluseD0, int, 0, -1600, 1600, 160.0, 0.002
 historyMaluseD1, int, 160, 0, 1600, 80.0, 0.002
 historyMaluseD2, int, 0, 0, 1600, 80.0, 0.002
 aspirationWindowSize, int, 25, 3, 200, 9.85, 0.002
-aspirationWindowMult, int, 2048, 0, 10240, 512.0, 0.002
+aspirationWindowMult, int, 2048, 1100, 10240, 457.0, 0.002
 historyScoreFromTo, int, 1024, 0, 2048, 102.4, 0.002
 historyScorePieceTo, int, 1024, 0, 2048, 102.4, 0.002
 historyScorePly1, int, 1024, 0, 2048, 102.4, 0.002
