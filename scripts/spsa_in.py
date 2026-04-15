@@ -9,7 +9,7 @@ def parse_file(filename):
     tunespsa = open('../code/tunablesSPSAmode.h', 'w')
 
 
-    ucispsaOut = '#pragma once\nvoid printSPSAparams() {\n    cout <<\n'
+    ucispsaOut = '#pragma once\n\nvoid printSPSAparams() {\n    cout <<\n'
 
     ucispsaIn = ''
 

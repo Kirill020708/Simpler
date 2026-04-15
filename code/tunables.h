@@ -111,7 +111,7 @@
 #define historyMaluseD1 160 // 0 1600
 #define historyMaluseD2 0 // 0 1600
 
-#define aspirationWindowSize 25 // 0 200
+#define aspirationWindowSize 25 // 3 200
 #define aspirationWindowMult 2048 // 0 10240
 
 #define bmStab0 2560 // 300 5120 *

@@ -1,4 +1,5 @@
 #pragma once
+
 void printSPSAparams() {
     cout <<
     "option name qsFPmargin type spin default 100 min 0 max 300\n"
@@ -98,7 +99,7 @@ void printSPSAparams() {
     "option name historyMaluseD0 type spin default 0 min -1600 max 1600\n"
     "option name historyMaluseD1 type spin default 160 min 0 max 1600\n"
     "option name historyMaluseD2 type spin default 0 min 0 max 1600\n"
-    "option name aspirationWindowSize type spin default 25 min 0 max 200\n"
+    "option name aspirationWindowSize type spin default 25 min 3 max 200\n"
     "option name aspirationWindowMult type spin default 2048 min 0 max 10240\n"
     "option name bmStab0 type spin default 2560 min 300 max 5120\n"
     "option name bmStab1 type spin default 1229 min 300 max 5120\n"
