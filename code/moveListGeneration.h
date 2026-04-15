@@ -58,7 +58,7 @@ struct MoveListGenerator {
 
     Move killerMove, killerBackup;
 
-    int material[6] = {0, 100, 300, 300, 500, 900};
+    int material[6] = {0, moveOrderPawn, moveOrderKnight, moveOrderBishop, moveOrderRook, moveOrderQueen};
 
     int16_t seeTable[maxDepth][64][64];
 
@@ -122,13 +122,13 @@ struct MoveListGenerator {
                     int normHistoryScore = historyScore - historyHelper.maxHistoryScore;
                     float historyScoreF = float(normHistoryScore) / historyHelper.maxHistoryScore;
 
-                    if (captureEval <= -100 && onlyCaptures)
+                    if (captureEval <= -qsBadCapturesMargin && onlyCaptures)
                     	continue;
 
-                    if (captureEval >= -220 - historyScoreF * 100)
+                    if (captureEval >= -badCapturesBase - historyScore * badCapturesHistory / 512)
                         captureCoeff += (1 << 15);
 
-                    captureCoeff += (material[capturedPiece] + historyScore * 20) + 10;
+                    captureCoeff += (material[capturedPiece] + historyScore * moveOrderHistoryScore / 16);
 
                     // cout<<Move(startSquare,targetSquare,0).convertToUCI()<<' '<<captureEval<<'\n';
                 } else

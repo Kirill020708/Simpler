@@ -92,16 +92,16 @@ struct HistoryHelper {
 
 	        int history = 0;
 	        
-	        history += (historyScore[color][st][tr][stTh][trTh]);
-	        history += (pieceSquareHistory[color][board.occupancyPiece(st)][tr][stTh][trTh]);
+	        history += (historyScore[color][st][tr][stTh][trTh]) * historyScoreFromTo;
+	        history += (pieceSquareHistory[color][board.occupancyPiece(st)][tr][stTh][trTh]) * historyScorePieceTo;
 
-	        history += (counterHistory[color][board.ply1Ps][board.ply1Sq][board.occupancyPiece(st)][tr]);
+	        history += (counterHistory[color][board.ply1Ps][board.ply1Sq][board.occupancyPiece(st)][tr]) * historyScorePly1;
 
-	        history += (contPly2History[color][board.ply2Ps][board.ply2Sq][board.occupancyPiece(st)][tr]);
+	        history += (contPly2History[color][board.ply2Ps][board.ply2Sq][board.occupancyPiece(st)][tr]) * historyScorePly2;
 
-	        history += (contPly2History[color][board.ply4Ps][board.ply4Sq][board.occupancyPiece(st)][tr]);
+	        history += (contPly2History[color][board.ply4Ps][board.ply4Sq][board.occupancyPiece(st)][tr]) * historyScorePly4;
 
-	        history /= 2;
+	        history /= 2048;
 	        return history + maxHistoryScore; // to prevent negative values
 
 	    } else {
@@ -169,20 +169,22 @@ struct CorrHistoryHelper {
     	int index, corrScore = 0;
 
 		index = board.zobristKeyPawn & sznd;
-		corrScore += (50 * corrHistTablePawn[color][index]) / 300;
+		corrScore += (corrhistPawn * corrHistTablePawn[color][index]);
 
 		index = board.zobristKeyMinor & sznd;
-		corrScore += (50 * corrHistTableMinor[color][index]) / 300;
+		corrScore += (corrhistMinor * corrHistTableMinor[color][index]);
 
 		index = board.zobristKeyWhite & sznd;
-		corrScore += (50 * corrHistTableWhite[color][index]) / 300;
+		corrScore += (corrhistColor * corrHistTableWhite[color][index]);
 
 		index = board.zobristKeyBlack & sznd;
-		corrScore += (50 * corrHistTableBlack[color][index]) / 300;
+		corrScore += (corrhistColor * corrHistTableBlack[color][index]);
 
-		corrScore += (50 * corrHistLastmove[color][board.ply1Ps][board.ply1Sq]) / 300;
+		corrScore += (corrhistFromTo * corrHistLastmove[color][board.ply1Ps][board.ply1Sq]);
 
-		corrScore += (50 * corrHist2ply[color][board.ply2Ps][board.ply2Sq][board.ply1Ps][board.ply1Sq]) / 300;
+		corrScore += (corrhistPly1 * corrHist2ply[color][board.ply2Ps][board.ply2Sq][board.ply1Ps][board.ply1Sq]);
+
+		corrScore /= 1024;
 
 		return corrScore;
     }

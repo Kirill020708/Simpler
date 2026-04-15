@@ -271,7 +271,7 @@ struct Worker {
         	if(move == ttMove)
         		seeEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
 
-        	if (!isMovingSideInCheck && staticEval + 100 < alpha && seeEval <= 0)
+        	if (!isMovingSideInCheck && staticEval + qsFPmargin < alpha && seeEval <= qsFPseeMargin)
         		continue;
 
             ull newKey = zobristAfterMove(board, move);
@@ -393,7 +393,7 @@ struct Worker {
     	}
         int corrScore = corrhistHelper.getScore(color, board);
     	staticEval = rawStaticEval + corrScore;
-        bool corrplexity = (abs(corrScore) >= 100);
+        bool corrplexity = (abs(corrScore) >= corrplexityMargin);
 
         auto scorrEntry = ttEntry;
         correctTTscore(scorrEntry, staticEval, staticEval);
@@ -429,10 +429,15 @@ struct Worker {
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
-            int margin = (30 - improving * 15 + corrplexity * 20) * max(depth, 1) * max(depth, 1);
+            int depthClamped = max(depth, 1);
+
+            int margin =(rfpBaseD0 - improving * rfpImprovingD0 + corrplexity * rfpCorrplexityD0) + 
+                        (rfpBaseD1 - improving * rfpImprovingD1 + corrplexity * rfpCorrplexityD1) * depthClamped +
+                        (rfpBaseD2 - improving * rfpImprovingD2 + corrplexity * rfpCorrplexityD2) * depthClamped * depthClamped;
+
 
             if (staticEval >= beta + margin)
-                return (staticEval + beta) / 2;
+                return (staticEval * rfpFail + beta * (1024 - rfpFail)) / 1024;
         }
 
         if (depth <= 0){
@@ -447,17 +452,19 @@ struct Worker {
         	!isMovingSideInCheck &&
             ((board.whitePieces | board.blackPieces) ^ (board.pawns | board.kings)) >
                 0 &&              // pieces except kings and pawns exist (to prevent zugzwang)
-            staticEval >= beta + 20 - depth * 1 &&
+            staticEval >= beta + nmpBaseMargin - (depth * nmpDepthMargin + depth * depth * nmpDepth2Margin) / 1024 &&
             !isPvNode &&
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
-            int R = floor(4 +
-            	depth / 5.0 +
-            	min((staticEval - beta) / 200.0, 5.0));
+            int R = (nmpRbase +
+            	depth * nmpRdepth +
+                (improving) * nmpRimproving +
+                cutNode * nmpRcutnode +
+            	min((staticEval - beta) * 1024 / nmpRmargin, nmpRmarginClamp)) / 1024;
 
             int prevEnPassColumn = board.makeNullMove();
-            int score = -search<NonPV>(board, oppositeColor, depth - 1 - R, 0, -beta, -beta + 1, ply + 1, extended, !cutNode);
+            int score = -search<NonPV>(board, oppositeColor, depth - R, 0, -beta, -beta + 1, ply + 1, extended, !cutNode);
             board.makeNullMove();
             board.enPassantColumn = prevEnPassColumn;
             if (score >= beta)
@@ -470,19 +477,21 @@ struct Worker {
         	!searchStack[ply].excludeTTmove &&
         	!isMateScores) { // Razoring
 
-            int margin = (150 - (!improving) * 30) * depth * depth + 200;
+            int margin = (razorBaseD0 - (!improving) * razorImprovingD0) +
+                         (razorBaseD1 - (!improving) * razorImprovingD1) * depth +
+                         (razorBaseD2 - (!improving) * razorImprovingD2) * depth * depth;
 
             if (staticEval + margin < alpha) {
                 int qEval = quiescentSearch<NonPV>(board, color, alpha - 1, alpha, ply + 1);
 
                 if (depth == 1 ||
-                	(depth <= 2 && nodeType != NONE && ttEntry.score < alpha - margin - 50))
+                	(depth <= 2 && nodeType != NONE && ttEntry.score < alpha - margin - razorFPmargin))
                 	return qEval;
 
                 if (qEval < alpha)
                     return qEval;
 
-                if (depth > 1 && depth <= 3 && qEval > beta + 200)
+                if (depth > 1 && depth <= 3 && qEval > beta + razorRFPmargin)
                 	depth--;
             }
         }
@@ -514,7 +523,7 @@ struct Worker {
         	!searchStack[ply].excludeTTmove &&
         	!isMateScores) {
 
-        	int probcutBeta = beta + 200 - improving * 50;
+        	int probcutBeta = beta + probcutBase - improving * probcutImproving;
 
         	if (nodeType == NONE || ttEntry.score >= probcutBeta || ttEntry.depth < depth - probcutDepthR) {
 
@@ -600,7 +609,7 @@ struct Worker {
 
         	searchStack[ply + 1].excludeTTmove = true;
         	searchStack[ply + 1].excludeMove = ttMove;
-        	int singularBeta = ttEntry.score - depth;
+        	int singularBeta = ttEntry.score - (depth * singextMarginDepth) / 1024;
         	int singularScore = search<nodePvType>(board, color, depth / 2, 0, singularBeta - 1, singularBeta, ply + 1, extended, cutNode);
 
         	searchStack[ply + 1].excludeTTmove = false;
@@ -615,12 +624,11 @@ struct Worker {
                 historyHelper.blackAttacks = blackAttacks;
 
                 int historyValue = historyHelper.getScore(board, color, ttMove) - historyHelper.maxHistoryScore;
-                float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
 
         		// Double extentions
-        		if (!isPvNode && singularScore < singularBeta - (30 - historyValueF * 10))
+        		if (!isPvNode && singularScore < singularBeta - (dextMarginBase - historyValue * dextMarginHistory) / 512)
         			extendTTmove++;
-                if (!isPvNode && !isTTCapture && singularScore < singularBeta - 80)
+                if (!isPvNode && !isTTCapture && singularScore < singularBeta - trextMarginBase)
                     extendTTmove++;
 
         	} else if (singularScore >= beta && MATE_SCORE - abs(singularScore) > maxDepth)
@@ -695,24 +703,35 @@ struct Worker {
             	!isMovingSideInCheck) {
 
             	// Late move pruning (LMP)
+                int LMPmargin = ((lmpBaseD0 - isTTCapture * lmpTTcaptureD0 - (!improving) * lmpImprovingD0) + 
+                                 (lmpBaseD1 - isTTCapture * lmpTTcaptureD1 - (!improving) * lmpImprovingD1) * depth + 
+                                 (lmpBaseD2 - isTTCapture * lmpTTcaptureD2 - (!improving) * lmpImprovingD2) * depth * depth) / 1024;
 	            if (!isPvNode &&
-	            	movesSearched > 3 + depth * depth * (1 - isTTCapture * 0.5 - 0.25 * (!improving)) &&
-	            	historyValue < 0) {
+	            	movesSearched > LMPmargin &&
+	            	historyValue < lmpHistoryThreshold) {
 
 	            	break;
 	            }
 	            
 	            // History pruning
+                int historyMargin =((historyBaseD0 - isTTCapture * historyTTcaptureD0 - (!improving) * historyImprovingD0) + 
+                                    (historyBaseD1 - isTTCapture * historyTTcaptureD1 - (!improving) * historyImprovingD1) * depth + 
+                                    (historyBaseD2 - isTTCapture * historyTTcaptureD2 - (!improving) * historyImprovingD2) * depth * depth);
 	            if (!isPvNode &&
 	            	movesSearched > 0 &&
 	            	!isMoveInteresting &&
-	            	historyValue < -(200 - isTTCapture * 60 - 50 * (!improving)) * depth) {
+	            	historyValue < -historyMargin) {
 
 	            	continue;
 	            }
 
+                // int fpMargin = max((150 + historyValueF * 75 - isTTCapture * 100), float(0)) * depth * depth;
 	            // Futility pruning (FP)
-	            int fpMargin = max((150 + historyValueF * 75 - isTTCapture * 100), float(0)) * depth * depth;
+	            int fpMargin = ((fpBaseD0 - isTTCapture * fpTTcaptureD0 - (!improving) * fpImprovingD0 + historyValue * fpHistoryD0 / 512) + 
+                                (fpBaseD1 - isTTCapture * fpTTcaptureD1 - (!improving) * fpImprovingD1 + historyValue * fpHistoryD1 / 512) * depth + 
+                                (fpBaseD2 - isTTCapture * fpTTcaptureD2 - (!improving) * fpImprovingD2 + historyValue * fpHistoryD2 / 512) * depth * depth);
+
+                fpMargin = max(fpMargin, 0);
 
 	            if (movesSearched > 0 &&
 	            	staticEval < alpha - fpMargin &&
@@ -724,10 +743,13 @@ struct Worker {
 	            }
 
 	            // Captures SEE pruning
+                int seeMarginNoisy = (seeBaseD0 + historyValue * seeHistoryD0 / 512) +
+                                     (seeBaseD1 + historyValue * seeHistoryD1 / 512) * depth +
+                                     (seeBaseD2 + historyValue * seeHistoryD2 / 512) * depth * depth;
 	            if (movesSearched > 0 &&
 	            	!isPvNode &&
 	            	!inCheck &&
-	                sseEval <= -(100 + historyValueF * 70) * depth) {
+	                sseEval <= -seeMarginNoisy) {
 
 	                continue;
 	            }
@@ -756,16 +778,16 @@ struct Worker {
                 const int LMR_MIN_DEPTH = 3;  // don't reduct depth if it's more or equal to this value
 
                 int lmrReduction =
-                    floor(lmrLogTable[depth][movesSearched] + 0.5 
-                    	- 1 * (isPvNode)
-                    	- 1.5 * historyValueF
-                    	+ 0.5 * (!improving)
-                    	+ 1 * (isTTCapture)
-                    	+ 1 * cutNode
-                    	- 1 * ttpv
-                    	- 1 * (isCapture)
-                    	- 0.002 * sseEval
-                        - 1 * (isKiller)); // reduction of depth
+                    (lmrLogTable[depth][movesSearched] + lmrBase 
+                	- lmrPv * (isPvNode)
+                	- lmrHistory * historyValue / 512
+                	+ lmrImproving * (!improving)
+                	+ lmrTTcapture * (isTTCapture)
+                	+ lmrCutnode * cutNode
+                	- lmrTtpv * ttpv
+                	- lmrCapture * (isCapture)
+                	- lmrSee * sseEval / 1024
+                    - lmrKiller * (isKiller)) / 1024; // reduction of depth
 
                 if (lmrReduction < 0)
                     lmrReduction = 0;
@@ -867,8 +889,8 @@ struct Worker {
 		        	historyHelper.blackAttacks = blackAttacks;
 
                     int hsDepth = depth + (!isMovingSideInCheck && staticEval <= alpha);
-		        	int historyBonus = 10 * hsDepth + 0;
-		        	int maluseBonus = 10 * hsDepth + 0;
+		        	int historyBonus = (historyBonusD2 * hsDepth * hsDepth + historyBonusD1 * hsDepth + historyBonusD0) / 16;
+                    int maluseBonus = (historyMaluseD2 * hsDepth * hsDepth + historyMaluseD1 * hsDepth + historyMaluseD0) / 16;
 
                     historyHelper.update(board, color, move, historyBonus);
 
@@ -927,16 +949,15 @@ struct Worker {
     }
 
     int aspirationSearch(Board &board, int depth, int expectedScore) {
-        const int aspirationWindow = 25, aspirationWindowMult = 2;
-        int alphaWindow = aspirationWindow, betaWindow = aspirationWindow;
+        int alphaWindow = aspirationWindowSize, betaWindow = aspirationWindowSize;
         while (true) {
             int alpha = max(-MATE_SCORE, expectedScore - alphaWindow);
             int beta = min(MATE_SCORE, expectedScore + betaWindow);
             int score = startSearch(board, depth, alpha, beta);
             if (score <= alpha)
-                alphaWindow *= aspirationWindowMult;
+                alphaWindow = alphaWindow * aspirationWindowMult / 1024;
             else if (score >= beta)
-                betaWindow *= aspirationWindowMult;
+                betaWindow = betaWindow * aspirationWindowMult / 1024;
             else
                 return score;
         }
@@ -1060,7 +1081,7 @@ struct Worker {
 	            	bestMoveStreak++;
 	            }
 
-	            float bestmoveStabilityMult[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
+	            float bestmoveStabilityMult[5] = {bmStab0, bmStab1, bmStab2, bmStab3, bmStab4};
 
 	            bestMoveStreak = min(bestMoveStreak, 5);
 
@@ -1070,8 +1091,8 @@ struct Worker {
 	            float bestmoveNodePart = float(rootNodes[bestMove.move]) / nodes;
 
 	            int targetTime = softBound 
-	            * bestmoveStabilityMult[bestMoveStreak - 1]
-	            * (1.7 - bestmoveNodePart);
+	            * bestmoveStabilityMult[bestMoveStreak - 1] / 1024
+	            * (nodesTM - bestmoveNodePart * 1024) / 1024;
 
 	            if (timeThinked >= targetTime) {
 	            	stopIDsearch = true;
