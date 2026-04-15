@@ -44,6 +44,10 @@
 
 #endif /* DATAGEN */
 
+#if defined TUNE_MODE
+#include "ucispsa.h"
+#endif
+
 void waitAndEndSearch(int timeToThink) {
     // searcher.stopSearch=false;
     // thread th(&Searcher::iterativeDeepeningSearch,&searcher,mainBoard.boardColor,256);
@@ -117,6 +121,11 @@ struct UCIcommunicationHepler {
             cout << "option name Hash type spin default 256 min 1 max 33554432" << endl;
             cout << "option name Minimal type check default false" << endl;
             cout << "option name NNUEpath type string default quantisedv2.bin" << endl;
+
+            #if defined TUNE_MODE
+            printSPSAparams();
+            #endif
+
             cout << "uciok" << endl;
             return;
         }
@@ -314,6 +323,9 @@ struct UCIcommunicationHepler {
             if (tokens[2] == "NNUEpath") {
                 mainNnueEvaluator.initFromFile(tokens[4]);
             }
+            #if defined TUNE_MODE
+            setParam(tokens[2], stoi(tokens[4]));
+            #endif
         }
         if (mainCommand == "ucinewgame") {
             clearHash();

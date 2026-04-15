@@ -27,9 +27,16 @@
 
 using namespace std;
 
-#include "tunables.h"
 
 // #define DO_HCE
+
+// #define TUNE_MODE
+
+#if defined TUNE_MODE
+#include "tunablesSPSAmode.h"
+#else
+#include "tunables.h"
+#endif
 
 typedef long long ll;
 typedef unsigned long long ull;

@@ -1089,7 +1089,7 @@ struct Worker {
 	            	bestMoveStreak++;
 	            }
 
-	            float bestmoveStabilityMult[5] = {bmStab0, bmStab1, bmStab2, bmStab3, bmStab4};
+	            int bestmoveStabilityMult[5] = {bmStab0, bmStab1, bmStab2, bmStab3, bmStab4};
 
 	            bestMoveStreak = min(bestMoveStreak, 5);
 
@@ -1098,7 +1098,7 @@ struct Worker {
 
 	            float bestmoveNodePart = float(rootNodes[bestMove.move]) / nodes;
 
-	            int targetTime = softBound 
+	            int targetTime = ull(softBound)
 	            * bestmoveStabilityMult[bestMoveStreak - 1] / 1024
 	            * (nodesTM - bestmoveNodePart * 1024) / 1024;
 
