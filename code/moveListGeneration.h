@@ -125,7 +125,7 @@ struct MoveListGenerator {
                     if (captureEval <= -qsBadCapturesMargin && onlyCaptures)
                     	continue;
 
-                    if (captureEval >= -badCapturesBase - historyScore * badCapturesHistory / 512)
+                    if (captureEval >= -badCapturesBase - normHistoryScore * badCapturesHistory / 512)
                         captureCoeff += (1 << 15);
 
                     captureCoeff += (material[capturedPiece] + historyScore * moveOrderHistoryScore / 16);
