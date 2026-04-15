@@ -20,7 +20,7 @@
 #define nmpBaseMargin 20 // 0 80
 #define nmpDepthMargin 1024 // 0 10240
 #define nmpDepth2Margin 0 // 0 10240
-#define nmpRbase 5120
+#define nmpRbase 5120 // 0 10240 341
 #define nmpRdepth 205 // 0 1024
 #define nmpRimproving 0 // 0 3072
 #define nmpRcutnode 0 // -4096 4096
