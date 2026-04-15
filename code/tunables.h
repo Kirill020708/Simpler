@@ -9,12 +9,18 @@
 #define rfpBaseD2 30 // 0 70
 #define rfpImprovingD2 15 // 0 40
 #define rfpCorrplexityD2 20 // 0 40
+#define rfpWorseningD2 0 // 0 40
+#define rfpCutnodeD2 0 // 0 40
 #define rfpBaseD1 0 // 0 70
 #define rfpImprovingD1 0 // 0 40
 #define rfpCorrplexityD1 0 // 0 40
+#define rfpWorseningD1 0 // 0 40
+#define rfpCutnodeD1 0 // 0 40
 #define rfpBaseD0 0 // 0 70
 #define rfpImprovingD0 0 // 0 40
 #define rfpCorrplexityD0 0 // 0 40
+#define rfpWorseningD0 0 // 0 40
+#define rfpCutnodeD0 0 // 0 40
 #define rfpFail 512 // 0 1024
 
 #define nmpBaseMargin 20 // 0 80
@@ -38,6 +44,7 @@
 
 #define probcutBase 200 // 0 500
 #define probcutImproving 50 // 0 100
+#define probcutFail 1024 // 0 1024
 
 #define singextMarginDepth 1024 // 0 1024
 #define dextMarginBase 15360 // 0 15360

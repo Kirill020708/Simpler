@@ -416,6 +416,14 @@ struct Worker {
             }
         }
 
+        bool worsening = false;
+        if (!isMovingSideInCheck && ply >= 1) {
+            if (staticEvaluationHistory[ply - 1] != NONE_SCORE &&
+                staticEvaluationHistory[ply] > -staticEvaluationHistory[ply - 1])
+
+                worsening = true;
+        }
+
         bool isMateScores = (abs(alpha) >= MATE_SCORE_MAX_PLY ||
 					    	 abs(beta) >= MATE_SCORE_MAX_PLY ||
 					    	 abs(staticEval) >= MATE_SCORE_MAX_PLY);
@@ -431,9 +439,9 @@ struct Worker {
 
             int depthClamped = max(depth, 1);
 
-            int margin =(rfpBaseD0 - improving * rfpImprovingD0 + corrplexity * rfpCorrplexityD0) + 
-                        (rfpBaseD1 - improving * rfpImprovingD1 + corrplexity * rfpCorrplexityD1) * depthClamped +
-                        (rfpBaseD2 - improving * rfpImprovingD2 + corrplexity * rfpCorrplexityD2) * depthClamped * depthClamped;
+            int margin =(rfpBaseD0 - improving * rfpImprovingD0 + corrplexity * rfpCorrplexityD0 - worsening * rfpWorseningD0 - cutNode * rfpCutnodeD0) + 
+                        (rfpBaseD1 - improving * rfpImprovingD1 + corrplexity * rfpCorrplexityD1 - worsening * rfpWorseningD1 - cutNode * rfpCutnodeD1) * depthClamped +
+                        (rfpBaseD2 - improving * rfpImprovingD2 + corrplexity * rfpCorrplexityD2 - worsening * rfpWorseningD2 - cutNode * rfpCutnodeD2) * depthClamped * depthClamped;
 
 
             if (staticEval >= beta + margin)
@@ -550,7 +558,7 @@ struct Worker {
 		            if (score >= probcutBeta) {
 	                    transpositionTable.write(board, currentZobristKey, score, rawStaticEval, depth - probcutDepthR, LOWER_BOUND,
 	                                             boardCurrentAge, move, ply, ttpv);
-	                    return score;
+	                    return (abs(score) >= MATE_SCORE_MAX_PLY) ? score : (score * probcutFail + beta * (1024 - probcutFail)) / 1024;
 		            }
 		        }
 		    }
