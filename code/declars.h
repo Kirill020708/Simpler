@@ -30,7 +30,7 @@ using namespace std;
 
 // #define DO_HCE
 
-// #define TUNE_MODE
+#define TUNE_MODE
 
 #if defined TUNE_MODE
 #include "tunablesSPSAmode.h"
