@@ -181,7 +181,7 @@ int main(int argc, char *argv[]) {
     // printDesk01(boardHelper.neighborColumns[34].bitboard);
     // printDesk01(boardHelper.possiblePawnDefendersBlack[31]);
     // cout<<boardHelper.distanceColumn(board.pawns&board.whitePieces&boardHelper.getColumn(0),BLACK);
-    uciHelper.reallocateHashMemory(256);
+    uciHelper.reallocateHashMemory(1);
     uciHelper.listenInput();
     // 64
 }
