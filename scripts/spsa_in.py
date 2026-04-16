@@ -1,3 +1,4 @@
+
 def parse_file(filename):
     results = []
 
@@ -29,6 +30,9 @@ def parse_file(filename):
             lb = tokens[3]
             rb = tokens[4]
             Cend = (float(rb)-float(lb))/20
+            if float(value)!=0:
+                if abs(float(rb)/float(value))>=5:
+                    Cend = float(value)/10
             try:
                 Cend = float(tokens[5])
             except:
