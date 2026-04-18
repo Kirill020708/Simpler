@@ -481,6 +481,7 @@ struct Worker {
 
         if (!isRoot &&
         	!isPvNode &&
+            nodeType != LOWER_BOUND &&
         	!isMovingSideInCheck &&
         	!searchStack[ply].excludeTTmove &&
         	!isMateScores) { // Razoring
