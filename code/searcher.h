@@ -68,8 +68,6 @@ struct Worker {
     MoveListGenerator moveListGenerator;
     HistoryHelper historyHelper;
 
-    CorrHistoryHelper corrhistHelper;
-
     NNUEevaluator nnueEvaluator;
 
     StackState searchStack[maxDepth];
