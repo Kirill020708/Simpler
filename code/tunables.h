@@ -150,4 +150,4 @@
 #define moveOrderRook 500 // 0 1200
 #define moveOrderQueen 900 // 0 2500
 
-
+#define fromToHistoryAgeRate 512 // 0 1024

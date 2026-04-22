@@ -1191,6 +1191,7 @@ struct Searcher {
             workers[i].stopSearch = false;
             workers[i].nnueEvaluator = mainNnueEvaluator;
             workers[i].occuredPositionsHelper = mainOccuredPositionsHelper;
+            workers[i].historyHelper.age();
             mainBoard.initNNUE(workers[i].nnueEvaluator);
             for (ll j = 0; j < 256; j++) {
                 for (ll j1 = 0; j1 < 2; j1++) {
