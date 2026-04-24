@@ -467,14 +467,24 @@ struct alignas(64) Board {
             castlingBlackKingsideBroke = 1;
     }
 
+    pair<ll,ll> getBuckets() {
+        int whiteKingPos = (whitePieces & kings).getFirstBitNumber();
+        int blackKingPos = (blackPieces & kings).getFirstBitNumber();
+
+        return {inputBucketBoard[WHITE][whiteKingPos],
+                inputBucketBoard[BLACK][blackKingPos]};
+    }
+
     void initNNUE(NNUEevaluator &nnueEvaluator) {
         nnueEvaluator.ply = 0;
         nnueEvaluator.clear(0);
+        pair<int, int> buckets = getBuckets();
+        nnueEvaluator.bucketsStack[0] = buckets;
         for (int square = 0; square < 64; square++) {
             int piece = occupancyPiece(square);
             int pieceColor = occupancy(square);
             if (pieceColor != EMPTY)
-                nnueEvaluator.Add(0, getNNUEidx(square, piece, pieceColor));
+                nnueEvaluator.Add(0, getNNUEidx(square, piece, pieceColor), buckets);
         }
     }
 
@@ -501,7 +511,7 @@ struct alignas(64) Board {
         ply1Sq = targetSquare;
         ply1Ps = movingPiece;
 
-        bool flipRecalc = false;
+        bool nnueRecalc = false;
 
         nnueEvaluator.ply++;
         nnueEvaluator.lastCleanAccumulator[nnueEvaluator.ply] = nnueEvaluator.lastCleanAccumulator[nnueEvaluator.ply - 1];
@@ -525,12 +535,15 @@ struct alignas(64) Board {
         } else if (movingPiece == KING) {
             movePiece(startSquare, targetSquare, nnueEvaluator);
             if (((startSquare & 7) <= 3) != ((targetSquare & 7) <= 3)) {
-                flipRecalc = true;
+                nnueRecalc = true;
                 if (color == WHITE)
                     flippedW ^= 1;
                 else
                     flippedB ^= 1;
             }
+            if (inputBucketBoard[color][startSquare] != inputBucketBoard[color][targetSquare])
+                nnueRecalc = true;
+            
             if (startSquare == 60 && targetSquare == 58) // white left castling
                 movePiece(56, 59, nnueEvaluator);
             if (startSquare == 60 && targetSquare == 62) // white right castling
@@ -554,7 +567,7 @@ struct alignas(64) Board {
             castlingBlackQueensideBroke = 1;
         if (startSquare == 7 || targetSquare == 7)
             castlingBlackKingsideBroke = 1;
-        if (flipRecalc) {
+        if (nnueRecalc) {
             nnueEvaluator.updateIter[nnueEvaluator.ply] = 5;
             int ply = nnueEvaluator.ply;
             nnueEvaluator.boardStack[ply].whitePieces = whitePieces;
