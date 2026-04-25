@@ -52,7 +52,7 @@ enum NodeType {
 struct Worker {
     bool stopSearch;
     bool doneSearch;
-    int nodesLim = 1e9;
+    ull nodesLim = 1e18;
 
     int hardTimeBound;
 
@@ -63,7 +63,7 @@ struct Worker {
 
     int seldepth;
 
-    ll nodes = 0, singularExtended = 0;
+    ull nodes = 0, singularExtended = 0;
 
     MoveListGenerator moveListGenerator;
     HistoryHelper historyHelper;
@@ -969,7 +969,7 @@ struct Worker {
         }
     }
 
-    void IDsearchDatagen(Board &board, int maxDepth, int nodesLimit, int nodesH) {
+    void IDsearchDatagen(Board &board, int maxDepth, ull nodesLimit, ull nodesH) {
         nodesLim = nodesH;
         nodes = 0;
 
@@ -1005,7 +1005,7 @@ struct Worker {
     bool doNormalization = true;
     int basetime = 1e9;
 
-    void IDsearch(Board &board, int maxDepth, int softBound, int hardBound, int nodesLimit, int nodesH, bool isMainThread, bool printUCI, vector<Worker> &workers) {
+    void IDsearch(Board &board, int maxDepth, ull softBound, ull hardBound, ull nodesLimit, ull nodesH, bool isMainThread, bool printUCI, vector<Worker> &workers) {
         
         nodesLim = nodesH;
         nodes = 0;
@@ -1070,7 +1070,7 @@ struct Worker {
 	            if (nodes >= min(nodesLimit, nodesH))
 	                stopIDsearch = true;
 
-	            int timeUntilHardBound = hardBound - timeThinked;
+	            ull timeUntilHardBound = hardBound - timeThinked;
 	            if (timeUntilHardBound <= 0 || stopSearch)
 	            	stopIDsearch = true;
 
@@ -1078,7 +1078,7 @@ struct Worker {
 	                branchFactor =
 	                    (branchFactor + clamp(float(dnodes[depth]) / dnodes[depth - 1], float(1.3), float(6))) / 2;
 
-	            int estimatedTimeForNextDepth = times[depth] * branchFactor;
+	            ull estimatedTimeForNextDepth = times[depth] * branchFactor;
 
 	            int bestMoveStreak = 1;
 	            for (int i = depth - 1; i >= 1; i--) {
@@ -1096,7 +1096,7 @@ struct Worker {
 
 	            float bestmoveNodePart = float(rootNodes[bestMove.move]) / nodes;
 
-	            int targetTime = ull(softBound)
+	            ull targetTime = ull(softBound)
 	            * bestmoveStabilityMult[bestMoveStreak - 1] / 1024
 	            * (nodesTM - bestmoveNodePart * 1024) / 1024;
 
@@ -1117,7 +1117,7 @@ struct Worker {
 	            //     }
 	            // }
 
-            	int totalNodes = 0;
+            	ull totalNodes = 0;
             	for (int i = 0; i < workers.size(); i++)
             		totalNodes += workers[i].nodes;
 
@@ -1178,7 +1178,7 @@ struct Searcher {
         workers.resize(threadNumber);
     }
 
-    void iterativeDeepeningSearch(int maxDepth, int softBound, int hardBound, int nodesLimit, int nodesH) {
+    void iterativeDeepeningSearch(int maxDepth, ull softBound, ull hardBound, ull nodesLimit, ull nodesH) {
         workers[0].nodesLim = nodesH;
         stopIDsearch = false;
         int color = mainBoard.boardColor;
@@ -1211,7 +1211,7 @@ struct Searcher {
         }
     }
 
-    void datagenSearch(int maxDepth, int nodesLimit, int nodesH) {
+    void datagenSearch(int maxDepth, ull nodesLimit, ull nodesH) {
         workers[0].nodesLim = nodesH;
         stopIDsearch = false;
         int color = mainBoard.boardColor;

@@ -79,7 +79,7 @@ struct UCIcommunicationHepler {
 
     bool stopListening;
 
-    int hardNodesOpt = 1e9;
+    ull hardNodesOpt = 1e18;
 
     void reallocateHashMemory(int MBsize) {
         long long bSize = ll(MBsize) * 1024 * 1024;
@@ -115,7 +115,7 @@ struct UCIcommunicationHepler {
             cout << "id name Simpler 1" << endl;
             cout << "id author Kirill020708\n" << endl;
 
-            cout << "option name HardNodesLimit type spin default 1000000000 min 1 max 1000000000" << endl;
+            cout << "option name HardNodesLimit type spin default 1000000000000000000 min 1 max 1000000000000000000" << endl;
             cout << "option name Normalize type check default true" << endl;
             cout << "option name Threads type spin default 1 min 1 max 1024" << endl;
             cout << "option name Hash type spin default 256 min 1 max 33554432" << endl;
@@ -230,8 +230,8 @@ struct UCIcommunicationHepler {
             int wtime = -1, btime = -1, winc = -1, binc = 0;
             int movetime = -1;
             int depth = 256;
-            int nodes = 1e9;
-            int nodesh = 1e9;
+            ull nodes = 1e18;
+            ull nodesh = 1e18;
             for (int i = 1; i < tokens.size(); i++) {
                 if (tokens[i] == "wtime")
                     wtime = stoi(tokens[i + 1]);
