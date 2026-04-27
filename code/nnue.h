@@ -134,12 +134,21 @@ struct NNUEevaluator {
     int lastCleanAccumulator[maxDepth + 1];
     pair<int, int> bucketsStack[maxDepth + 1];
 
+    alignas(64) uint16_t byteIndex[256][8];
+
     NNUEevaluator() {
         ply = 0;
         updateIter[0] = 0;
         lastCleanAccumulator[0] = 0;
         for (int i = 0; i < hl1Size; i++)
             hlSumW[0][i] = hlSumB[0][i] = b0[i];
+
+        for (int i = 0; i < 256; i++) {
+            int it = 0;
+            for (int j = 0; j < 8; j++)
+                if (i & (1 << j))
+                    byteIndex[i][it++] = j;
+        }
     }
 
     void clear(int idx) {
@@ -312,6 +321,29 @@ struct NNUEevaluator {
         }
     }
 
+    alignas(64) uint16_t nonzeroIndexes[hl1Size / 4];
+
+    int nonzeroCount;
+
+    __m128i baseIdx;
+
+    inline ull nonzeroMask(__m256i x) {
+        return _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(x, _mm256_setzero_si256())));
+    }
+
+    inline void update(__m256i a, __m256i b) {
+        ull mask = (nonzeroMask(b) << 8) | (nonzeroMask(a));
+
+        for (int byteNumber = 0; byteNumber < 2; byteNumber++) {
+            uint8_t byte = (mask >> (byteNumber << 3)) & 255;
+            __m128i byteIdx = _mm_load_si128((const __m128i *)&byteIndex[byte]);
+            __m128i indexes = _mm_add_epi16(byteIdx, baseIdx);
+            baseIdx = _mm_add_epi16(baseIdx, _mm_set1_epi16(8));
+            _mm_storeu_si128((__m128i *)&nonzeroIndexes[nonzeroCount], indexes);
+            nonzeroCount += __builtin_popcount(byte);
+        }
+    }
+
     int evaluate(int color, int bucket) {
         cleanAccumulators();
 
@@ -331,14 +363,42 @@ struct NNUEevaluator {
         activateAcc(ntm_acc, &activatedFt[hl1Size / 2]);
 
         const uint32_t *packedFt = (const uint32_t *)activatedFt;
-        for (int i = 0; i < hl1Size / 4; i += 2) {
-            __m256i w10 = _mm256_load_si256((const __m256i *)&w1[bucket][i][0]);
-            __m256i w11 = _mm256_load_si256((const __m256i *)&w1[bucket][i + 1][0]);
-            __m256i w10sq = _mm256_load_si256((const __m256i *)&w1[bucket][i][2 * hl2Size]);
-            __m256i w11sq = _mm256_load_si256((const __m256i *)&w1[bucket][i + 1][2 * hl2Size]);
+        nonzeroCount = 0;
+        baseIdx = _mm_setzero_si128();
 
-            L2_0 = dpbusdx2(L2_0, packedFt[i], w10, packedFt[i + 1], w11, ones);
-            L2_1 = dpbusdx2(L2_1, packedFt[i], w10sq, packedFt[i + 1], w11sq, ones);
+
+        for (int i = 0; i < hl1Size / 4; i += 16) {
+            update(_mm256_load_si256((const __m256i *)&packedFt[i]),
+                   _mm256_load_si256((const __m256i *)&packedFt[i + 8]));
+        }
+
+        int nonzeroCountCut = nonzeroCount;
+        nonzeroCountCut -= nonzeroCountCut & 1;
+
+        for (int i = 0; i < nonzeroCountCut; i += 2) {
+            int idx1 = nonzeroIndexes[i];
+            int idx2 = nonzeroIndexes[i + 1];
+
+            __m256i w10 = _mm256_load_si256((const __m256i *)&w1[bucket][idx1][0]);
+            __m256i w11 = _mm256_load_si256((const __m256i *)&w1[bucket][idx2][0]);
+            __m256i w10sq = _mm256_load_si256((const __m256i *)&w1[bucket][idx1][2 * hl2Size]);
+            __m256i w11sq = _mm256_load_si256((const __m256i *)&w1[bucket][idx2][2 * hl2Size]);
+
+            L2_0 = dpbusdx2(L2_0, packedFt[idx1], w10, packedFt[idx2], w11, ones);
+            L2_1 = dpbusdx2(L2_1, packedFt[idx1], w10sq, packedFt[idx2], w11sq, ones);
+        }
+
+        for (int i = nonzeroCountCut; i < nonzeroCount; i++) {
+            int idx = nonzeroIndexes[i];
+
+            __m256i w10 = _mm256_load_si256((const __m256i *)&w1[bucket][idx][0]);
+            __m256i w10sq = _mm256_load_si256((const __m256i *)&w1[bucket][idx][2 * hl2Size]);
+
+            __m256i partial = maddubs(_mm256_set1_epi32(packedFt[idx]), w10);
+            L2_0 = _mm256_add_epi32(L2_0, maddwd(partial, ones));
+
+            partial = maddubs(_mm256_set1_epi32(packedFt[idx]), w10sq);
+            L2_1 = _mm256_add_epi32(L2_1, maddwd(partial, ones));
         }
 
         L2_0 = _mm256_srai_epi32(L2_0, 8);
