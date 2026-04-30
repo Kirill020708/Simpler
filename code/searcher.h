@@ -379,7 +379,8 @@ struct Worker {
         	ttEntry.depth >= depth &&
         	!isRoot &&
         	!isPvNode &&
-        	!searchStack[ply].excludeTTmove)
+        	!searchStack[ply].excludeTTmove &&
+            (corrEntry.score <= alpha || cutNode))
 
             return corrEntry.score;
 
