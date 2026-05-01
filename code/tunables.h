@@ -104,10 +104,10 @@
 #define lmrSee 2097 // 0 4096
 #define lmrKiller 1024 // 0 4096
 
-#define historyBonusD0 0 // -1600 1600
+#define historyBonusD0 400 // -1600 1600
 #define historyBonusD1 160 // 0 1600
-#define historyBonusD2 0 // 0 1600
-#define historyMaluseD0 0 // -1600 1600
+#define historyBonusD2 100 // 0 1600
+#define historyMaluseD0 700 // -1600 1600
 #define historyMaluseD1 160 // 0 1600
 #define historyMaluseD2 0 // 0 1600
 
