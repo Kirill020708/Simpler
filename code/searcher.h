@@ -648,6 +648,7 @@ struct Worker {
         int movesSearched = 0;
         int quietMovesSearched = 0;
         Move newTTmove = Move();
+        int bestMoveSee = 0;
         int numberOfMoves = moveListGenerator.moveListSize[ply];
 
         bool searchedTTmove = false;
@@ -848,6 +849,7 @@ struct Worker {
                     type = EXACT;
                 bestScore = score;
                 newTTmove = move;
+                bestMoveSee = sseEval;
                 if (isPvNode) {
                 	searchStack[ply].pvLine = searchStack[ply + 1].pvLine;
                 	searchStack[ply].pvLine.push_back(move);
@@ -885,7 +887,7 @@ struct Worker {
 
                     }
 
-                    if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
+                    if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove) || sseEval <= 0)) {
                     	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
                     	if (score > staticEval)
                     		corrhistHelper.update(color, board, (score - staticEval) * depth / 8);
@@ -928,7 +930,7 @@ struct Worker {
         if (type == UPPER_BOUND)
         	newTTmove = Move();
 
-        if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
+        if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove) || bestMoveSee <= 0)) {
             staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
         	if (type == EXACT || bestScore < staticEval)
         		corrhistHelper.update(color, board, (bestScore - staticEval) * depth / 8);
