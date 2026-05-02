@@ -459,7 +459,7 @@ struct Worker {
             ((board.whitePieces | board.blackPieces) ^ (board.pawns | board.kings)) >
                 0 &&              // pieces except kings and pawns exist (to prevent zugzwang)
             staticEval >= beta + nmpBaseMargin - (depth * nmpDepthMargin + depth * depth * nmpDepth2Margin) / 1024 &&
-            !isPvNode &&
+            cutNode &&
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
