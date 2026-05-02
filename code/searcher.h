@@ -429,7 +429,6 @@ struct Worker {
 
         // Reverse futility pruning
         if (!isRoot &&
-        	!isMovingSideInCheck &&
         	nodeType == NONE &&
         	!isPvNode &&
             !searchStack[ply].excludeTTmove &&
