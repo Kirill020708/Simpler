@@ -297,7 +297,15 @@ struct Worker {
                 if (alpha < score)
                     alpha = score;
                 if (alpha >= beta) {
-                    transpositionTable.write(board, currentZobristKey, score, rawStaticEval, 0, LOWER_BOUND,
+
+                    if (!(abs(beta) >= MATE_SCORE_MAX_PLY ||
+                          abs(bestScore) >= MATE_SCORE_MAX_PLY) &&
+                        !isPvNode &&
+                        bestScore >= beta)
+
+                        bestScore = (beta + bestScore) / 2;
+                    
+                    transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, LOWER_BOUND,
                                                       boardCurrentAge, move, ply, ttpv);
                     return bestScore;
                 }
