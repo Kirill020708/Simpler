@@ -645,8 +645,16 @@ struct Worker {
                 if (!isPvNode && !isTTCapture && singularScore < singularBeta - trextMarginBase)
                     extendTTmove++;
 
-        	} else if (singularScore >= beta && MATE_SCORE - abs(singularScore) > maxDepth)
+        	} else if (singularScore >= beta && MATE_SCORE - abs(singularScore) > maxDepth) {
+
+                if (!isMovingSideInCheck) {
+                    staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+                    if (singularScore > staticEval)
+                        corrhistHelper.update(color, board, (singularScore - staticEval) * depth / 8);
+                }
+
         		return beta; // Multicut
+            }
             else if (ttEntry.score >= beta)
                 extendTTmove = -1; // Negative extensions
         }
