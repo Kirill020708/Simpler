@@ -269,7 +269,7 @@ struct Worker {
         	if(move == ttMove)
         		seeEval = moveGenerator.sseEval(board, move.getTargetSquare(), color, move.getStartSquare());
 
-        	if (!isMovingSideInCheck && staticEval + qsFPmargin < alpha && seeEval <= qsFPseeMargin)
+        	if (bestScore > -MATE_SCORE_MAX_PLY && staticEval + qsFPmargin < alpha && seeEval <= qsFPseeMargin)
         		continue;
 
             ull newKey = zobristAfterMove(board, move);
