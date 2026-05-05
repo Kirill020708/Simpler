@@ -205,6 +205,9 @@ struct Worker {
 
         moveListGenerator.hashMove = ttMove;
 
+        Bitboard whiteAttacks = moveGenerator.computeAttackBitboardsW(board);
+        Bitboard blackAttacks = moveGenerator.computeAttackBitboardsB(board);
+
         int rawStaticEval, staticEval;
         if (moveListGenerator.isStalled(board, color) || evaluator.insufficientMaterialDraw(board))
             return evaluator.evaluateStalledPosition(board, color, ply);
@@ -215,7 +218,7 @@ struct Worker {
             	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
             	transpositionTable.writeStaticEval(currentZobristKey, rawStaticEval);
         	}
-        	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+        	staticEval = rawStaticEval + corrhistHelper.getScore(color, board, whiteAttacks, blackAttacks);
         }
 
         ttEntry = prEntry;
@@ -397,7 +400,11 @@ struct Worker {
         	rawStaticEval = evaluator.evaluatePosition(board, color, nnueEvaluator);
             transpositionTable.writeStaticEval(currentZobristKey, rawStaticEval);
     	}
-        int corrScore = corrhistHelper.getScore(color, board);
+
+        Bitboard whiteAttacks = moveGenerator.computeAttackBitboardsW(board);
+        Bitboard blackAttacks = moveGenerator.computeAttackBitboardsB(board);
+
+        int corrScore = corrhistHelper.getScore(color, board, whiteAttacks, blackAttacks);
     	staticEval = rawStaticEval + corrScore;
         bool corrplexity = (abs(corrScore) >= corrplexityMargin);
 
@@ -589,9 +596,6 @@ struct Worker {
 
             depth--;
         }
-
-        Bitboard whiteAttacks = moveGenerator.computeAttackBitboardsW(board);
-        Bitboard blackAttacks = moveGenerator.computeAttackBitboardsB(board);
 
         bool doTTmoveBeforeMovegen = true;
 
@@ -894,9 +898,9 @@ struct Worker {
                     }
 
                     if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
-                    	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+                    	staticEval = rawStaticEval + corrhistHelper.getScore(color, board, whiteAttacks, blackAttacks);
                     	if (score > staticEval)
-                    		corrhistHelper.update(color, board, (score - staticEval) * depth / 8);
+                    		corrhistHelper.update(color, board, (score - staticEval) * depth / 8, whiteAttacks, blackAttacks);
                     }
 
 		        	historyHelper.whiteAttacks = whiteAttacks;
@@ -937,9 +941,9 @@ struct Worker {
         	newTTmove = Move();
 
         if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
-            staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+            staticEval = rawStaticEval + corrhistHelper.getScore(color, board, whiteAttacks, blackAttacks);
         	if (type == EXACT || bestScore < staticEval)
-        		corrhistHelper.update(color, board, (bestScore - staticEval) * depth / 8);
+        		corrhistHelper.update(color, board, (bestScore - staticEval) * depth / 8, whiteAttacks, blackAttacks);
         }
 
         if (bestScore == -inf)

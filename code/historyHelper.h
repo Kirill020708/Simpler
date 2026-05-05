@@ -124,7 +124,7 @@ struct CorrHistoryHelper {
 	int corrHistTableWhite[2][1 << size];
 	int corrHistTableBlack[2][1 << size];
 
-	int corrHistLastmove[2][8][64];
+	int corrHistLastmove[2][8][64][2];
 	int corrHist2ply[2][8][64][8][64];
 
 	const int maxCorrHistValue = 300;
@@ -140,7 +140,7 @@ struct CorrHistoryHelper {
         memset(corrHistLastmove, 0, sizeof(corrHistLastmove));
     }
 
-	inline void update(int color, Board &board, int score) {
+	inline void update(int color, Board &board, int score, Bitboard whiteAttacks, Bitboard blackAttacks) {
 		score = clamp(score, -maxCorrHistValue, maxCorrHistValue);
 		int index;
 		
@@ -159,15 +159,21 @@ struct CorrHistoryHelper {
 		index = board.zobristKeyBlack & sznd;
 		corrHistTableBlack[color][index] +=
 			score - corrHistTableBlack[color][index] * abs(score) / maxCorrHistValue;
+
+		int trTh;
+        if (color == WHITE)
+        	trTh = (whiteAttacks & (1ull << board.ply1Sq)) > 0;
+        else
+        	trTh = (blackAttacks & (1ull << board.ply1Sq)) > 0;
 		
-		corrHistLastmove[color][board.ply1Ps][board.ply1Sq] +=
-			score - corrHistLastmove[color][board.ply1Ps][board.ply1Sq] * abs(score) / maxCorrHistValue;
+		corrHistLastmove[color][board.ply1Ps][board.ply1Sq][trTh] +=
+			score - corrHistLastmove[color][board.ply1Ps][board.ply1Sq][trTh] * abs(score) / maxCorrHistValue;
 		
 		corrHist2ply[color][board.ply2Ps][board.ply2Sq][board.ply1Ps][board.ply1Sq] +=
 			score - corrHist2ply[color][board.ply2Ps][board.ply2Sq][board.ply1Ps][board.ply1Sq] * abs(score) / maxCorrHistValue;
 	}
 
-    inline int getScore(int color, Board &board) {
+    inline int getScore(int color, Board &board, Bitboard whiteAttacks, Bitboard blackAttacks) {
     	int index, corrScore = 0;
 
 		index = board.zobristKeyPawn & sznd;
@@ -182,7 +188,13 @@ struct CorrHistoryHelper {
 		index = board.zobristKeyBlack & sznd;
 		corrScore += (corrhistColor * corrHistTableBlack[color][index]);
 
-		corrScore += (corrhistFromTo * corrHistLastmove[color][board.ply1Ps][board.ply1Sq]);
+		int trTh;
+        if (color == WHITE)
+        	trTh = (whiteAttacks & (1ull << board.ply1Sq)) > 0;
+        else
+        	trTh = (blackAttacks & (1ull << board.ply1Sq)) > 0;
+
+		corrScore += (corrhistFromTo * corrHistLastmove[color][board.ply1Ps][board.ply1Sq][trTh]);
 
 		corrScore += (corrhistPly1 * corrHist2ply[color][board.ply2Ps][board.ply2Sq][board.ply1Ps][board.ply1Sq]);
 
