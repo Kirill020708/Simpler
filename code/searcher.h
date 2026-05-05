@@ -743,7 +743,7 @@ struct Worker {
 	            // Futility pruning (FP)
 	            int fpMargin = ((fpBaseD0 - isTTCapture * fpTTcaptureD0 - (!improving) * fpImprovingD0 + historyValue * fpHistoryD0 / 512) + 
                                 (fpBaseD1 - isTTCapture * fpTTcaptureD1 - (!improving) * fpImprovingD1 + historyValue * fpHistoryD1 / 512) * depth + 
-                                (fpBaseD2 - isTTCapture * fpTTcaptureD2 - (!improving) * fpImprovingD2 + historyValue * fpHistoryD2 / 512) * depth * depth);
+                                (fpBaseD2 - isTTCapture * fpTTcaptureD2 - (!improving) * fpImprovingD2 + historyValue * fpHistoryD2 / 512 + 10 * corrplexity) * depth * depth);
 
                 fpMargin = max(fpMargin, 0);
 
