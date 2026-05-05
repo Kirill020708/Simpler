@@ -893,6 +893,9 @@ struct Worker {
 
                     }
 
+                    if (bestScore < MATE_SCORE_MAX_PLY)
+                        bestScore = (bestScore * depth + beta) / (depth + 1);
+
                     if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
                     	staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
                     	if (score > staticEval)
