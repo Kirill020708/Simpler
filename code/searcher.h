@@ -42,6 +42,7 @@ struct StackState {
     Move excludeMove;
     Move bestMove;
     vector<Move> pvLine;
+    int historyScore;
 };
 
 enum NodeType {
@@ -445,9 +446,11 @@ struct Worker {
 
             int depthClamped = max(depth, 1);
 
+            int prevHistoryScore = (ply > 0) ? searchStack[ply - 1].historyScore : 0;
+
             int margin =(rfpBaseD0 - improving * rfpImprovingD0 + corrplexity * rfpCorrplexityD0 - worsening * rfpWorseningD0 - cutNode * rfpCutnodeD0) + 
                         (rfpBaseD1 - improving * rfpImprovingD1 + corrplexity * rfpCorrplexityD1 - worsening * rfpWorseningD1 - cutNode * rfpCutnodeD1) * depthClamped +
-                        (rfpBaseD2 - improving * rfpImprovingD2 + corrplexity * rfpCorrplexityD2 - worsening * rfpWorseningD2 - cutNode * rfpCutnodeD2) * depthClamped * depthClamped;
+                        (rfpBaseD2 - improving * rfpImprovingD2 + corrplexity * rfpCorrplexityD2 - worsening * rfpWorseningD2 - cutNode * rfpCutnodeD2 + prevHistoryScore * 5 / 1024) * depthClamped * depthClamped;
 
 
             if (staticEval >= beta + margin)
@@ -685,6 +688,8 @@ struct Worker {
 
             int historyValue = historyHelper.getScore(board, color, move) - historyHelper.maxHistoryScore;
             float historyValueF = historyValue / float(historyHelper.maxHistoryScore);
+
+            searchStack[ply].historyScore = historyValue;
 
             bool isKiller = (
         		move == killers[ply][0] ||
