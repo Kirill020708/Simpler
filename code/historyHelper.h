@@ -118,16 +118,16 @@ struct CorrHistoryHelper {
 	const static int size = 16;
 
 	const int sznd = (1 << size) - 1;
-	int corrHistTablePawn[2][1 << size];
-	int corrHistTableMinor[2][1 << size];
+	int16_t corrHistTablePawn[2][1 << size];
+	int16_t corrHistTableMinor[2][1 << size];
 
-	int corrHistTableWhite[2][1 << size];
-	int corrHistTableBlack[2][1 << size];
+	int16_t corrHistTableWhite[2][1 << size];
+	int16_t corrHistTableBlack[2][1 << size];
 
-	int corrHistLastmove[2][8][64];
-	int corrHist2ply[2][8][64][8][64];
+	int16_t corrHistLastmove[2][8][64];
+	int16_t corrHist2ply[2][8][64][8][64];
 
-	const int maxCorrHistValue = 300;
+	const int maxCorrHistValue = (1 << 14);
 
     void clear() {
         for (int i = 0; i < 2; i++)
