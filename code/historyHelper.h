@@ -30,6 +30,15 @@ struct HistoryHelper {
     	memset(historyScore, 0, sizeof(historyScore));
     }
 
+    void age() {
+    	for (int color = 0; color < 2; color++)
+    		for (int from = 0; from < 64; from++)
+    			for (int to = 0; to < 64; to++)
+    				for (int fromT = 0; fromT < 2; fromT++)
+    					for (int toT = 0; toT < 2; toT++)
+    						historyScore[color][from][to][fromT][toT] = historyScore[color][from][to][fromT][toT] * fromToHistoryAgeRate / 1024;
+    }
+
     inline void update(Board &board, int color, Move move, int score) {
         if (score < -maxHistoryScore)
             score = -maxHistoryScore;

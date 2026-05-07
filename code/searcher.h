@@ -42,6 +42,7 @@ struct StackState {
     Move excludeMove;
     Move bestMove;
     vector<Move> pvLine;
+    int historyScore;
 };
 
 enum NodeType {
@@ -387,6 +388,7 @@ struct Worker {
         	ttEntry.depth >= depth &&
         	!isRoot &&
         	!isPvNode &&
+            (corrEntry.score <= alpha || cutNode) &&
         	!searchStack[ply].excludeTTmove)
 
             return corrEntry.score;
@@ -445,9 +447,11 @@ struct Worker {
 
             int depthClamped = max(depth, 1);
 
+            int prevHistoryScore = (ply > 0) ? searchStack[ply - 1].historyScore : 0;
+
             int margin =(rfpBaseD0 - improving * rfpImprovingD0 + corrplexity * rfpCorrplexityD0 - worsening * rfpWorseningD0 - cutNode * rfpCutnodeD0) + 
                         (rfpBaseD1 - improving * rfpImprovingD1 + corrplexity * rfpCorrplexityD1 - worsening * rfpWorseningD1 - cutNode * rfpCutnodeD1) * depthClamped +
-                        (rfpBaseD2 - improving * rfpImprovingD2 + corrplexity * rfpCorrplexityD2 - worsening * rfpWorseningD2 - cutNode * rfpCutnodeD2) * depthClamped * depthClamped;
+                        (rfpBaseD2 - improving * rfpImprovingD2 + corrplexity * rfpCorrplexityD2 - worsening * rfpWorseningD2 - cutNode * rfpCutnodeD2 + prevHistoryScore * 5 / 1024) * depthClamped * depthClamped;
 
 
             if (staticEval >= beta + margin)
@@ -487,6 +491,7 @@ struct Worker {
 
         if (!isRoot &&
         	!isPvNode &&
+            nodeType != LOWER_BOUND &&
         	!isMovingSideInCheck &&
         	!searchStack[ply].excludeTTmove &&
         	!isMateScores) { // Razoring
@@ -645,8 +650,16 @@ struct Worker {
                 if (!isPvNode && !isTTCapture && singularScore < singularBeta - trextMarginBase)
                     extendTTmove++;
 
-        	} else if (singularScore >= beta && MATE_SCORE - abs(singularScore) > maxDepth)
+        	} else if (singularScore >= beta && MATE_SCORE - abs(singularScore) > maxDepth) {
+
+                if (!isMovingSideInCheck) {
+                    staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+                    if (singularScore > staticEval)
+                        corrhistHelper.update(color, board, (singularScore - staticEval) * depth / 8);
+                }
+
         		return beta; // Multicut
+            }
             else if (ttEntry.score >= beta)
                 extendTTmove = -1; // Negative extensions
         }
@@ -689,6 +702,8 @@ struct Worker {
             bool isKiller = (
         		move == killers[ply][0] ||
         		move == killers[ply][1]);
+
+            searchStack[ply].historyScore = historyValue;
 
             int extendDepth = 0;
 
@@ -1236,6 +1251,7 @@ struct Searcher {
             workers[i].stopSearch = false;
             workers[i].nnueEvaluator = mainNnueEvaluator;
             workers[i].occuredPositionsHelper = cleanOccuredPositionsHelper;
+            workers[i].historyHelper.age();
             mainBoard.initNNUE(workers[i].nnueEvaluator);
             for (ll j = 0; j < 256; j++) {
                 for (ll j1 = 0; j1 < 2; j1++) {
