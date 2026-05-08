@@ -15,7 +15,7 @@
 	#define add16 _mm512_add_epi16
 	#define add32 _mm512_add_epi32
 	#define sub16 _mm512_sub_epi16
-	#define packus16(x) _mm256_packus_epi16(_mm512_castsi512_si256(x), _mm512_extracti32x8_epi32(x, 1))  // 512->256 pack
+	#define packus16(x) _mm512_cvtepi16_epi8(x)
 	#define setzero _mm512_setzero_si512
 	#define set1_16 _mm512_set1_epi16
 	#define set1_32 _mm512_set1_epi32
