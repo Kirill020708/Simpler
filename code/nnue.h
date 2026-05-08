@@ -9,6 +9,8 @@
 
 #endif /* DECLARS */
 
+#include "simd.h"
+
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "incbin.h"
 INCBIN(NETWORK, "code/net.nnue");
@@ -143,9 +145,9 @@ struct NNUEevaluator {
     }
 
     void clear(int idx) {
-        for (int i = 0; i < hl1Size; i += 16) {
-            _mm256_store_si256((__m256i *)&hlSumW[idx][i], _mm256_load_si256((__m256i *)&b0[i]));
-            _mm256_store_si256((__m256i *)&hlSumB[idx][i], _mm256_load_si256((__m256i *)&b0[i]));
+        for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+            store((vec *)&hlSumW[idx][i], load((vec *)&b0[i]));
+            store((vec *)&hlSumB[idx][i], load((vec *)&b0[i]));
         }
     }
 
@@ -162,71 +164,71 @@ struct NNUEevaluator {
     }
 
     void Add(int idx, pair<int, int>updI, pair<ll, ll>buckets) {
-        for (int i = 0; i < hl1Size; i += 16) {
+        for (int i = 0; i < hl1Size; i += vecsize / i16s) {
 
-            _mm256_store_si256((__m256i *)&hlSumW[idx][i],
-                                _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumW[idx][i]),
-                                                 _mm256_load_si256((__m256i *)&w0[buckets.F][updI.F][i])));
-            _mm256_store_si256((__m256i *)&hlSumB[idx][i],
-                                _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumB[idx][i]),
-                                                 _mm256_load_si256((__m256i *)&w0[buckets.S][updI.S][i])));
+            store((vec *)&hlSumW[idx][i],
+                                add16(load((vec *)&hlSumW[idx][i]),
+                                                 load((vec *)&w0[buckets.F][updI.F][i])));
+            store((vec *)&hlSumB[idx][i],
+                                add16(load((vec *)&hlSumB[idx][i]),
+                                                 load((vec *)&w0[buckets.S][updI.S][i])));
         }
     }
 
     
 
     void SubAdd(int idx, pair<ll, ll>buckets) {
-        for (int i = 0; i < hl1Size; i += 16) {
+        for (int i = 0; i < hl1Size; i += vecsize / i16s) {
 
-            _mm256_store_si256((__m256i *)&hlSumW[idx][i],
-                                _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumW[idx - 1][i]),
-                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][1]][i]),
-                                                     _mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][0]][i]))));
+            store((vec *)&hlSumW[idx][i],
+                                add16(load((vec *)&hlSumW[idx - 1][i]),
+                                    sub16(load((vec *)&w0[buckets.F][updateW[idx][1]][i]),
+                                                     load((vec *)&w0[buckets.F][updateW[idx][0]][i]))));
 
-            _mm256_store_si256((__m256i *)&hlSumB[idx][i],
-                                _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumB[idx - 1][i]),
-                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][1]][i]),
-                                                     _mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][0]][i]))));
+            store((vec *)&hlSumB[idx][i],
+                                add16(load((vec *)&hlSumB[idx - 1][i]),
+                                    sub16(load((vec *)&w0[buckets.S][updateB[idx][1]][i]),
+                                                     load((vec *)&w0[buckets.S][updateB[idx][0]][i]))));
         }
     }
 
     void SubSubAdd(int idx, pair<ll, ll>buckets) {
-        for (int i = 0; i < hl1Size; i += 16) {
+        for (int i = 0; i < hl1Size; i += vecsize / i16s) {
 
-            _mm256_store_si256((__m256i *)&hlSumW[idx][i],
-                                _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumW[idx - 1][i]),
-                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][2]][i]),
-                                        _mm256_add_epi16(_mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][0]][i]),
-                                                     _mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][1]][i])))));
+            store((vec *)&hlSumW[idx][i],
+                                add16(load((vec *)&hlSumW[idx - 1][i]),
+                                    sub16(load((vec *)&w0[buckets.F][updateW[idx][2]][i]),
+                                        add16(load((vec *)&w0[buckets.F][updateW[idx][0]][i]),
+                                                     load((vec *)&w0[buckets.F][updateW[idx][1]][i])))));
 
 
-            _mm256_store_si256((__m256i *)&hlSumB[idx][i],
-                                _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumB[idx - 1][i]),
-                                    _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][2]][i]),
-                                        _mm256_add_epi16(_mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][0]][i]),
-                                                     _mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][1]][i])))));
+            store((vec *)&hlSumB[idx][i],
+                                add16(load((vec *)&hlSumB[idx - 1][i]),
+                                    sub16(load((vec *)&w0[buckets.S][updateB[idx][2]][i]),
+                                        add16(load((vec *)&w0[buckets.S][updateB[idx][0]][i]),
+                                                     load((vec *)&w0[buckets.S][updateB[idx][1]][i])))));
 
         }
     }
 
     void SubAddSubAdd(int idx, pair<ll, ll>buckets) {
-        for (int i = 0; i < hl1Size; i += 16) {
+        for (int i = 0; i < hl1Size; i += vecsize / i16s) {
 
-            _mm256_store_si256((__m256i *)&hlSumW[idx][i],
-                                _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumW[idx - 1][i]),
-                                    _mm256_add_epi16(
-                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][1]][i]),
-                                                         _mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][0]][i])),
-                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][3]][i]),
-                                                         _mm256_load_si256((__m256i *)&w0[buckets.F][updateW[idx][2]][i])))));
+            store((vec *)&hlSumW[idx][i],
+                                add16(load((vec *)&hlSumW[idx - 1][i]),
+                                    add16(
+                                        sub16(load((vec *)&w0[buckets.F][updateW[idx][1]][i]),
+                                                         load((vec *)&w0[buckets.F][updateW[idx][0]][i])),
+                                        sub16(load((vec *)&w0[buckets.F][updateW[idx][3]][i]),
+                                                         load((vec *)&w0[buckets.F][updateW[idx][2]][i])))));
 
-            _mm256_store_si256((__m256i *)&hlSumB[idx][i],
-                                _mm256_add_epi16(_mm256_load_si256((__m256i *)&hlSumB[idx - 1][i]),
-                                    _mm256_add_epi16(
-                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][1]][i]),
-                                                         _mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][0]][i])),
-                                        _mm256_sub_epi16(_mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][3]][i]),
-                                                         _mm256_load_si256((__m256i *)&w0[buckets.S][updateB[idx][2]][i])))));
+            store((vec *)&hlSumB[idx][i],
+                                add16(load((vec *)&hlSumB[idx - 1][i]),
+                                    add16(
+                                        sub16(load((vec *)&w0[buckets.S][updateB[idx][1]][i]),
+                                                         load((vec *)&w0[buckets.S][updateB[idx][0]][i])),
+                                        sub16(load((vec *)&w0[buckets.S][updateB[idx][3]][i]),
+                                                         load((vec *)&w0[buckets.S][updateB[idx][2]][i])))));
 
         }
     }
@@ -236,41 +238,41 @@ struct NNUEevaluator {
         return x * x;
     }
 
-    inline __m128i pack(__m256i activations) {
-        return _mm_packus_epi16(_mm256_castsi256_si128(activations), _mm256_extracti128_si256(activations, 1));
+    inline vechalf pack(vec activations) {
+        return packus16(activations);
     }
 
     inline void activateAcc(const __int16_t *accumulator, uint8_t *out) {
-        const __m256i zero = _mm256_setzero_si256();
-        const __m256i one = _mm256_set1_epi16(Q0);
+        const vec zero = setzero();
+        const vec one = set1_16(Q0);
 
-        for (int i = 0; i < hl1Size / 2; i += 16) {
-            __m256i ac1 = _mm256_load_si256((const __m256i *)(accumulator + i));
-            ac1 = _mm256_max_epi16(ac1, zero);
-            ac1 = _mm256_min_epi16(ac1, one);
+        for (int i = 0; i < hl1Size / 2; i += vecsize / i16s) {
+            vec ac1 = load((const vec *)(accumulator + i));
+            ac1 = max16(ac1, zero);
+            ac1 = min16(ac1, one);
 
-            __m256i ac2 = _mm256_load_si256((const __m256i *)(accumulator + hl1Size / 2 + i));
-            ac2 = _mm256_max_epi16(ac2, zero);
-            ac2 = _mm256_min_epi16(ac2, one);
+            vec ac2 = load((const vec *)(accumulator + hl1Size / 2 + i));
+            ac2 = max16(ac2, zero);
+            ac2 = min16(ac2, one);
 
-            __m256i ac = _mm256_mulhi_epi16(_mm256_slli_epi16(ac1, 7), ac2);
-            _mm_store_si128((__m128i *)(out + i), pack(ac));
+            vec ac = mulhi16(slli16(ac1, 7), ac2);
+            storehalf((vechalf *)(out + i), pack(ac));
         }
     }
 
-    inline __m256i maddubs(__m256i u, __m256i i) {
+    inline vec maddubs(vec u, vec i) {
         return _mm256_maddubs_epi16(u, i);
     }
 
-    inline __m256i maddwd(__m256i a, __m256i b) {
+    inline vec maddwd(vec a, vec b) {
         return _mm256_madd_epi16(a, b);
     }
 
-    inline __m256i dpbusdx2(__m256i sum, uint32_t packed0, __m256i weights0, uint32_t packed1, __m256i weights1,
-                            __m256i ones) {
-        __m256i partial0 = maddubs(_mm256_set1_epi32(packed0), weights0);
-        __m256i partial1 = maddubs(_mm256_set1_epi32(packed1), weights1);
-        return _mm256_add_epi32(sum, maddwd(_mm256_add_epi16(partial0, partial1), ones));
+    inline vec dpbusdx2(vec sum, uint32_t packed0, vec weights0, uint32_t packed1, vec weights1,
+                            vec ones) {
+        vec partial0 = maddubs(set1_32(packed0), weights0);
+        vec partial1 = maddubs(set1_32(packed1), weights1);
+        return add32(sum, maddwd(add16(partial0, partial1), ones));
     }
 
     void printAccum() {
@@ -315,13 +317,14 @@ struct NNUEevaluator {
     int evaluate(int color, int bucket) {
         cleanAccumulators();
 
-        const __m256i q = _mm256_set1_epi16(Q);
-        const __m256i qq = _mm256_set1_epi32(Q * Q);
-        const __m256i ones = _mm256_set1_epi16(1);
-        const __m256i zerosm = _mm256_set1_epi16(-1);
+        const vec zero = setzero();
+        const vec q = set1_16(Q);
+        const vec qq = set1_32(Q * Q);
+        const vec ones = set1_16(1);
+        const vec zerosm = set1_16(-1);
 
-        __m256i L2_0 = _mm256_setzero_si256();
-        __m256i L2_1 = _mm256_setzero_si256();
+        vec L2_0 = setzero();
+        vec L2_1 = setzero();
         alignas(64) uint8_t activatedFt[hl1Size];
 
         const auto stm_acc = color == WHITE ? &hlSumW[ply][0] : &hlSumB[ply][0];
@@ -331,47 +334,50 @@ struct NNUEevaluator {
         activateAcc(ntm_acc, &activatedFt[hl1Size / 2]);
 
         const uint32_t *packedFt = (const uint32_t *)activatedFt;
-        for (int i = 0; i < hl1Size / 4; i += 2) {
-            __m256i w10 = _mm256_load_si256((const __m256i *)&w1[bucket][i][0]);
-            __m256i w11 = _mm256_load_si256((const __m256i *)&w1[bucket][i + 1][0]);
-            __m256i w10sq = _mm256_load_si256((const __m256i *)&w1[bucket][i][2 * hl2Size]);
-            __m256i w11sq = _mm256_load_si256((const __m256i *)&w1[bucket][i + 1][2 * hl2Size]);
-
-            L2_0 = dpbusdx2(L2_0, packedFt[i], w10, packedFt[i + 1], w11, ones);
-            L2_1 = dpbusdx2(L2_1, packedFt[i], w10sq, packedFt[i + 1], w11sq, ones);
-        }
-
-        L2_0 = _mm256_srai_epi32(L2_0, 8);
-        L2_0 = _mm256_add_epi32(L2_0, _mm256_load_si256((__m256i *)&b1[bucket][0]));
-        auto L2_0c = _mm256_and_si256(L2_0, _mm256_cmpgt_epi16(L2_0, zerosm));
-        L2_0c = _mm256_blendv_epi8(L2_0c, q, _mm256_cmpgt_epi16(L2_0c, q));
-        L2_0 = _mm256_mullo_epi32(L2_0, L2_0);
-        L2_0 = _mm256_min_epi32(L2_0, qq);
-
-        L2_1 = _mm256_srai_epi32(L2_1, 8);
-        L2_1 = _mm256_add_epi32(L2_1, _mm256_load_si256((__m256i *)&b1[bucket][hl2Size / 2]));
-        auto L2_1c = _mm256_and_si256(L2_1, _mm256_cmpgt_epi16(L2_1, zerosm));
-        L2_1c = _mm256_blendv_epi8(L2_1c, q, _mm256_cmpgt_epi16(L2_1c, q));
-        L2_1 = _mm256_mullo_epi32(L2_1, L2_1);
-        L2_1 = _mm256_min_epi32(L2_1, qq);
 
         alignas(64) int hl2Activations[hl2Size * 2];
-        _mm256_store_si256((__m256i *)&hl2Activations[0], _mm256_slli_epi32(L2_0c, 6));
-        _mm256_store_si256((__m256i *)&hl2Activations[hl2Size / 2], _mm256_slli_epi32(L2_1c, 6));
-        _mm256_store_si256((__m256i *)&hl2Activations[hl2Size], L2_0);
-        _mm256_store_si256((__m256i *)&hl2Activations[hl2Size + hl2Size / 2], L2_1);
+
+
+            for (int i = 0; i < hl1Size / 4; i += 2) {
+                vec w10 = load((const vec *)&w1[bucket][i][0]);
+                vec w11 = load((const vec *)&w1[bucket][i + 1][0]);
+                vec w10sq = load((const vec *)&w1[bucket][i][2 * hl2Size]);
+                vec w11sq = load((const vec *)&w1[bucket][i + 1][2 * hl2Size]);
+
+                L2_0 = dpbusdx2(L2_0, packedFt[i], w10, packedFt[i + 1], w11, ones);
+                L2_1 = dpbusdx2(L2_1, packedFt[i], w10sq, packedFt[i + 1], w11sq, ones);
+            }
+
+            L2_0 = srai32(L2_0, 8);
+            L2_0 = add32(L2_0, load((vec *)&b1[bucket][0]));
+            auto L2_0c = max32(L2_0, zero);
+            L2_0c = min32(L2_0c, q);
+            L2_0 = mullo32(L2_0, L2_0);
+            L2_0 = min32(L2_0, qq);
+
+            L2_1 = srai32(L2_1, 8);
+            L2_1 = add32(L2_1, load((vec *)&b1[bucket][hl2Size / 2]));
+            auto L2_1c = max32(L2_1, zero);
+            L2_1c = min32(L2_1c, q);
+            L2_1 = mullo32(L2_1, L2_1);
+            L2_1 = min32(L2_1, qq);
+
+            store((vec *)&hl2Activations[0], slli32(L2_0c, 6));
+            store((vec *)&hl2Activations[hl2Size / 2], slli32(L2_1c, 6));
+            store((vec *)&hl2Activations[hl2Size], L2_0);
+            store((vec *)&hl2Activations[hl2Size + hl2Size / 2], L2_1);
 
         alignas(64) int hl3Layer[hl3Size];
         memset(hl3Layer, 0, sizeof(hl3Layer));
 
         for (int i = 0; i < hl2Size * 2; i++) {
-            __m256i act = _mm256_set1_epi32(hl2Activations[i]);
-            for(int j = 0; j < hl3Size; j += 8) {
-                _mm256_store_si256((__m256i *)&hl3Layer[j], 
-                    _mm256_add_epi32(_mm256_load_si256((__m256i *)&hl3Layer[j]), 
-                        _mm256_mullo_epi32(
+            vec act = set1_32(hl2Activations[i]);
+            for(int j = 0; j < hl3Size; j += vecsize / i32s) {
+                store((vec *)&hl3Layer[j], 
+                    add32(load((vec *)&hl3Layer[j]), 
+                        mullo32(
                             act, 
-                            _mm256_load_si256((__m256i *)&w2[bucket][i][j]))));
+                            load((vec *)&w2[bucket][i][j]))));
             }
         }
 
@@ -388,44 +394,44 @@ struct NNUEevaluator {
     // int evaluate1(int color, int bucket) {
     //     int output = 0;
 
-    //     __m256i outputV = _mm256_setzero_si256();
+    //     vec outputV = setzero();
 
-    //     __m256i zerosm = _mm256_set1_epi16(-1);
-    //     __m256i qas = _mm256_set1_epi16(QA);
+    //     vec zerosm = set1_16(-1);
+    //     vec qas = set1_16(QA);
 
     //     for (int i = 0; i < hl1Size; i += 16) {
-    //         __m256i hl = _mm256_load_si256((__m256i *)&hlSumW[i]);
+    //         vec hl = load((vec *)&hlSumW[i]);
     //         hl = _mm256_and_si256(hl, _mm256_cmpgt_epi16(hl, zerosm));
     //         hl = _mm256_blendv_epi8(hl, qas, _mm256_cmpgt_epi16(hl, qas));
-    //         __m256i hl0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 0));
-    //         hl0 = _mm256_mullo_epi32(hl0, hl0);
-    //         __m256i hl1 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 1));
-    //         hl1 = _mm256_mullo_epi32(hl1, hl1);
-    //         __m256i w1v = _mm256_load_si256((__m256i *)&w1[bucket][i + hl1Size * (color == BLACK)]);
-    //         outputV = _mm256_add_epi32(
-    //             outputV, _mm256_mullo_epi32(hl0, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 0))));
-    //         outputV = _mm256_add_epi32(
-    //             outputV, _mm256_mullo_epi32(hl1, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 1))));
+    //         vec hl0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 0));
+    //         hl0 = mullo32(hl0, hl0);
+    //         vec hl1 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 1));
+    //         hl1 = mullo32(hl1, hl1);
+    //         vec w1v = load((vec *)&w1[bucket][i + hl1Size * (color == BLACK)]);
+    //         outputV = add32(
+    //             outputV, mullo32(hl0, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 0))));
+    //         outputV = add32(
+    //             outputV, mullo32(hl1, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 1))));
 
-    //         hl = _mm256_load_si256((__m256i *)&hlSumB[i]);
+    //         hl = load((vec *)&hlSumB[i]);
     //         hl = _mm256_and_si256(hl, _mm256_cmpgt_epi16(hl, zerosm));
     //         hl = _mm256_blendv_epi8(hl, qas, _mm256_cmpgt_epi16(hl, qas));
     //         hl0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 0));
-    //         hl0 = _mm256_mullo_epi32(hl0, hl0);
+    //         hl0 = mullo32(hl0, hl0);
     //         hl1 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 1));
-    //         hl1 = _mm256_mullo_epi32(hl1, hl1);
-    //         w1v = _mm256_load_si256((__m256i *)&w1[bucket][i + hl1Size * (color == WHITE)]);
-    //         outputV = _mm256_add_epi32(
-    //             outputV, _mm256_mullo_epi32(hl0, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 0))));
-    //         outputV = _mm256_add_epi32(
-    //             outputV, _mm256_mullo_epi32(hl1, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 1))));
+    //         hl1 = mullo32(hl1, hl1);
+    //         w1v = load((vec *)&w1[bucket][i + hl1Size * (color == WHITE)]);
+    //         outputV = add32(
+    //             outputV, mullo32(hl0, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 0))));
+    //         outputV = add32(
+    //             outputV, mullo32(hl1, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 1))));
 
     //         // output+=screlu(hlSumW[i])*w1[i];
     //         // output+=screlu(hlSumB[i])*w1[i+hl1Size];
     //     }
-    //     __m256i hadd1 = _mm256_hadd_epi32(outputV, outputV);
-    //     __m256i hadd2 = _mm256_hadd_epi32(hadd1, hadd1);
-    //     __m128i sum128 = _mm_add_epi32(_mm256_castsi256_si128(hadd2), _mm256_extractf128_si256(hadd2, 1));
+    //     vec hadd1 = _mm256_hadd_epi32(outputV, outputV);
+    //     vec hadd2 = _mm256_hadd_epi32(hadd1, hadd1);
+    //     vechalf sum128 = _mm_add_epi32(_mm256_castsi256_si128(hadd2), _mm256_extractf128_si256(hadd2, 1));
     //     output = _mm_extract_epi32(sum128, 0);
 
     //     output /= QA;
