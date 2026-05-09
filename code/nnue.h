@@ -44,9 +44,22 @@ int inputBucketBoard[2][64] = {
     7,7,7,7,7,7,7,7}
 };
 
+bool initialized = false;
+alignas(64) __int16_t w0[inputBuckets][inputSize][hl1Size];
+alignas(64) __int16_t b0[hl1Size];
+
+alignas(64) __int8_t w1[outputBuckets][hl1Size / 4][w1BlockSize];
+alignas(64) int b1[outputBuckets][hl2Size];
+alignas(64) int w2[outputBuckets][hl2Size * 2][hl3Size];
+alignas(64) int b2[outputBuckets][hl3Size];
+alignas(64) int w3[outputBuckets][hl3Size];
+alignas(64) int b3[outputBuckets];
+
 struct alignas(64) SmallBoard {
-    Bitboard whitePieces, blackPieces;
-    Bitboard pawns, knights, bishops, rooks, queens, kings;
+    int boardColor;
+
+    Bitboard whitePieces = 0, blackPieces = 0;
+    Bitboard pawns = 0, knights = 0, bishops = 0, rooks = 0, queens = 0, kings = 0;
 
     bool flippedW = true;
     bool flippedB = true;
@@ -67,6 +80,27 @@ struct alignas(64) SmallBoard {
         else
             neuronIdxB += 7 - col;
         return {neuronIdxW, neuronIdxB};
+    }
+
+    int getNNUEidx(int color, int square, int piece, int pieceColor) {
+
+        int row = (square >> 3), col = (square & 7);
+
+        if (color == WHITE) {
+            int neuronIdxW = 64 * (piece - 1 + pieceColor * 6) + ((7 - row) << 3);
+            if (!flippedW)
+                neuronIdxW += col;
+            else
+                neuronIdxW += 7 - col;
+            return neuronIdxW;
+        }
+
+        int neuronIdxB = 64 * (piece - 1 + (!pieceColor) * 6) + (row << 3);
+        if (!flippedB)
+            neuronIdxB += col;
+        else
+            neuronIdxB += 7 - col;
+        return neuronIdxB;
     }
 
     inline int occupancy(int square) {
@@ -104,6 +138,20 @@ struct alignas(64) SmallBoard {
         return NOPIECE;
     }
 
+    bool getMirroring(int color) {
+
+        if (color == WHITE)
+            return flippedW;
+        return flippedB;
+    }
+
+    int getBucket(int color) {
+
+        if (color == WHITE)
+            return inputBucketBoard[WHITE][(whitePieces & kings).getFirstBitNumber()];
+        return inputBucketBoard[BLACK][(blackPieces & kings).getFirstBitNumber()];
+    }
+
     pair<ll,ll> getBuckets() {
         int whiteKingPos = (whitePieces & kings).getFirstBitNumber();
         int blackKingPos = (blackPieces & kings).getFirstBitNumber();
@@ -126,18 +174,85 @@ static constexpr std::array<std::array<uint16_t, 8>, 256> makeNzTable() {
 static constexpr auto NZ_TABLE = makeNzTable();
 */
 
+struct FinnyTable {
+
+    SmallBoard board;
+
+    alignas(64) __int16_t accum[hl1Size];
+
+    void clear() {
+        for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+            store((vec *)&accum[i], load((vec *)&b0[i]));
+        }
+    }
+
+
+    void Sub(int updI, int buckets) {
+
+        for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+
+            store((vec *)&accum[i],
+                                sub16(load((vec *)&accum[i]),
+                                                 load((vec *)&w0[buckets][updI][i])));
+        }
+    }
+
+    void Add(int updI, int buckets) {
+
+        for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+
+            store((vec *)&accum[i],
+                                add16(load((vec *)&accum[i]),
+                                                 load((vec *)&w0[buckets][updI][i])));
+        }
+    }
+
+    void update(int color, __int16_t *hlSum, SmallBoard &newBoard) {
+
+        int buckets = newBoard.getBucket(color);
+
+        Bitboard changedPieces = 
+            (board.whitePieces ^ newBoard.whitePieces) |
+            (board.blackPieces ^ newBoard.blackPieces) |
+            (board.pawns ^ newBoard.pawns) |
+            (board.knights ^ newBoard.knights) |
+            (board.bishops ^ newBoard.bishops) |
+            (board.rooks ^ newBoard.rooks) |
+            (board.queens ^ newBoard.queens) |
+            (board.kings ^ newBoard.kings);
+
+        while (changedPieces > 0) {
+            int square = changedPieces.getFirstBitNumberAndExclude();
+
+            if ((board.whitePieces | board.blackPieces).getBit(square)) {
+
+                int piece = board.occupancyPiece(square);
+                int pieceColor = board.occupancy(square);
+                if (pieceColor != EMPTY)
+                    Sub(newBoard.getNNUEidx(color, square, piece, pieceColor), buckets);
+            }
+
+            if ((newBoard.whitePieces | newBoard.blackPieces).getBit(square)) {
+
+                int piece = newBoard.occupancyPiece(square);
+                int pieceColor = newBoard.occupancy(square);
+                if (pieceColor != EMPTY)
+                    Add(newBoard.getNNUEidx(color, square, piece, pieceColor), buckets);
+            }
+        }
+
+        board = newBoard;
+
+
+        for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+            store((vec *)&hlSum[i], load((vec *)&accum[i]));
+        }
+    }
+};
+
+FinnyTable finnyTables[2][2][inputBuckets];
+
 struct NNUEevaluator {
-
-    bool initialized = false;
-    alignas(64) __int16_t w0[inputBuckets][inputSize][hl1Size];
-    alignas(64) __int16_t b0[hl1Size];
-
-    alignas(64) __int8_t w1[outputBuckets][hl1Size / 4][w1BlockSize];
-    alignas(64) int b1[outputBuckets][hl2Size];
-    alignas(64) int w2[outputBuckets][hl2Size * 2][hl3Size];
-    alignas(64) int b2[outputBuckets][hl3Size];
-    alignas(64) int w3[outputBuckets][hl3Size];
-    alignas(64) int b3[outputBuckets];
 
     alignas(64) __int16_t hlSumW[maxDepth + 1][hl1Size];
     alignas(64) __int16_t hlSumB[maxDepth + 1][hl1Size];
@@ -315,18 +430,17 @@ struct NNUEevaluator {
         int cleanAcc = lastCleanAccumulator[ply];
         for (int i = cleanAcc + 1; i <= ply; i++) {
             lastCleanAccumulator[i] = i;
-            if (updateIter[i] == 5) { // HM
-                clear(i);
+            if (updateIter[i] == 5) { // Reevaluate accumulators
+
                 pair<int, int> buckets = boardStack[i].getBuckets();
                 bucketsStack[i] = buckets;
-                Bitboard pieces = boardStack[i].whitePieces | boardStack[i].blackPieces;
-                while (pieces > 0) {
-                    int square = pieces.getFirstBitNumberAndExclude();
-                    int piece = boardStack[i].occupancyPiece(square);
-                    int pieceColor = boardStack[i].occupancy(square);
-                    if (pieceColor != EMPTY)
-                        Add(i, boardStack[i].getNNUEidx(square, piece, pieceColor), buckets);
-                }
+
+                finnyTables[WHITE][boardStack[i].flippedW][buckets.F].update(
+                    WHITE, hlSumW[i], boardStack[i]);
+
+                finnyTables[BLACK][boardStack[i].flippedB][buckets.S].update(
+                    BLACK, hlSumB[i], boardStack[i]);
+
             } else {
                 bucketsStack[i] = bucketsStack[i - 1];
                 pair<int, int> buckets = bucketsStack[i];

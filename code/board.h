@@ -571,6 +571,7 @@ struct alignas(64) Board {
             int ply = nnueEvaluator.ply;
             nnueEvaluator.updateIter[ply] = 5;
             nnueEvaluator.lastCleanAccumulator[ply] = ply - 1;
+            nnueEvaluator.boardStack[ply].boardColor = boardColor;
             nnueEvaluator.boardStack[ply].whitePieces = whitePieces;
             nnueEvaluator.boardStack[ply].blackPieces = blackPieces;
             nnueEvaluator.boardStack[ply].pawns = pawns;

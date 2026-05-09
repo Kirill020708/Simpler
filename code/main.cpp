@@ -70,6 +70,14 @@ int main(int argc, char *argv[]) {
     mainNnueEvaluator.initFromFile("/Users/Apple/Desktop/projects/chessEngv2/Simple-chess-engine/code/quantisedv2.bin");
     mainBoard = Board();
 
+    for (int i = 0; i < outputBuckets; i++) {
+        finnyTables[0][0][i].clear();
+        finnyTables[0][1][i].clear();
+        finnyTables[1][0][i].clear();
+        finnyTables[1][1][i].clear();
+
+    }
+
     if (argc >= 2) {
     	string args = string(argv[1]);
 
