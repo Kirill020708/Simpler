@@ -334,17 +334,25 @@ struct NNUEevaluator {
 
             vec L2_0 = setzero();
             vec L2_1 = setzero();
+            vec L2_2 = setzero();
+            vec L2_3 = setzero();
 
-            for (int i = 0; i < hl1Size / 4; i += 4) {
+            for (int i = 0; i < hl1Size / 4; i += 8) {
                 vec wg0 = load((const vec *)&w1[bucket][i][0]);
                 vec wg1 = load((const vec *)&w1[bucket][i + 1][0]);
                 vec wg2 = load((const vec *)&w1[bucket][i + 2][0]);
                 vec wg3 = load((const vec *)&w1[bucket][i + 3][0]);
+                vec wg4 = load((const vec *)&w1[bucket][i + 4][0]);
+                vec wg5 = load((const vec *)&w1[bucket][i + 5][0]);
+                vec wg6 = load((const vec *)&w1[bucket][i + 6][0]);
+                vec wg7 = load((const vec *)&w1[bucket][i + 7][0]);
                 L2_0 = dpbusdx2(L2_0, packedFt[i],     wg0, packedFt[i + 1], wg1, ones);
                 L2_1 = dpbusdx2(L2_1, packedFt[i + 2], wg2, packedFt[i + 3], wg3, ones);
+                L2_2 = dpbusdx2(L2_2, packedFt[i + 4], wg4, packedFt[i + 5], wg5, ones);
+                L2_3 = dpbusdx2(L2_3, packedFt[i + 6], wg6, packedFt[i + 7], wg7, ones);
             }
 
-            vec L2 = add32(L2_0, L2_1);
+            vec L2 = add32(add32(L2_0, L2_1), add32(L2_2, L2_3));
             L2 = srai32(L2, 8);
             L2 = add32(L2, load((vec *)&b1[bucket][0]));
             auto L2c = max32(L2, zero);
