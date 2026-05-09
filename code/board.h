@@ -568,8 +568,9 @@ struct alignas(64) Board {
         if (startSquare == 7 || targetSquare == 7)
             castlingBlackKingsideBroke = 1;
         if (nnueRecalc) {
-            nnueEvaluator.updateIter[nnueEvaluator.ply] = 5;
             int ply = nnueEvaluator.ply;
+            nnueEvaluator.updateIter[ply] = 5;
+            nnueEvaluator.lastCleanAccumulator[ply] = ply - 1;
             nnueEvaluator.boardStack[ply].whitePieces = whitePieces;
             nnueEvaluator.boardStack[ply].blackPieces = blackPieces;
             nnueEvaluator.boardStack[ply].pawns = pawns;
