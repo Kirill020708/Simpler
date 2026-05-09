@@ -52,11 +52,6 @@ string squareToString(int square) {
 }
 
 int main(int argc, char *argv[]) {
-
-    #ifndef __AVX512F__
-    shadjkhasjkdhkajshdkas
-    #endif
-
 	initLmrTable();
     // texelTuner.checkData();
     // evaluator.writeToFile("/Users/Apple/Desktop/projects/chessEngv2/apps/evalbase.txt");
