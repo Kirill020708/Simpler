@@ -260,23 +260,13 @@ struct NNUEevaluator {
         }
     }
 
-#ifndef __AVX512F__
-#ifdef __AVX2__
-    inline vec maddubs(vec u, vec i) {
-        return _mm256_maddubs_epi16(u, i);
-    }
-
-    inline vec maddwd(vec a, vec b) {
-        return _mm256_madd_epi16(a, b);
-    }
-
+#if defined(__AVX2__) || defined(__AVX512F__)
     inline vec dpbusdx2(vec sum, uint32_t packed0, vec weights0, uint32_t packed1, vec weights1,
                             vec ones) {
-        vec partial0 = maddubs(set1_32(packed0), weights0);
-        vec partial1 = maddubs(set1_32(packed1), weights1);
-        return add32(sum, maddwd(add16(partial0, partial1), ones));
+        vec partial0 = maddubs16(set1_32(packed0), weights0);
+        vec partial1 = maddubs16(set1_32(packed1), weights1);
+        return add32(sum, maddwd16(add16(partial0, partial1), ones));
     }
-#endif
 #endif
 
     void printAccum() {
@@ -342,14 +332,19 @@ struct NNUEevaluator {
 
         #ifdef __AVX512F__
 
-            vec L2 = setzero();
+            vec L2_0 = setzero();
+            vec L2_1 = setzero();
 
-            for (int i = 0; i < hl1Size / 4; i++) {
-                vec wg = load((const vec *)&w1[bucket][i][0]);
-
-                L2 = _mm512_dpbusd_epi32(L2, set1_32(packedFt[i]), wg);
+            for (int i = 0; i < hl1Size / 4; i += 4) {
+                vec wg0 = load((const vec *)&w1[bucket][i][0]);
+                vec wg1 = load((const vec *)&w1[bucket][i + 1][0]);
+                vec wg2 = load((const vec *)&w1[bucket][i + 2][0]);
+                vec wg3 = load((const vec *)&w1[bucket][i + 3][0]);
+                L2_0 = dpbusdx2(L2_0, packedFt[i],     wg0, packedFt[i + 1], wg1, ones);
+                L2_1 = dpbusdx2(L2_1, packedFt[i + 2], wg2, packedFt[i + 3], wg3, ones);
             }
 
+            vec L2 = add32(L2_0, L2_1);
             L2 = srai32(L2, 8);
             L2 = add32(L2, load((vec *)&b1[bucket][0]));
             auto L2c = max32(L2, zero);

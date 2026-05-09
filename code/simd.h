@@ -29,6 +29,8 @@
 	#define srai32 _mm512_srai_epi32
 	#define storehalf _mm256_store_si256
 	#define mullo32 _mm512_mullo_epi32
+	#define maddubs16 _mm512_maddubs_epi16
+	#define maddwd16 _mm512_madd_epi16
 
 #elif defined(__AVX2__)
 
@@ -54,5 +56,7 @@
 	#define srai32 _mm256_srai_epi32
 	#define storehalf _mm_store_si128
 	#define mullo32 _mm256_mullo_epi32
+	#define maddubs16 _mm256_maddubs_epi16
+	#define maddwd16 _mm256_madd_epi16
 
 #endif
