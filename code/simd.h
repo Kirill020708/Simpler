@@ -31,7 +31,7 @@
 	#define mullo32 _mm512_mullo_epi32
 	#define maddubs16 _mm512_maddubs_epi16
 	#define maddwd16 _mm512_madd_epi16
-	/* #define cmpneq32_mask(a, b) ((unsigned)_mm512_cmpneq_epi32_mask(a, b)) */
+	#define cmpneq32_mask(a, b) ((unsigned)_mm512_cmpneq_epi32_mask(a, b))
 
 #elif defined(__AVX2__)
 
@@ -59,10 +59,10 @@
 	#define mullo32 _mm256_mullo_epi32
 	#define maddubs16 _mm256_maddubs_epi16
 	#define maddwd16 _mm256_madd_epi16
-	/*
+	
 	inline unsigned cmpneq32_mask(vec a, vec b) {
 		return (unsigned)(~_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(a, b))) & 0xFF);
 	}
-	*/
+	
 
 #endif

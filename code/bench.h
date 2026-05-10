@@ -89,6 +89,17 @@ struct Benchmark {
         int elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - timeStart).count();
 
         cout << nodes << " nodes " << nodes * 1000 / elapsedTime << " nps" << endl;
+
+        #ifdef PERM_COMP
+        auto perm = permComp.getPermutation();
+
+        for (auto i:perm)
+            cout << i << ", ";
+        cout << endl;
+        cout << endl;
+        #endif
+
+        cout << float(nnzTotal) / nnzCount << endl;
     }
 };
 

@@ -55,6 +55,36 @@ alignas(64) int b2[outputBuckets][hl3Size];
 alignas(64) int w3[outputBuckets][hl3Size];
 alignas(64) int b3[outputBuckets];
 
+// #define PERM_COMP
+
+#ifdef PERM_COMP
+struct PermutationComp {
+
+    int nnz[hl1Size / 2];
+
+    void update(uint8_t *hlSum) {
+        for (int i = 0; i < hl1Size / 2; i++)
+            nnz[i] += (hlSum[i] != 0);
+    }
+
+    vector<int> getPermutation() {
+        vector<pair<int, int>> idx;
+        for (int i = 0; i < hl1Size / 2; i++)
+            idx.push_back({-nnz[i], i});
+
+        sort(all(idx));
+
+        vector<int>p(hl1Size / 2);
+        for (int i = 0; i < hl1Size / 2; i++)
+            p[idx[i].second] = i;
+
+        return p;
+    }
+};
+
+PermutationComp permComp;
+#endif
+
 struct alignas(64) SmallBoard {
     int boardColor;
 
@@ -161,7 +191,7 @@ struct alignas(64) SmallBoard {
     }
 };
 
-/*
+
 static constexpr std::array<std::array<uint16_t, 8>, 256> makeNzTable() {
     std::array<std::array<uint16_t, 8>, 256> t{};
     for (int b = 0; b < 256; b++) {
@@ -172,7 +202,7 @@ static constexpr std::array<std::array<uint16_t, 8>, 256> makeNzTable() {
     return t;
 }
 static constexpr auto NZ_TABLE = makeNzTable();
-*/
+
 
 struct FinnyTable {
 
@@ -251,6 +281,13 @@ struct FinnyTable {
 };
 
 FinnyTable finnyTables[2][2][inputBuckets];
+
+int nnzPermutation[] = {
+    53, 445, 393, 73, 349, 47, 482, 136, 28, 212, 457, 264, 443, 313, 124, 87, 216, 474, 174, 319, 320, 369, 408, 60, 414, 61, 401, 52, 270, 342, 295, 89, 161, 260, 122, 280, 336, 416, 157, 338, 496, 49, 317, 364, 301, 481, 175, 494, 275, 382, 70, 139, 62, 330, 30, 8, 279, 176, 423, 387, 355, 446, 463, 346, 323, 80, 287, 183, 137, 302, 64, 449, 83, 250, 93, 373, 396, 285, 228, 451, 0, 120, 426, 350, 356, 72, 20, 291, 5, 450, 108, 273, 160, 363, 454, 147, 348, 442, 33, 141, 329, 197, 504, 384, 392, 2, 372, 234, 66, 155, 386, 169, 45, 312, 488, 403, 133, 501, 92, 107, 502, 252, 117, 359, 99, 421, 130, 245, 466, 54, 282, 172, 31, 391, 104, 193, 390, 22, 315, 251, 232, 77, 407, 241, 309, 128, 88, 151, 256, 259, 479, 405, 480, 345, 412, 15, 322, 159, 214, 237, 389, 238, 148, 277, 162, 170, 110, 21, 318, 149, 495, 100, 368, 6, 209, 351, 140, 44, 343, 328, 413, 441, 271, 453, 388, 138, 229, 135, 37, 478, 293, 331, 276, 46, 269, 249, 492, 164, 91, 163, 327, 432, 366, 399, 79, 125, 227, 411, 425, 339, 171, 507, 111, 94, 219, 156, 16, 246, 42, 186, 448, 152, 272, 286, 505, 18, 506, 292, 436, 334, 146, 439, 394, 452, 12, 398, 115, 223, 447, 109, 231, 361, 347, 465, 43, 354, 417, 225, 19, 374, 362, 56, 196, 145, 208, 255, 444, 380, 24, 462, 199, 290, 381, 39, 65, 211, 48, 430, 344, 268, 370, 221, 165, 307, 127, 376, 32, 467, 261, 253, 435, 215, 497, 178, 206, 472, 375, 476, 76, 262, 326, 310, 289, 509, 437, 240, 131, 455, 299, 1, 314, 29, 236, 311, 142, 406, 288, 134, 207, 144, 499, 230, 458, 181, 400, 102, 38, 190, 265, 67, 26, 475, 35, 490, 404, 188, 473, 419, 498, 427, 132, 40, 434, 283, 247, 118, 460, 218, 316, 90, 194, 433, 300, 75, 235, 257, 202, 294, 150, 182, 274, 510, 358, 57, 485, 217, 469, 14, 222, 324, 23, 167, 233, 428, 325, 224, 471, 173, 10, 415, 484, 278, 168, 486, 298, 205, 470, 263, 86, 71, 422, 308, 154, 360, 341, 503, 129, 409, 353, 158, 105, 192, 50, 424, 461, 84, 34, 226, 81, 254, 365, 248, 397, 82, 489, 103, 266, 243, 25, 114, 201, 511, 59, 51, 153, 116, 440, 258, 95, 74, 96, 187, 36, 402, 220, 195, 459, 13, 493, 63, 213, 371, 438, 17, 337, 420, 296, 126, 483, 177, 98, 335, 267, 9, 123, 143, 3, 242, 78, 304, 508, 410, 55, 244, 191, 113, 431, 357, 429, 333, 85, 68, 4, 97, 180, 189, 203, 185, 418, 491, 340, 468, 11, 210, 27, 305, 464, 395, 352, 303, 119, 377, 239, 284, 69, 58, 166, 281, 383, 367, 297, 477, 106, 321, 198, 112, 101, 200, 456, 332, 184, 500, 306, 121, 379, 7, 378, 179, 385, 204, 41, 487
+};
+
+
+int nnzTotal = 0, nnzCount = 0;
 
 struct NNUEevaluator {
 
@@ -398,7 +435,7 @@ struct NNUEevaluator {
     }
 #endif
 
-    /*
+    
     inline int findNonZeroIndices(const uint32_t *packedFt, uint16_t *indices) {
         int count = 0;
         constexpr int elems = vecsize / i32s;
@@ -415,7 +452,7 @@ struct NNUEevaluator {
         }
         return count;
     }
-    */
+    
 
     void printAccum() {
         for (ll i = 0; i < hl1Size; i++)
@@ -456,6 +493,7 @@ struct NNUEevaluator {
     }
 
     int evaluate(int color, int bucket) {
+
         cleanAccumulators();
 
         const vec zero = setzero();
@@ -473,6 +511,12 @@ struct NNUEevaluator {
         activateAcc(stm_acc, &activatedFt[0]);
         activateAcc(ntm_acc, &activatedFt[hl1Size / 2]);
 
+        #ifdef PERM_COMP
+        permComp.update(activatedFt);
+        #endif
+
+
+
         const uint32_t *packedFt = (const uint32_t *)activatedFt;
 
         alignas(64) int hl2Activations[hl2Size * 2];
@@ -487,9 +531,12 @@ struct NNUEevaluator {
             for (int u = 0; u < L2_UNROLL; u++)
                 accum[v][u] = setzero();
 
-        /*
+        
         alignas(64) uint16_t nzIndices[hl1Size / 4 + 8];
         int nzCount = findNonZeroIndices(packedFt, nzIndices);
+
+        nnzTotal += nzCount;
+        nnzCount++;
 
         int nzi = 0;
         for (; nzi + 2 * L2_UNROLL <= nzCount; nzi += 2 * L2_UNROLL) {
@@ -513,30 +560,30 @@ struct NNUEevaluator {
                 accum[v][0] = add32(accum[v][0], maddwd16(partial, ones));
             }
         }
-        */
+        
 
-        int i = 0;
-        for (; i + 2 * L2_UNROLL <= hl1Size / 4; i += 2 * L2_UNROLL) {
-            for (int u = 0; u < L2_UNROLL; u++) {
-                const uint32_t ft1 = packedFt[i + 2 * u];
-                const uint32_t ft2 = packedFt[i + 2 * u + 1];
+        // int i = 0;
+        // for (; i + 2 * L2_UNROLL <= hl1Size / 4; i += 2 * L2_UNROLL) {
+        //     for (int u = 0; u < L2_UNROLL; u++) {
+        //         const uint32_t ft1 = packedFt[i + 2 * u];
+        //         const uint32_t ft2 = packedFt[i + 2 * u + 1];
 
-                for (int v = 0; v < L2_VECS; v++) {
-                    const vec w1_v = load((const vec *)&w1[bucket][i + 2 * u][v * (vecsize / i8s)]);
-                    const vec w2_v = load((const vec *)&w1[bucket][i + 2 * u + 1][v * (vecsize / i8s)]);
-                    accum[v][u] = dpbusdx2(accum[v][u], ft1, w1_v, ft2, w2_v, ones);
-                }
-            }
-        }
+        //         for (int v = 0; v < L2_VECS; v++) {
+        //             const vec w1_v = load((const vec *)&w1[bucket][i + 2 * u][v * (vecsize / i8s)]);
+        //             const vec w2_v = load((const vec *)&w1[bucket][i + 2 * u + 1][v * (vecsize / i8s)]);
+        //             accum[v][u] = dpbusdx2(accum[v][u], ft1, w1_v, ft2, w2_v, ones);
+        //         }
+        //     }
+        // }
 
-        for (; i < hl1Size / 4; i++) {
-            const uint32_t ft = packedFt[i];
-            for (int v = 0; v < L2_VECS; v++) {
-                const vec w_v = load((const vec *)&w1[bucket][i][v * (vecsize / i8s)]);
-                const vec partial = maddubs16(set1_32(ft), w_v);
-                accum[v][0] = add32(accum[v][0], maddwd16(partial, ones));
-            }
-        }
+        // for (; i < hl1Size / 4; i++) {
+        //     const uint32_t ft = packedFt[i];
+        //     for (int v = 0; v < L2_VECS; v++) {
+        //         const vec w_v = load((const vec *)&w1[bucket][i][v * (vecsize / i8s)]);
+        //         const vec partial = maddubs16(set1_32(ft), w_v);
+        //         accum[v][0] = add32(accum[v][0], maddwd16(partial, ones));
+        //     }
+        // }
 
         for (int v = 0; v < L2_VECS; v++) {
             vec L2 = setzero();
@@ -660,15 +707,35 @@ struct NNUEevaluator {
         const int8_t *src_data = reinterpret_cast<const int8_t *>(gNETWORKData);
         std::copy(src_data, src_data + num_elements, data.begin());
 
+        #ifdef PERM_COMP
+        for (int i = 0; i < hl1Size / 2; i++)
+            nnzPermutation[i] = i;
+        #endif
+
 
         int iter = 0;
         for (int bucket = 0; bucket < inputBuckets; bucket++)
             for (int i = 0; i < inputSize; i++)
-                for (int j = 0; j < hl1Size; j++)
-                    w0[bucket][i][j] = getValue(data, iter, 16);
+                for (int j = 0; j < hl1Size; j++) {
+
+                    int nj = j, dj = 0;
+                    if (j >= hl1Size / 2) {
+                        nj -= hl1Size / 2;
+                        dj = hl1Size / 2;
+                    }
+
+                    w0[bucket][i][nnzPermutation[nj] + dj] = getValue(data, iter, 16);
+                }
 
         for (int j = 0; j < hl1Size; j++) {
-            b0[j] = getValue(data, iter, 16);
+
+            int nj = j, dj = 0;
+            if (j >= hl1Size / 2) {
+                nj -= hl1Size / 2;
+                dj = hl1Size / 2;
+            }
+
+            b0[nnzPermutation[nj] + dj] = getValue(data, iter, 16);
             // cout<<b0[j]<<' ';
         }
         // cout<<'\n';
@@ -676,8 +743,14 @@ struct NNUEevaluator {
         for (int i = 0; i < hl1Size; i++)
             for (int bucket = 0; bucket < outputBuckets; bucket++)
                 for (int j = 0; j < hl2Size; j++) {
-                    int i0 = i / 4;
-                    int j0 = j * 4 + (i % 4);
+                    int ni = i;
+                    if (i < hl1Size / 2)
+                        ni = nnzPermutation[i];
+                    else
+                        ni = nnzPermutation[i - hl1Size / 2] + hl1Size / 2;
+
+                    int i0 = ni / 4;
+                    int j0 = j * 4 + (ni % 4);
                     w1[bucket][i0][j0] = getValue(data, iter, 8);
                 }
 
