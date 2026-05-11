@@ -614,7 +614,7 @@ struct Worker {
         	extended <= 30 &&
         	ply < maxDepth - 10 &&
         	ttMove != Move() &&
-        	depth >= 7 &&
+        	depth >= 6 &&
         	ttEntry.depth >= depth - 3 &&
         	!searchStack[ply].excludeTTmove &&
         	nodeType != UPPER_BOUND &&
