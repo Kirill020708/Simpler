@@ -778,10 +778,10 @@ struct Worker {
 
             occuredPositionsHelper.occuredPositions[board.age + 1] = newKey;
 
-            board.makeMove(move, nnueEvaluator);
-
             searchStack[ply].move = move;
             searchStack[ply].isQuiet = board.isQuietMove(move);
+
+            board.makeMove(move, nnueEvaluator);
 
             // transpositionTable.prefetch(board.getZobristKey());
 
