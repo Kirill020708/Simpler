@@ -38,6 +38,9 @@
 #endif /* HISTORY */
 
 struct StackState {
+    Board board;
+    Move move;
+    bool isQuiet;
     bool excludeTTmove = false;
     Move excludeMove;
     Move bestMove;
@@ -516,7 +519,7 @@ struct Worker {
         killers[ply + 1][0] = killers[ply + 1][1] = Move();
         killersAge[ply + 1][0] = killersAge[ply + 1][1] = 0;
 
-        Board boardCopy = board;
+        searchStack[ply].board = board;
 
         Move ttMove = ttEntry.move;
 
@@ -557,7 +560,7 @@ struct Worker {
 		            	score = -search<NonPV>(board, oppositeColor, depth - probcutDepthR, 0, -probcutBeta, -probcutBeta + 1,
 	                                    ply + 1, extended, !cutNode);
 
-		            board = boardCopy;
+		            board = searchStack[ply].board;
 
 		            nnueEvaluator.ply--;
 
@@ -777,6 +780,9 @@ struct Worker {
 
             board.makeMove(move, nnueEvaluator);
 
+            searchStack[ply].move = move;
+            searchStack[ply].isQuiet = board.isQuietMove(move);
+
             // transpositionTable.prefetch(board.getZobristKey());
 
             // cout<<move.convertToUCI()<<' '<<newStaticEval<<'\n';
@@ -836,7 +842,7 @@ struct Worker {
             } else
                 score = -search<nodePvType>(board, oppositeColor, depth - 1 + extendDepth, 0, -beta, -alpha, ply + 1, extended + extendDepth, !cutNode);
 
-            board = boardCopy;
+            board = searchStack[ply].board;
 
             nnueEvaluator.ply--;
 
@@ -931,6 +937,14 @@ struct Worker {
 
             	moveListGenerator.generateMoves(board, historyHelper, color, ply, DO_SORT, ALL_MOVES);
             }
+        }
+
+        //Prior countermove bonus
+        if (!isRoot && type == UPPER_BOUND && searchStack[ply - 1].isQuiet) {
+
+            int pcmBonus = (12 * depth);
+
+            historyHelper.update(searchStack[ply - 1].board, (color == WHITE) ? BLACK : WHITE, searchStack[ply - 1].move, pcmBonus);
         }
 
         if (type == UPPER_BOUND)
