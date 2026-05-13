@@ -17,8 +17,8 @@
 #endif /* MOVE */
 
 struct HistoryHelper {
-    int16_t historyScore[2][64][64][2][2];
-    int16_t pieceSquareHistory[2][8][64][2][2];
+    int16_t historyScore[2][64][64][2][2][2];
+    int16_t pieceSquareHistory[2][8][64][2][2][2];
     int16_t counterHistory[2][8][64][8][64];
     int16_t contPly2History[2][8][64][8][64];
     int16_t captHistoryScore[2][8][64][8];
@@ -41,20 +41,22 @@ struct HistoryHelper {
         if (board.occupancy(tr) == EMPTY) {
 	        int st = move.getStartSquare();
 
-	        int stTh, trTh;
+	        int stTh, trTh, trDf;
 	        if (color == WHITE) {
 	        	stTh = (blackAttacks & (1ull << st)) > 0;
 	        	trTh = (blackAttacks & (1ull << tr)) > 0;
+	        	trDf = (whiteAttacks & (1ull << tr)) > 0;
 	        } else {
 	        	stTh = (whiteAttacks & (1ull << st)) > 0;
 	        	trTh = (whiteAttacks & (1ull << tr)) > 0;
+	        	trDf = (blackAttacks & (1ull << tr)) > 0;
 	        }
 
-	        historyScore[color][st][tr][stTh][trTh] +=
-	            score - historyScore[color][st][tr][stTh][trTh] * abs(score) / maxHistoryScore;
+	        historyScore[color][st][tr][stTh][trTh][trDf] +=
+	            score - historyScore[color][st][tr][stTh][trTh][trDf] * abs(score) / maxHistoryScore;
 
-	        pieceSquareHistory[color][board.occupancyPiece(st)][tr][stTh][trTh] +=
-	            score - pieceSquareHistory[color][board.occupancyPiece(st)][tr][stTh][trTh] * abs(score) / maxHistoryScore;
+	        pieceSquareHistory[color][board.occupancyPiece(st)][tr][stTh][trTh][trDf] +=
+	            score - pieceSquareHistory[color][board.occupancyPiece(st)][tr][stTh][trTh][trDf] * abs(score) / maxHistoryScore;
 
 	        counterHistory[color][board.ply1Ps][board.ply1Sq][board.occupancyPiece(st)][tr] +=
 	            score - counterHistory[color][board.ply1Ps][board.ply1Sq][board.occupancyPiece(st)][tr] * abs(score) / maxHistoryScore;
@@ -81,19 +83,21 @@ struct HistoryHelper {
         if (board.occupancy(tr) == EMPTY) {
         	int st = move.getStartSquare();
 
-	        int stTh, trTh;
+	        int stTh, trTh, trDf;
 	        if (color == WHITE) {
 	        	stTh = (blackAttacks & (1ull << st)) > 0;
 	        	trTh = (blackAttacks & (1ull << tr)) > 0;
+	        	trDf = (whiteAttacks & (1ull << tr)) > 0;
 	        } else {
 	        	stTh = (whiteAttacks & (1ull << st)) > 0;
 	        	trTh = (whiteAttacks & (1ull << tr)) > 0;
+	        	trDf = (blackAttacks & (1ull << tr)) > 0;
 	        }
 
 	        int history = 0;
 	        
-	        history += (historyScore[color][st][tr][stTh][trTh]) * historyScoreFromTo;
-	        history += (pieceSquareHistory[color][board.occupancyPiece(st)][tr][stTh][trTh]) * historyScorePieceTo;
+	        history += (historyScore[color][st][tr][stTh][trTh][trDf]) * historyScoreFromTo;
+	        history += (pieceSquareHistory[color][board.occupancyPiece(st)][tr][stTh][trTh][trDf]) * historyScorePieceTo;
 
 	        history += (counterHistory[color][board.ply1Ps][board.ply1Sq][board.occupancyPiece(st)][tr]) * historyScorePly1;
 
