@@ -481,8 +481,16 @@ struct Worker {
             int score = -search<NonPV>(board, oppositeColor, depth - R, 0, -beta, -beta + 1, ply + 1, extended, !cutNode);
             board.makeNullMove();
             board.enPassantColumn = prevEnPassColumn;
-            if (score >= beta)
+
+            if (score >= beta) {
+                
+                if (!isMovingSideInCheck) {
+                    staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
+                    if (score > staticEval)
+                        corrhistHelper.update(color, board, (score - staticEval) * depth / 8);
+                }
                 return score;
+            }
         }
 
         if (!isRoot &&
