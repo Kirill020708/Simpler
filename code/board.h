@@ -91,7 +91,11 @@ struct alignas(64) Board {
     }
 
     inline int getOutputBucket() {
-        return (numberOfPieces() - 2) / 4;
+        // return (numberOfPieces() - 2) / 4;
+
+        return ((knights | bishops).popcnt() * 3 +
+                rooks.popcnt() * 5 +
+                queens.popcnt() * 9) / 8;
     }
 
     inline float endgameWeight() {
