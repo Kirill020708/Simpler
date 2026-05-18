@@ -12,7 +12,11 @@
 #include <deque>
 #include <fstream>
 #include <future>
+
+#if defined(__AVX2__) || defined(__AVX512F__)
 #include <immintrin.h>
+#endif
+
 #include <iomanip>
 #include <iostream>
 #include <map>
