@@ -798,6 +798,7 @@ struct Worker {
                 	+ lmrImproving * (!improving)
                 	+ lmrTTcapture * (isTTCapture)
                 	+ lmrCutnode * cutNode
+                    + 1024 * (nodeType == EXACT)
                 	- lmrTtpv * ttpv
                 	- lmrCapture * (isCapture)
                 	- lmrSee * sseEval / 1024
