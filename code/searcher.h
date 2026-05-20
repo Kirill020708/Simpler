@@ -230,6 +230,8 @@ struct Worker {
 
         alpha = max(alpha, bestScore);
         if (alpha >= beta) {
+            bestScore = (beta + bestScore) / 2;
+            
             transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, LOWER_BOUND, boardCurrentAge,
                                               ttEntry.move, ply, ttpv);
             return bestScore;
