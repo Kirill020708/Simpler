@@ -468,6 +468,7 @@ struct Worker {
                 0 &&              // pieces except kings and pawns exist (to prevent zugzwang)
             staticEval >= beta + nmpBaseMargin - (depth * nmpDepthMargin + depth * depth * nmpDepth2Margin) / 1024 &&
             !isPvNode &&
+            nodeType != UPPER_BOUND &&
             !searchStack[ply].excludeTTmove &&
             !isMateScores) {
 
