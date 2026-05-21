@@ -156,8 +156,6 @@ struct MoveListGenerator {
                         board = boardCopy;
                         if (promotionMoves[i] == hashMove)
                             promotionMoves[i].score += (1 << hashMoveShift);
-                        if (onlyCaptures)
-                            promotionMoves[i].score += (sseEval + 15);
                         moveList[depth][moveListSize[depth]++] = promotionMoves[i];
                     }
                 } else {
@@ -172,10 +170,7 @@ struct MoveListGenerator {
                     Move move = Move(startSquare, targetSquare, NOPIECE);
                     move.score += (captureCoeff << captureShift);
 
-                    if (!isCapture || !onlyCaptures)
-                        move.score += historyHelper.getScore(board, color, move);
-                    else
-                        move.score += (sseEval + 15);
+                    move.score += historyHelper.getScore(board, color, move);
                     
                     if (move == hashMove)
                         move.score += (1 << hashMoveShift);
