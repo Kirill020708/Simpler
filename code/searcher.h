@@ -801,7 +801,6 @@ struct Worker {
                     + 1024 * (nodeType == EXACT)
                 	- lmrTtpv * ttpv
                 	- lmrCapture * (isCapture)
-                	- lmrSee * sseEval / 1024
                     - lmrKiller * (isKiller)) / 1024; // reduction of depth
 
                 if (lmrReduction < 0)
