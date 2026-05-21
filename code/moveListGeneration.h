@@ -60,8 +60,6 @@ struct MoveListGenerator {
 
     int material[6] = {0, moveOrderPawn, moveOrderKnight, moveOrderBishop, moveOrderRook, moveOrderQueen};
 
-    int16_t seeTable[maxDepth][64][64];
-
     inline void generateMoves(Board &board, HistoryHelper &historyHelper, int color, int depth, bool doSort,
                               bool onlyCaptures) {
         Board boardCopy = board;
@@ -105,7 +103,7 @@ struct MoveListGenerator {
                 if (occup == PAWN && boardHelper.columns[startSquare] != boardHelper.columns[targetSquare] && !isCapt) // En passant
                     isMoveBound = 1;
 
-                int captureCoeff = 0, isCapture = 0, sseEval;
+                int captureCoeff = 0, isCapture = 0;
                 if (isCapt) {
                     isCapture = 1;
                     // cout<<Move(startSquare,targetSquare,0).convertToUCI()<<'
@@ -113,19 +111,14 @@ struct MoveListGenerator {
                     int attackingPiece = board.occupancyPiece(startSquare);
                     int capturedPiece = board.occupancyPiece(targetSquare);
 
-                    int captureEval;
-                    captureEval = sseEval = moveGenerator.sseEval(board, targetSquare, color, startSquare);
-
-                    seeTable[depth][startSquare][targetSquare] = sseEval;
-
                     int historyScore = historyHelper.getScore(board, color, Move(startSquare, targetSquare, NOPIECE));
                     int normHistoryScore = historyScore - historyHelper.maxHistoryScore;
                     float historyScoreF = float(normHistoryScore) / historyHelper.maxHistoryScore;
 
-                    if (captureEval <= -qsBadCapturesMargin && onlyCaptures)
-                    	continue;
+                    if (onlyCaptures && !moveGenerator.seeEval(board, targetSquare, color, startSquare, -qsBadCapturesMargin))
+                        continue;
 
-                    if (captureEval >= -badCapturesBase - normHistoryScore * badCapturesHistory / 512)
+                    if (moveGenerator.seeEval(board, targetSquare, color, startSquare, -badCapturesBase - normHistoryScore * badCapturesHistory / 512))
                         captureCoeff += (1 << 15);
 
                     captureCoeff += (material[capturedPiece] + historyScore * moveOrderHistoryScore / 16);

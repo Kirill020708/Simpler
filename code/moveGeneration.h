@@ -337,9 +337,8 @@ struct MoveGeneration {
     }
 
     int pieceMaterial[7] = {0, seePawn, seeKnight, seeBishop, seeRook, seeQueen, 100000};
-    int evalStack[32];
 
-    inline int sseEval(Board &board, int square, int color, int firstAttacker) {
+    inline bool seeEval(Board &board, int square, int color, int firstAttacker, int threshold) {
 
         Bitboard whiteKingRay = boardHelper.rayPair[(board.whitePieces & board.kings).getFirstBitNumber()][square];
         Bitboard blackKingRay = boardHelper.rayPair[(board.blackPieces & board.kings).getFirstBitNumber()][square];
@@ -348,10 +347,13 @@ struct MoveGeneration {
         allowed |= board.kings;
 
         Board boardCopy = board;
-        int captureNumber = 1;
-        int eval = 0;
-        evalStack[0] = 0;
+        int captureNumber = 0;
+        int score = threshold;
+
         while (true) {
+            score = -score;
+            captureNumber++;
+
             int attacker;
             if (captureNumber == 1)
                 attacker = firstAttacker;
@@ -360,23 +362,15 @@ struct MoveGeneration {
 
             // cout<<attacker<<'\n';
 
-            int mult = (captureNumber & 1) ? 1 : -1;
-
-            if (attacker == -1) {
-                eval *= mult;
+            if (attacker == -1)
                 break;
-            }
 
             int capturedPiece = board.occupancyPiece(square);
             int attackingPiece = board.occupancyPiece(attacker);
 
             bool isPromotion = 0;
-            if (attackingPiece == PAWN) {
-                if (color == WHITE)
-                    isPromotion = (square < 8);
-                else
-                    isPromotion = (square >= 56);
-            }
+            if (attackingPiece == PAWN)
+                isPromotion = (square < 8) || (square >= 56);
 
             board.makeMoveLight(Move(attacker, square, isPromotion * QUEEN));
             if (attackingPiece == KING) {
@@ -384,31 +378,32 @@ struct MoveGeneration {
                     break;
             }
 
-            evalStack[captureNumber++] =
-                pieceMaterial[capturedPiece] + isPromotion * (pieceMaterial[QUEEN] - pieceMaterial[PAWN]);
+            int moveValue = pieceMaterial[capturedPiece] + isPromotion * (pieceMaterial[QUEEN] - pieceMaterial[PAWN]);
 
-            eval += evalStack[captureNumber - 1];
+            score += moveValue;
+            int pieceValue = pieceMaterial[attackingPiece];
+            if (isPromotion)
+                pieceValue = pieceMaterial[QUEEN];
+
+            if (score < 0) {
+                board = boardCopy;
+                return !(captureNumber & 1);
+            }
+
+            if (score - pieceValue >= 0) {
+                board = boardCopy;
+                return (captureNumber & 1);
+            }
+
             if (attackingPiece == KING) {
                 break;
             }
-            eval = -eval;
+
             color = (color == WHITE) ? BLACK : WHITE;
         }
+
         board = boardCopy;
-        evalStack[captureNumber] = 0;
-
-        // for(ll i=0;i<captureNumber;i++)
-        // 	cout<<evalStack[i]<<' ';
-        // cout<<'\n';
-
-        for (int i = captureNumber - 2; i >= 2; i--) {
-            evalStack[i] = max(0, -evalStack[i + 1] + evalStack[i]);
-        }
-        // for(ll i=0;i<captureNumber;i++)
-        // 	cout<<evalStack[i]<<' ';
-        // cout<<'\n';
-
-        return evalStack[1] - evalStack[2];
+        return !(captureNumber & 1);
     }
 
     bool isMoveLegal(Board &board, Move move) {
@@ -432,59 +427,59 @@ struct MoveGeneration {
     }
 
     Bitboard computeAttackBitboardsW(Board &board) {
-    	Bitboard attacks, pieces, whitePawns = board.pawns & board.whitePieces;
+        Bitboard attacks, pieces, whitePawns = board.pawns & board.whitePieces;
 
         attacks |= (((whitePawns & (~boardHelper.getColumn(7))) >> 7) | ((whitePawns & (~boardHelper.getColumn(0))) >> 9));
 
-    	pieces = board.knights & board.whitePieces;
-    	while (pieces > 0)
-    		attacks |= knightMoves(board, pieces.getFirstBitNumberAndExclude());
+        pieces = board.knights & board.whitePieces;
+        while (pieces > 0)
+            attacks |= knightMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	pieces = board.bishops & board.whitePieces;
-    	while (pieces > 0)
-    		attacks |= bishopMoves(board, pieces.getFirstBitNumberAndExclude());
+        pieces = board.bishops & board.whitePieces;
+        while (pieces > 0)
+            attacks |= bishopMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	pieces = board.rooks & board.whitePieces;
-    	while (pieces > 0)
-    		attacks |= rookMoves(board, pieces.getFirstBitNumberAndExclude());
+        pieces = board.rooks & board.whitePieces;
+        while (pieces > 0)
+            attacks |= rookMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	pieces = board.queens & board.whitePieces;
-    	while (pieces > 0)
-    		attacks |= queenMoves(board, pieces.getFirstBitNumberAndExclude());
+        pieces = board.queens & board.whitePieces;
+        while (pieces > 0)
+            attacks |= queenMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	pieces = board.kings & board.whitePieces;
-    	while (pieces > 0)
-    		attacks |= kingMoves(board, pieces.getFirstBitNumberAndExclude());
+        pieces = board.kings & board.whitePieces;
+        while (pieces > 0)
+            attacks |= kingMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	return attacks & (~board.whitePieces);
+        return attacks & (~board.whitePieces);
     }
 
     Bitboard computeAttackBitboardsB(Board &board) {
-    	Bitboard attacks, pieces, blackPawns = board.pawns & board.blackPieces;
+        Bitboard attacks, pieces, blackPawns = board.pawns & board.blackPieces;
 
-    	attacks |= (((blackPawns & (~boardHelper.getColumn(0))) << 7) | ((blackPawns & (~boardHelper.getColumn(7))) << 9));
-    	
-    	pieces = board.knights & board.blackPieces;
-    	while (pieces > 0)
-    		attacks |= knightMoves(board, pieces.getFirstBitNumberAndExclude());
+        attacks |= (((blackPawns & (~boardHelper.getColumn(0))) << 7) | ((blackPawns & (~boardHelper.getColumn(7))) << 9));
+        
+        pieces = board.knights & board.blackPieces;
+        while (pieces > 0)
+            attacks |= knightMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	pieces = board.bishops & board.blackPieces;
-    	while (pieces > 0)
-    		attacks |= bishopMoves(board, pieces.getFirstBitNumberAndExclude());
+        pieces = board.bishops & board.blackPieces;
+        while (pieces > 0)
+            attacks |= bishopMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	pieces = board.rooks & board.blackPieces;
-    	while (pieces > 0)
-    		attacks |= rookMoves(board, pieces.getFirstBitNumberAndExclude());
+        pieces = board.rooks & board.blackPieces;
+        while (pieces > 0)
+            attacks |= rookMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	pieces = board.queens & board.blackPieces;
-    	while (pieces > 0)
-    		attacks |= queenMoves(board, pieces.getFirstBitNumberAndExclude());
+        pieces = board.queens & board.blackPieces;
+        while (pieces > 0)
+            attacks |= queenMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	pieces = board.kings & board.blackPieces;
-    	while (pieces > 0)
-    		attacks |= kingMoves(board, pieces.getFirstBitNumberAndExclude());
+        pieces = board.kings & board.blackPieces;
+        while (pieces > 0)
+            attacks |= kingMoves(board, pieces.getFirstBitNumberAndExclude());
 
-    	return attacks & (~board.blackPieces);
+        return attacks & (~board.blackPieces);
     }
 };
 
