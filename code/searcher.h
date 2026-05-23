@@ -747,16 +747,16 @@ struct Worker {
 
                 if (!isCapture) {
                     //Quiets SEE pruning
-                    int seeMarginQuiet = (seeQBaseD0 + historyValue * seeQHistoryD0 / 512) +
-                                         (seeQBaseD1 + historyValue * seeQHistoryD1 / 512) * depth +
-                                         (seeQBaseD2 + historyValue * seeQHistoryD2 / 512) * depth * depth;
+                    // int seeMarginQuiet = (seeQBaseD0 + historyValue * seeQHistoryD0 / 512) +
+                    //                      (seeQBaseD1 + historyValue * seeQHistoryD1 / 512) * depth +
+                    //                      (seeQBaseD2 + historyValue * seeQHistoryD2 / 512) * depth * depth;
 
-                    if (movesSearched > 0 &&
-                        !isPvNode &&
-                        !moveGenerator.seeEval(board, move.getTargetSquare(), color, move.getStartSquare(), -seeMarginQuiet)) {
+                    // if (movesSearched > 0 &&
+                    //     !isPvNode &&
+                    //     !moveGenerator.seeEval(board, move.getTargetSquare(), color, move.getStartSquare(), -seeMarginQuiet)) {
 
-                        continue;
-                    }
+                    //     continue;
+                    // }
                 } else {
 
                     // Captures SEE pruning
