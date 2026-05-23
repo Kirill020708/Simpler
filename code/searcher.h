@@ -745,16 +745,31 @@ struct Worker {
                     continue;
                 }
 
-                // Captures SEE pruning
-                int seeMarginNoisy = (seeBaseD0 + historyValue * seeHistoryD0 / 512) +
-                                     (seeBaseD1 + historyValue * seeHistoryD1 / 512) * depth +
-                                     (seeBaseD2 + historyValue * seeHistoryD2 / 512) * depth * depth;
-                if (movesSearched > 0 &&
-                    !isPvNode &&
-                    !inCheck &&
-                    !moveGenerator.seeEval(board, move.getTargetSquare(), color, move.getStartSquare(), -seeMarginNoisy)) {
+                if (!isCapture) {
+                    //Quiets SEE pruning
+                    int seeMarginQuiet = (seeQBaseD0 + historyValue * seeQHistoryD0 / 512) +
+                                         (seeQBaseD1 + historyValue * seeQHistoryD1 / 512) * depth +
+                                         (seeQBaseD2 + historyValue * seeQHistoryD2 / 512) * depth * depth;
 
-                    continue;
+                    if (movesSearched > 0 &&
+                        !isPvNode &&
+                        !moveGenerator.seeEval(board, move.getTargetSquare(), color, move.getStartSquare(), -seeMarginQuiet)) {
+
+                        continue;
+                    }
+                } else {
+
+                    // Captures SEE pruning
+                    int seeMarginNoisy = (seeNBaseD0 + historyValue * seeNHistoryD0 / 512) +
+                                         (seeNBaseD1 + historyValue * seeNHistoryD1 / 512) * depth +
+                                         (seeNBaseD2 + historyValue * seeNHistoryD2 / 512) * depth * depth;
+                    if (movesSearched > 0 &&
+                        !isPvNode &&
+                        !inCheck &&
+                        !moveGenerator.seeEval(board, move.getTargetSquare(), color, move.getStartSquare(), -seeMarginNoisy)) {
+
+                        continue;
+                    }
                 }
             }
 

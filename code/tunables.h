@@ -85,12 +85,19 @@
 #define fpTTcaptureD0 0 // 0 200
 #define fpHistoryD0 0 // 0 200
 
-#define seeBaseD0 0 // 0 500
-#define seeHistoryD0 0 // 0 200
-#define seeBaseD1 100 // 0 500
-#define seeHistoryD1 70 // 0 200
-#define seeBaseD2 0 // 0 500
-#define seeHistoryD2 0 // 0 200
+#define seeQBaseD0 0 // 0 500
+#define seeQHistoryD0 0 // 0 200
+#define seeQBaseD1 100 // 0 500
+#define seeQHistoryD1 70 // 0 200
+#define seeQBaseD2 0 // 0 500
+#define seeQHistoryD2 0 // 0 200
+
+#define seeNBaseD0 0 // 0 500
+#define seeNHistoryD0 0 // 0 200
+#define seeNBaseD1 100 // 0 500
+#define seeNHistoryD1 70 // 0 200
+#define seeNBaseD2 0 // 0 500
+#define seeNHistoryD2 0 // 0 200
 
 #define lmrDivisor 341 // 0 2048
 #define lmrBase 512 // 0 4096
