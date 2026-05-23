@@ -87,8 +87,8 @@
 
 #define seeQBaseD0 0 // 0 500
 #define seeQHistoryD0 0 // 0 200
-#define seeQBaseD1 100 // 0 500
-#define seeQHistoryD1 70 // 0 200
+#define seeQBaseD1 70 // 0 500
+#define seeQHistoryD1 30 // 0 200
 #define seeQBaseD2 0 // 0 500
 #define seeQHistoryD2 0 // 0 200
 
