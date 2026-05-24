@@ -53,7 +53,7 @@ string squareToString(int square) {
 
 int main(int argc, char *argv[]) {
     #if !defined(NEON)
-    cout<<"HADJKSHSJDKH";
+    asdjkajkshdjksahj
     #endif
 	initLmrTable();
     // texelTuner.checkData();
