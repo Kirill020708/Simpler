@@ -49,10 +49,10 @@ bool initialized = false;
 alignas(64) __int16_t w0[inputBuckets][inputSize][hl1Size];
 alignas(64) __int16_t b0[hl1Size];
 
-#ifdef SCALAR
-alignas(64) __int8_t w1[outputBuckets * inputBuckets][hl2Size][hl1Size];
-#else
+#if defined(AVX) || defined(NEON)
 alignas(64) __int8_t w1[outputBuckets * inputBuckets][hl1Size / 4][w1BlockSize];
+#else
+alignas(64) __int8_t w1[outputBuckets * inputBuckets][hl2Size][hl1Size];
 #endif
 alignas(64) int b1[outputBuckets * inputBuckets][hl2Size];
 alignas(64) int w2[outputBuckets * inputBuckets][hl2Size * 2][hl3Size];
@@ -217,44 +217,58 @@ struct FinnyTable {
 
     void clear() {
 
-        #ifdef SCALAR
-            for (int i = 0; i < hl1Size; i++)
-                accum[i] = b0[i];
-        #else
+        #if defined(AVX)
             for (int i = 0; i < hl1Size; i += vecsize / i16s) {
                 store((vec *)&accum[i], load((vec *)&b0[i]));
             }
+        #elif defined(NEON)
+            for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+                vst1q_s16(&accum[i], vld1q_s16(&b0[i]));
+            }
+        #else
+            for (int i = 0; i < hl1Size; i++)
+                accum[i] = b0[i];
         #endif
     }
 
 
     void Sub(int updI, int buckets) {
 
-        #ifdef SCALAR
-            for (int i = 0; i < hl1Size; i++)
-                accum[i] -= w0[buckets][updI][i];
-        #else
+        #ifdef AVX
             for (int i = 0; i < hl1Size; i += vecsize / i16s) {
 
                 store((vec *)&accum[i],
                                     sub16(load((vec *)&accum[i]),
                                                      load((vec *)&w0[buckets][updI][i])));
             }
+        #elif defined(NEON)
+            for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+                vst1q_s16(&accum[i], vsubq_s16(vld1q_s16(&accum[i]),
+                                               vld1q_s16(&w0[buckets][updI][i])));
+            }
+        #else
+            for (int i = 0; i < hl1Size; i++)
+                accum[i] -= w0[buckets][updI][i];
         #endif
     }
 
     void Add(int updI, int buckets) {
 
-        #ifdef SCALAR
-            for (int i = 0; i < hl1Size; i++)
-                accum[i] += w0[buckets][updI][i];
-        #else
+        #ifdef AVX
             for (int i = 0; i < hl1Size; i += vecsize / i16s) {
 
                 store((vec *)&accum[i],
                                     add16(load((vec *)&accum[i]),
                                                      load((vec *)&w0[buckets][updI][i])));
             }
+        #elif defined(NEON)
+            for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+                vst1q_s16(&accum[i], vaddq_s16(vld1q_s16(&accum[i]),
+                                               vld1q_s16(&w0[buckets][updI][i])));
+            }
+        #else
+            for (int i = 0; i < hl1Size; i++)
+                accum[i] += w0[buckets][updI][i];
         #endif
     }
 
@@ -294,13 +308,17 @@ struct FinnyTable {
 
         board = newBoard;
 
-        #ifdef SCALAR
-            for (int i = 0; i < hl1Size; i++)
-                hlSum[i] = accum[i];
-        #else
+        #ifdef AVX
             for (int i = 0; i < hl1Size; i += vecsize / i16s) {
                 store((vec *)&hlSum[i], load((vec *)&accum[i]));
             }
+        #elif defined(NEON)
+            for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+                vst1q_s16(&hlSum[i], vld1q_s16(&accum[i]));
+            }
+        #else
+            for (int i = 0; i < hl1Size; i++)
+                hlSum[i] = accum[i];
         #endif
 
     }
@@ -337,14 +355,19 @@ struct NNUEevaluator {
     }
 
     void clear(int idx) {
-        #ifdef SCALAR
-            for (int i = 0; i < hl1Size; i++)
-                hlSumW[idx][i] = hlSumB[idx][i] = b0[i];
-        #else
+        #ifdef AVX
             for (int i = 0; i < hl1Size; i += vecsize / i16s) {
                 store((vec *)&hlSumW[idx][i], load((vec *)&b0[i]));
                 store((vec *)&hlSumB[idx][i], load((vec *)&b0[i]));
             }
+        #elif defined(NEON)
+            for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+                vst1q_s16(&hlSumW[idx][i], vld1q_s16(&b0[i]));
+                vst1q_s16(&hlSumB[idx][i], vld1q_s16(&b0[i]));
+            }
+        #else
+            for (int i = 0; i < hl1Size; i++)
+                hlSumW[idx][i] = hlSumB[idx][i] = b0[i];
         #endif
     }
 
@@ -361,12 +384,7 @@ struct NNUEevaluator {
     }
 
     void Add(int idx, pair<int, int>updI, pair<ll, ll>buckets) {
-        #ifdef SCALAR
-            for (int i = 0; i < hl1Size; i++) {
-                hlSumW[idx][i] += w0[buckets.F][updI.F][i];
-                hlSumB[idx][i] += w0[buckets.S][updI.S][i];
-            }
-        #else
+        #ifdef AVX
             for (int i = 0; i < hl1Size; i += vecsize / i16s) {
 
                 store((vec *)&hlSumW[idx][i],
@@ -376,21 +394,26 @@ struct NNUEevaluator {
                                     add16(load((vec *)&hlSumB[idx][i]),
                                                      load((vec *)&w0[buckets.S][updI.S][i])));
             }
+        #elif defined(NEON)
+            for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+                vst1q_s16(&hlSumW[idx][i], vaddq_s16(vld1q_s16(&hlSumW[idx][i]),
+                                                     vld1q_s16(&w0[buckets.F][updI.F][i])));
+
+                vst1q_s16(&hlSumB[idx][i], vaddq_s16(vld1q_s16(&hlSumB[idx][i]),
+                                                     vld1q_s16(&w0[buckets.S][updI.S][i])));
+            }
+        #else
+            for (int i = 0; i < hl1Size; i++) {
+                hlSumW[idx][i] += w0[buckets.F][updI.F][i];
+                hlSumB[idx][i] += w0[buckets.S][updI.S][i];
+            }
         #endif
     }
 
     
 
     void SubAdd(int idx, pair<ll, ll>buckets) {
-        #ifdef SCALAR
-            for (int i = 0; i < hl1Size; i++) {
-                hlSumW[idx][i] = hlSumW[idx - 1][i] + w0[buckets.F][updateW[idx][1]][i]
-                                                    - w0[buckets.F][updateW[idx][0]][i];
-
-                hlSumB[idx][i] = hlSumB[idx - 1][i] + w0[buckets.S][updateB[idx][1]][i]
-                                                    - w0[buckets.S][updateB[idx][0]][i];
-            }
-        #else
+        #ifdef AVX
             for (int i = 0; i < hl1Size; i += vecsize / i16s) {
 
                 store((vec *)&hlSumW[idx][i],
@@ -403,21 +426,30 @@ struct NNUEevaluator {
                                         sub16(load((vec *)&w0[buckets.S][updateB[idx][1]][i]),
                                                          load((vec *)&w0[buckets.S][updateB[idx][0]][i]))));
             }
+        #elif defined(NEON)
+            for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+                vst1q_s16(&hlSumW[idx][i], vaddq_s16(vld1q_s16(&hlSumW[idx - 1][i]),
+                                                     vsubq_s16(vld1q_s16(&w0[buckets.F][updateW[idx][1]][i]),
+                                                               vld1q_s16(&w0[buckets.F][updateW[idx][0]][i]))));
+
+                vst1q_s16(&hlSumB[idx][i], vaddq_s16(vld1q_s16(&hlSumB[idx - 1][i]),
+                                                     vsubq_s16(vld1q_s16(&w0[buckets.S][updateB[idx][1]][i]),
+                                                               vld1q_s16(&w0[buckets.S][updateB[idx][0]][i]))));
+
+            }
+        #else
+            for (int i = 0; i < hl1Size; i++) {
+                hlSumW[idx][i] = hlSumW[idx - 1][i] + w0[buckets.F][updateW[idx][1]][i]
+                                                    - w0[buckets.F][updateW[idx][0]][i];
+
+                hlSumB[idx][i] = hlSumB[idx - 1][i] + w0[buckets.S][updateB[idx][1]][i]
+                                                    - w0[buckets.S][updateB[idx][0]][i];
+            }
         #endif
     }
 
     void SubSubAdd(int idx, pair<ll, ll>buckets) {
-        #ifdef SCALAR
-            for (int i = 0; i < hl1Size; i++) {
-                hlSumW[idx][i] = hlSumW[idx - 1][i] + w0[buckets.F][updateW[idx][2]][i]
-                                                    - w0[buckets.F][updateW[idx][1]][i]
-                                                    - w0[buckets.F][updateW[idx][0]][i];
-
-                hlSumB[idx][i] = hlSumB[idx - 1][i] + w0[buckets.S][updateB[idx][2]][i]
-                                                    - w0[buckets.S][updateB[idx][1]][i]
-                                                    - w0[buckets.S][updateB[idx][0]][i];
-            }
-        #else
+        #ifdef AVX
             for (int i = 0; i < hl1Size; i += vecsize / i16s) {
 
                 store((vec *)&hlSumW[idx][i],
@@ -434,23 +466,35 @@ struct NNUEevaluator {
                                                          load((vec *)&w0[buckets.S][updateB[idx][1]][i])))));
 
             }
+        #elif defined(NEON)
+            for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+                vst1q_s16(&hlSumW[idx][i], vaddq_s16(vld1q_s16(&hlSumW[idx - 1][i]),
+                                                     vsubq_s16(vld1q_s16(&w0[buckets.F][updateW[idx][2]][i]),
+                                                               vaddq_s16(vld1q_s16(&w0[buckets.F][updateW[idx][0]][i]),
+                                                                         vld1q_s16(&w0[buckets.F][updateW[idx][1]][i])))));
+
+                vst1q_s16(&hlSumB[idx][i], vaddq_s16(vld1q_s16(&hlSumB[idx - 1][i]),
+                                                     vsubq_s16(vld1q_s16(&w0[buckets.S][updateB[idx][2]][i]),
+                                                               vaddq_s16(vld1q_s16(&w0[buckets.S][updateB[idx][0]][i]),
+                                                                         vld1q_s16(&w0[buckets.S][updateB[idx][1]][i])))));
+
+
+            }
+        #else
+            for (int i = 0; i < hl1Size; i++) {
+                hlSumW[idx][i] = hlSumW[idx - 1][i] + w0[buckets.F][updateW[idx][2]][i]
+                                                    - w0[buckets.F][updateW[idx][1]][i]
+                                                    - w0[buckets.F][updateW[idx][0]][i];
+
+                hlSumB[idx][i] = hlSumB[idx - 1][i] + w0[buckets.S][updateB[idx][2]][i]
+                                                    - w0[buckets.S][updateB[idx][1]][i]
+                                                    - w0[buckets.S][updateB[idx][0]][i];
+            }
         #endif
     }
 
     void SubAddSubAdd(int idx, pair<ll, ll>buckets) {
-        #ifdef SCALAR
-            for (int i = 0; i < hl1Size; i++) {
-                hlSumW[idx][i] = hlSumW[idx - 1][i] + w0[buckets.F][updateW[idx][1]][i]
-                                                    + w0[buckets.F][updateW[idx][3]][i]
-                                                    - w0[buckets.F][updateW[idx][0]][i]
-                                                    - w0[buckets.F][updateW[idx][2]][i];
-
-                hlSumB[idx][i] = hlSumB[idx - 1][i] + w0[buckets.S][updateB[idx][1]][i]
-                                                    + w0[buckets.S][updateB[idx][3]][i]
-                                                    - w0[buckets.S][updateB[idx][0]][i]
-                                                    - w0[buckets.S][updateB[idx][2]][i];
-            }
-        #else
+        #ifdef AVX
             for (int i = 0; i < hl1Size; i += vecsize / i16s) {
 
                 store((vec *)&hlSumW[idx][i],
@@ -470,6 +514,43 @@ struct NNUEevaluator {
                                                              load((vec *)&w0[buckets.S][updateB[idx][2]][i])))));
 
             }
+        #elif defined(NEON)
+            for (int i = 0; i < hl1Size; i += vecsize / i16s) {
+                vst1q_s16(&hlSumW[idx][i], vaddq_s16(vld1q_s16(&hlSumW[idx - 1][i]),
+                vaddq_s16(vsubq_s16(
+                    vld1q_s16(&w0[buckets.F][updateW[idx][1]][i]),
+                    vld1q_s16(&w0[buckets.F][updateW[idx][0]][i])
+                ),
+                vsubq_s16(
+                    vld1q_s16(&w0[buckets.F][updateW[idx][3]][i]),
+                    vld1q_s16(&w0[buckets.F][updateW[idx][2]][i])
+                )
+            )));
+
+            
+            vst1q_s16(&hlSumB[idx][i], vaddq_s16(vld1q_s16(&hlSumB[idx - 1][i]),
+                vaddq_s16(vsubq_s16(
+                    vld1q_s16(&w0[buckets.S][updateB[idx][1]][i]),
+                    vld1q_s16(&w0[buckets.S][updateB[idx][0]][i])
+                ),
+                vsubq_s16(
+                    vld1q_s16(&w0[buckets.S][updateB[idx][3]][i]),
+                    vld1q_s16(&w0[buckets.S][updateB[idx][2]][i])
+                )
+            )));
+            }
+        #else
+            for (int i = 0; i < hl1Size; i++) {
+                hlSumW[idx][i] = hlSumW[idx - 1][i] + w0[buckets.F][updateW[idx][1]][i]
+                                                    + w0[buckets.F][updateW[idx][3]][i]
+                                                    - w0[buckets.F][updateW[idx][0]][i]
+                                                    - w0[buckets.F][updateW[idx][2]][i];
+
+                hlSumB[idx][i] = hlSumB[idx - 1][i] + w0[buckets.S][updateB[idx][1]][i]
+                                                    + w0[buckets.S][updateB[idx][3]][i]
+                                                    - w0[buckets.S][updateB[idx][0]][i]
+                                                    - w0[buckets.S][updateB[idx][2]][i];
+            }
         #endif
     }
 
@@ -478,23 +559,18 @@ struct NNUEevaluator {
         return x * x;
     }
 
-#if defined(__AVX2__) || defined(__AVX512F__)
+#if defined(AVX)
     inline vechalf pack(vec activations) {
         return packus16(activations);
+    }
+#elif defined(NEON)
+    inline vec8half pack(vec16 activations) {
+        return vqmovun_s16(activations);
     }
 #endif
 
     inline void activateAcc(const __int16_t *accumulator, uint8_t *out) {
-        #ifdef SCALAR
-
-            for (int i = 0; i < hl1Size / 2; i++) {
-
-                int ac1 = clamp(int(accumulator[i]), 0, int(Q0));
-                int ac2 = clamp(int(accumulator[hl1Size / 2 + i]), 0, int(Q0));
-
-                out[i] = (ac1 * ac2) >> 9;
-            }
-        #else
+        #ifdef AVX
 
             const vec zero = setzero();
             const vec one = set1_16(Q0);
@@ -511,19 +587,67 @@ struct NNUEevaluator {
                 vec ac = mulhi16(slli16(ac1, 7), ac2);
                 storehalf((vechalf *)(out + i), pack(ac));
             }
+        
+        #elif defined(NEON)
+            
+            const vec16 zero = setzero16;
+            const vec16 one = set1_16(Q0);
+
+            for (int i = 0; i < hl1Size / 2; i += vecsize / i16s) {
+                vec16 ac1 = load16((accumulator + i));
+                ac1 = max16(ac1, zero);
+                ac1 = min16(ac1, one);
+
+                vec16 ac2 = load16((accumulator + hl1Size / 2 + i));
+                ac2 = max16(ac2, zero);
+                ac2 = min16(ac2, one);
+
+                vec16 ac = mulhi16(ac1, ac2, 7);
+                vst1_u8((out + i), pack(ac));
+            }
+            
+        #else
+
+            for (int i = 0; i < hl1Size / 2; i++) {
+
+                int ac1 = clamp(int(accumulator[i]), 0, int(Q0));
+                int ac2 = clamp(int(accumulator[hl1Size / 2 + i]), 0, int(Q0));
+
+                out[i] = (ac1 * ac2) >> 9;
+            }
         #endif
     }
 
-#if defined(__AVX2__) || defined(__AVX512F__)
+#if defined(AVX)
     inline vec dpbusdx2(vec sum, uint32_t packed0, vec weights0, uint32_t packed1, vec weights1,
                             vec ones) {
         vec partial0 = maddubs16(set1_32(packed0), weights0);
         vec partial1 = maddubs16(set1_32(packed1), weights1);
         return add32(sum, maddwd16(add16(partial0, partial1), ones));
     }
+
+#elif defined(NEON)
+
+    inline vec32 dpbusd(vec32 accum, vec8 a, vec8 b) {
+        #ifdef __ARM_FEATURE_DOTPROD
+            return vdotq_s32(accum, a, b);
+        #else
+            const auto low = vmull_s8(vget_low_s8(a), vget_low_s8(b));
+            const auto high = vmull_high_s8(a, b);
+            const auto p = vpaddq_s16(low, high);
+            return vpadalq_s16(accum, p);
+        #endif
+    }
+
+    inline vec32 dpbusdx2(vec32 sum, uint32_t packed0, vec8 weights0, uint32_t packed1, vec8 weights1) {
+        vec32 partial0 = dpbusd(sum, vreinterpretq_u8_s8(set1u_32(packed0)), weights0);
+        vec32 partial1 = dpbusd(setzero32, vreinterpretq_u8_s8(set1u_32(packed1)), weights1);
+        return add32(partial0, partial1);
+    }
+
 #endif
 
-#if defined(__AVX2__) || defined(__AVX512F__)
+#if defined(AVX)
     inline int findNonZeroIndices(const uint32_t *packedFt, uint16_t *indices) {
         int count = 0;
         constexpr int elems = vecsize / i32s;
@@ -540,7 +664,29 @@ struct NNUEevaluator {
         }
         return count;
     }
-  #endif  
+
+#elif defined(NEON)
+
+    inline int findNonZeroIndices(const uint32_t *packedFt, uint16_t *indices) {
+        int count = 0;
+        constexpr int elems = vecsize / i32s;
+
+        uint32_t kMask[4] = {1, 2, 4, 8};
+        vec32 vmask = loadu32(kMask);
+
+        for (int i = 0; i < hl1Size / 4; i += elems) {
+            vec32 v = loadu32(packedFt + i);
+            uint8_t byte = vaddvq_u32(vandq_u32(vtstq_u32(v, v), vmask));
+            vec16 lut  = loadu16(NZ_TABLE[byte].data());
+            vec16 base = set1_16((short)(i));
+            storeu16((indices + count), add16(lut, base));
+            
+            count += __builtin_popcount(byte);
+        }
+        return count;
+    }
+    
+#endif  
 
     void printAccum() {
         for (ll i = 0; i < hl1Size; i++)
@@ -602,48 +748,7 @@ struct NNUEevaluator {
 
         bucket = inbucket * materialBuckets + bucket;
 
-    #ifdef SCALAR
-
-        uint16_t nzIndices[hl1Size / 4 + 8];
-        int nzCount = 0;
-        for (int i = 0; i < hl1Size; i++)
-            if (activatedFt[i] != 0)
-                nzIndices[nzCount++] = i;
-
-        int L2[hl2Size];
-        memset(L2, 0, sizeof(L2));
-
-        for (int j = 0; j < hl2Size; j++)
-            for (int i = 0; i < nzCount; i++)
-                L2[j] += activatedFt[nzIndices[i]] * w1[bucket][j][nzIndices[i]];
-
-        int L2_act[2 * hl2Size];
-        for (int j = 0; j < hl2Size; j++) {
-            int x = L2[j];
-            x >>= 8;
-            x += b1[bucket][j];
-            L2_act[j] = clamp(x, 0, int(Q)) << 6;
-            L2_act[j + hl2Size] = clamp(x * x, 0, int(Q * Q));
-        }
-
-        int L3[hl3Size];
-        memset(L3, 0, sizeof(L3));
-
-        for(int i = 0; i < 2 * hl2Size; i++)
-            for (int j = 0; j < hl3Size; j++)
-                L3[j] += L2_act[i] * w2[bucket][i][j];
-
-        int sum = 0;
-        for (int i = 0; i < 32; i++) {
-            sum += clamp(L3[i] + b2[bucket][i], 0, int(Q * Q * Q)) * w3[bucket][i];
-        }
-        sum += b3[bucket];
-
-        sum = int64_t(sum) * SCALE / (Q*Q*Q*Q);
-
-        return sum;
-
-    #else
+    #ifdef AVX
 
         #ifdef PERM_COMP
         permComp.update(activatedFt);
@@ -700,30 +805,6 @@ struct NNUEevaluator {
                 accum[v][0] = add32(accum[v][0], maddwd16(partial, ones));
             }
         }
-        
-
-        // int i = 0;
-        // for (; i + 2 * L2_UNROLL <= hl1Size / 4; i += 2 * L2_UNROLL) {
-        //     for (int u = 0; u < L2_UNROLL; u++) {
-        //         const uint32_t ft1 = packedFt[i + 2 * u];
-        //         const uint32_t ft2 = packedFt[i + 2 * u + 1];
-
-        //         for (int v = 0; v < L2_VECS; v++) {
-        //             const vec w1_v = load((const vec *)&w1[bucket][i + 2 * u][v * (vecsize / i8s)]);
-        //             const vec w2_v = load((const vec *)&w1[bucket][i + 2 * u + 1][v * (vecsize / i8s)]);
-        //             accum[v][u] = dpbusdx2(accum[v][u], ft1, w1_v, ft2, w2_v, ones);
-        //         }
-        //     }
-        // }
-
-        // for (; i < hl1Size / 4; i++) {
-        //     const uint32_t ft = packedFt[i];
-        //     for (int v = 0; v < L2_VECS; v++) {
-        //         const vec w_v = load((const vec *)&w1[bucket][i][v * (vecsize / i8s)]);
-        //         const vec partial = maddubs16(set1_32(ft), w_v);
-        //         accum[v][0] = add32(accum[v][0], maddwd16(partial, ones));
-        //     }
-        // }
 
         for (int v = 0; v < L2_VECS; v++) {
             vec L2 = setzero();
@@ -760,58 +841,144 @@ struct NNUEevaluator {
 
         sum = int64_t(sum) * SCALE / (Q*Q*Q*Q);
         return sum;
+    
+    #elif defined(NEON)
+
+        #ifdef PERM_COMP
+        permComp.update(activatedFt);
+        #endif
+
+        const vec32 zero = setzero32;
+        // const vec q = set1_16(Q);
+        const vec32 q32 = set1_32(Q);
+        const vec32 qq = set1_32(Q * Q);
+        // const vec zerosm = set1_16(-1);
+
+
+        const uint32_t *packedFt = (const uint32_t *)activatedFt;
+
+        alignas(64) int hl2Activations[hl2Size * 2];
+
+        // number of vectors needed to store the hl2Size values
+        constexpr int L2_VECS = hl2Size * i32s / vecsize;
+        // to fit the 16 outputs we need 1 vector on avx512, 2 on avx2, 4 on neon
+        constexpr int L2_UNROLL = 4;
+
+        vec32 accum[L2_VECS][L2_UNROLL];
+        for (int v = 0; v < L2_VECS; v++)
+            for (int u = 0; u < L2_UNROLL; u++)
+                accum[v][u] = setzero32;
+
+        
+        alignas(64) uint16_t nzIndices[hl1Size / 4 + 8];
+        int nzCount = findNonZeroIndices(packedFt, nzIndices);
+
+        nnzTotal += nzCount;
+        nnzCount++;
+
+        int nzi = 0;
+        for (; nzi + 2 * L2_UNROLL <= nzCount; nzi += 2 * L2_UNROLL) {
+            for (int u = 0; u < L2_UNROLL; u++) {
+                const uint32_t ft1 = packedFt[nzIndices[nzi + 2 * u]];
+                const uint32_t ft2 = packedFt[nzIndices[nzi + 2 * u + 1]];
+
+                for (int v = 0; v < L2_VECS; v++) {
+                    const vec8 w1_v = load8(&w1[bucket][nzIndices[nzi + 2 * u]][v * (vecsize / i8s)]);
+                    const vec8 w2_v = load8(&w1[bucket][nzIndices[nzi + 2 * u + 1]][v * (vecsize / i8s)]);
+                    
+                    accum[v][u] = dpbusdx2(accum[v][u], ft1, w1_v, ft2, w2_v);
+                }
+            }
+        }
+
+        for (; nzi < nzCount; nzi++) {
+            const uint32_t ft = packedFt[nzIndices[nzi]];
+            for (int v = 0; v < L2_VECS; v++) {
+                const vec8 w_v = load8(&w1[bucket][nzIndices[nzi]][v * (vecsize / i8s)]);
+                accum[v][0] = dpbusd(accum[v][0], vreinterpretq_u8_u32(set1u_32(ft)), w_v);
+            }
+        }
+        
+        for (int v = 0; v < L2_VECS; v++) {
+            vec32 L2 = setzero32;
+            for (int u = 0; u < L2_UNROLL; u++) L2 = add32(L2, accum[v][u]);
+            L2 = srai32(L2, 8);
+            L2 = add32(L2, load32(&b1[bucket][v * (vecsize / i32s)]));
+            auto L2c = max32(L2, zero);
+            L2c = min32(L2c, q32);
+            L2 = mullo32(L2, L2);
+            L2 = min32(L2, qq);
+            store32(&hl2Activations[v * (vecsize / i32s)], slli32(L2c, 6));
+            store32(&hl2Activations[hl2Size + v * (vecsize / i32s)], L2);
+        }
+
+        alignas(64) int hl3Layer[hl3Size];
+        memset(hl3Layer, 0, sizeof(hl3Layer));
+
+        for (int i = 0; i < hl2Size * 2; i++) {
+            vec32 act = set1_32(hl2Activations[i]);
+            for(int j = 0; j < hl3Size; j += vecsize / i32s) {
+                store32(&hl3Layer[j], 
+                    add32(load32(&hl3Layer[j]), 
+                        mullo32(
+                            act, 
+                            load32(&w2[bucket][i][j]))));
+            }
+        }
+
+        int sum = 0;
+        for (int i = 0; i < 32; i++) {
+            sum += clamp(hl3Layer[i] + b2[bucket][i], 0, int(Q * Q * Q)) * w3[bucket][i];
+        }
+        sum += b3[bucket];
+
+        sum = int64_t(sum) * SCALE / (Q*Q*Q*Q);
+
+        return sum;
+
+
+    #else
+
+        uint16_t nzIndices[hl1Size / 4 + 8];
+        int nzCount = 0;
+        for (int i = 0; i < hl1Size; i++)
+            if (activatedFt[i] != 0)
+                nzIndices[nzCount++] = i;
+
+        int L2[hl2Size];
+        memset(L2, 0, sizeof(L2));
+
+        for (int j = 0; j < hl2Size; j++)
+            for (int i = 0; i < nzCount; i++)
+                L2[j] += activatedFt[nzIndices[i]] * w1[bucket][j][nzIndices[i]];
+
+        int L2_act[2 * hl2Size];
+        for (int j = 0; j < hl2Size; j++) {
+            int x = L2[j];
+            x >>= 8;
+            x += b1[bucket][j];
+            L2_act[j] = clamp(x, 0, int(Q)) << 6;
+            L2_act[j + hl2Size] = clamp(x * x, 0, int(Q * Q));
+        }
+
+        int L3[hl3Size];
+        memset(L3, 0, sizeof(L3));
+
+        for(int i = 0; i < 2 * hl2Size; i++)
+            for (int j = 0; j < hl3Size; j++)
+                L3[j] += L2_act[i] * w2[bucket][i][j];
+
+        int sum = 0;
+        for (int i = 0; i < 32; i++) {
+            sum += clamp(L3[i] + b2[bucket][i], 0, int(Q * Q * Q)) * w3[bucket][i];
+        }
+        sum += b3[bucket];
+
+        sum = int64_t(sum) * SCALE / (Q*Q*Q*Q);
+
+        return sum;
     #endif
     }
-
-    // int evaluate1(int color, int bucket) {
-    //     int output = 0;
-
-    //     vec outputV = setzero();
-
-    //     vec zerosm = set1_16(-1);
-    //     vec qas = set1_16(QA);
-
-    //     for (int i = 0; i < hl1Size; i += 16) {
-    //         vec hl = load((vec *)&hlSumW[i]);
-    //         hl = _mm256_and_si256(hl, _mm256_cmpgt_epi16(hl, zerosm));
-    //         hl = _mm256_blendv_epi8(hl, qas, _mm256_cmpgt_epi16(hl, qas));
-    //         vec hl0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 0));
-    //         hl0 = mullo32(hl0, hl0);
-    //         vec hl1 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 1));
-    //         hl1 = mullo32(hl1, hl1);
-    //         vec w1v = load((vec *)&w1[bucket][i + hl1Size * (color == BLACK)]);
-    //         outputV = add32(
-    //             outputV, mullo32(hl0, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 0))));
-    //         outputV = add32(
-    //             outputV, mullo32(hl1, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 1))));
-
-    //         hl = load((vec *)&hlSumB[i]);
-    //         hl = _mm256_and_si256(hl, _mm256_cmpgt_epi16(hl, zerosm));
-    //         hl = _mm256_blendv_epi8(hl, qas, _mm256_cmpgt_epi16(hl, qas));
-    //         hl0 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 0));
-    //         hl0 = mullo32(hl0, hl0);
-    //         hl1 = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(hl, 1));
-    //         hl1 = mullo32(hl1, hl1);
-    //         w1v = load((vec *)&w1[bucket][i + hl1Size * (color == WHITE)]);
-    //         outputV = add32(
-    //             outputV, mullo32(hl0, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 0))));
-    //         outputV = add32(
-    //             outputV, mullo32(hl1, _mm256_cvtepi16_epi32(_mm256_extracti128_si256(w1v, 1))));
-
-    //         // output+=screlu(hlSumW[i])*w1[i];
-    //         // output+=screlu(hlSumB[i])*w1[i+hl1Size];
-    //     }
-    //     vec hadd1 = _mm256_hadd_epi32(outputV, outputV);
-    //     vec hadd2 = _mm256_hadd_epi32(hadd1, hadd1);
-    //     vechalf sum128 = _mm_add_epi32(_mm256_castsi256_si128(hadd2), _mm256_extractf128_si256(hadd2, 1));
-    //     output = _mm_extract_epi32(sum128, 0);
-
-    //     output /= QA;
-    //     output += b1[bucket];
-    //     output *= SCALE;
-    //     output /= (QA * QB);
-    //     return output;
-    // }
 
     int getValue(vector<int8_t>&data, int &iter, int btCount) {
         if (btCount == 8)
@@ -890,12 +1057,15 @@ struct NNUEevaluator {
                     else
                         ni = nnzPermutation[i - hl1Size / 2] + hl1Size / 2;
 
-                    #ifdef SCALAR
-                    int i0 = j;
-                    int j0 = ni;
-                    #else
+                    #ifdef AVX
                     int i0 = ni / 4;
                     int j0 = j * 4 + (ni % 4);
+                    #elif defined(NEON)
+                    int i0 = ni / 4;
+                    int j0 = j * 4 + (ni % 4);
+                    #else
+                    int i0 = j;
+                    int j0 = ni;
                     #endif
 
                     w1[bucket][i0][j0] = getValue(data, iter, 8);

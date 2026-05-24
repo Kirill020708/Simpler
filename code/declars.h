@@ -17,6 +17,10 @@
 #include <immintrin.h>
 #endif
 
+#ifdef __ARM_NEON
+    #include <arm_neon.h>
+#endif
+
 #include <iomanip>
 #include <iostream>
 #include <map>
