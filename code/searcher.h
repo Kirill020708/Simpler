@@ -809,8 +809,11 @@ struct Worker {
                     - lmrCapture * (isCapture)
                     - lmrKiller * (isKiller)) / 1024; // reduction of depth
 
-                if (lmrReduction < 0)
+                if (lmrReduction < 0) {
                     lmrReduction = 0;
+                    if (cutNode)
+                        lmrReduction = -1;
+                }
 
                 lmrReduction = min(lmrReduction, depth - 1);
 
