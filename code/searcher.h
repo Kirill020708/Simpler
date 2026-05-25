@@ -395,6 +395,7 @@ struct Worker {
         int corrScore = corrhistHelper.getScore(color, board);
         staticEval = rawStaticEval + corrScore;
         bool corrplexity = (abs(corrScore) >= corrplexityMargin);
+        int corrplexScore = abs(corrScore);
 
         auto scorrEntry = ttEntry;
         correctTTscore(scorrEntry, staticEval, staticEval);
@@ -804,6 +805,7 @@ struct Worker {
                     + lmrCutnode * cutNode
                     + 1024 * (nodeType == EXACT)
                     - lmrTtpv * ttpv
+                    - 20 * corrplexScore / 256
                     - lmrCapture * (isCapture)
                     - lmrKiller * (isKiller)) / 1024; // reduction of depth
 
