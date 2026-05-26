@@ -805,7 +805,7 @@ struct Worker {
                     + lmrCutnode * cutNode
                     + 1024 * (nodeType == EXACT)
                     - lmrTtpv * ttpv
-                    - 20 * corrplexScore / 256
+                    - 0 * corrplexScore / 256
                     - lmrCapture * (isCapture)
                     - lmrKiller * (isKiller)) / 1024; // reduction of depth
 
