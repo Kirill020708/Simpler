@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
     mainNnueEvaluator.initFromFile();
     mainBoard = Board();
 
-    for (int i = 0; i < outputBuckets; i++) {
+    for (int i = 0; i < inputBuckets; i++) {
         mainNnueEvaluator.finnyTables[0][0][i].clear();
         mainNnueEvaluator.finnyTables[0][1][i].clear();
         mainNnueEvaluator.finnyTables[1][0][i].clear();
