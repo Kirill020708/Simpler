@@ -900,9 +900,8 @@ struct Worker {
                     }
 
                     if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
-                        staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
                         if (score > staticEval)
-                            corrhistHelper.update(color, board, (score - staticEval) * depth / 8);
+                            corrhistHelper.update(color, board, (score - rawStaticEval) * depth / 8);
                     }
 
                     historyHelper.whiteAttacks = whiteAttacks;
@@ -943,9 +942,8 @@ struct Worker {
             newTTmove = Move();
 
         if (!isMovingSideInCheck && (newTTmove == Move() || board.isQuietMove(newTTmove))) {
-            staticEval = rawStaticEval + corrhistHelper.getScore(color, board);
             if (type == EXACT || bestScore < staticEval)
-                corrhistHelper.update(color, board, (bestScore - staticEval) * depth / 8);
+                corrhistHelper.update(color, board, (bestScore - rawStaticEval) * depth / 8);
         }
 
         if (newTTmove == Move() && ttMove != Move())
