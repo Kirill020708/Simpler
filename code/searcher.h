@@ -1026,6 +1026,9 @@ struct Worker {
     bool doNormalization = true;
     int basetime = 1e9;
 
+    int lastCompletedDepth;
+    int lastScore;
+
     void IDsearch(Board &board, int maxDepth, ull softBound, ull hardBound, ull nodesLimit, ull nodesH, bool isMainThread, bool printUCI, vector<Worker> &workers) {
         
         nodesLim = nodesH;
@@ -1036,6 +1039,10 @@ struct Worker {
         int color = board.boardColor;
 
         stopSearch = false;
+
+        lastCompletedDepth = 0;
+        lastScore = 0;
+        
 
         Move bestMoves[257];
         int scores[257];
@@ -1060,7 +1067,10 @@ struct Worker {
             else
                 aspirationSearch(board, depth, score);
 
-            score = rootScore;
+            if (!stopSearch)
+                lastCompletedDepth = depth;
+
+            lastScore = score = rootScore;
 
             if (bestMove == Move()) {
                 auto ttEntry = transpositionTable.get(board, board.getZobristKey(), 0);
@@ -1141,6 +1151,7 @@ struct Worker {
                 ull totalNodes = 0;
                 for (int i = 0; i < workers.size(); i++)
                     totalNodes += workers[i].nodes;
+                    
 
                 if (printUCI && (!minimal || stopIDsearch || depth == maxDepth)) {
                     cout << "info depth " << depth;
@@ -1183,8 +1194,6 @@ struct Worker {
                 break;
         }
         
-        if (printUCI)
-            cout << "bestmove " << bestMove.convertToUCI() << endl;
     }
 };
 
@@ -1229,6 +1238,22 @@ struct Searcher {
         for (int i = 1; i < threadNumber; i++) {
             workers[i].stopSearch = true;
             threadPool[i].join();
+        }
+
+        if (doInfoOutput) {
+            int bestThread = -1, bestScore = -inf;
+            for (int i = 0; i < threadNumber; i++)
+                if (workers[i].lastCompletedDepth > 0) {
+                    int threadScore = workers[i].lastCompletedDepth * 100 + workers[i].lastScore;
+                    if (bestScore < threadScore) {
+                        bestScore = threadScore;
+                        bestThread = i;
+                    }
+                }
+            if (bestThread == -1)
+                bestThread = 0;
+            
+            cout << "bestmove " << workers[bestThread].bestMove.convertToUCI() << endl;
         }
     }
 
