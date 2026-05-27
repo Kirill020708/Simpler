@@ -283,8 +283,17 @@ struct UCIcommunicationHepler {
             if (movetime != -1) {
                 softBound = hardBound = timeToThink = movetime;
             }
-            searcherThread = thread(&Searcher::iterativeDeepeningSearch, &searcher, depth, softBound, hardBound, nodes, hardNodesOpt);
+            searcher.maxDepth = depth;
+            searcher.softBound = softBound;
+            searcher.hardBound = hardBound;
+            searcher.nodesLimit = nodes;
+            searcher.nodesH = hardNodesOpt;
+            // searcherThread = thread(&Searcher::iterativeDeepeningSearch, &searcher, depth, softBound, hardBound, nodes, hardNodesOpt);
             // searcher.iterativeDeepeningSearch(depth, softBound, hardBound, nodes, hardNodesOpt);
+
+            lock_guard<std::mutex> lock(searchListenerMutex);
+            needsSearch = true;
+            searchListenerCondVar.notify_one();
         }
         if (mainCommand == "perft") {
             perftester.perfTest(stoi(tokens[1]));

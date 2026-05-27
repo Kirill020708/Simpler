@@ -1188,6 +1188,10 @@ struct Worker {
     }
 };
 
+mutex searchListenerMutex;
+condition_variable searchListenerCondVar;
+bool needsSearch = false;
+
 struct Searcher {
     bool doInfoOutput = true;
     int threadNumber = 1;
@@ -1199,7 +1203,10 @@ struct Searcher {
         workers.resize(threadNumber);
     }
 
-    void iterativeDeepeningSearch(int maxDepth, ull softBound, ull hardBound, ull nodesLimit, ull nodesH) {
+    int maxDepth;
+    ull softBound, hardBound, nodesLimit, nodesH;
+
+    void iterativeDeepeningSearch() {
         workers[0].nodesLim = nodesH;
         stopIDsearch = false;
         int color = mainBoard.boardColor;
@@ -1229,6 +1236,26 @@ struct Searcher {
         for (int i = 1; i < threadNumber; i++) {
             workers[i].stopSearch = true;
             threadPool[i].join();
+        }
+    }
+
+    void iterativeDeepeningSearch(int maxDepth_, ull softBound_, ull hardBound_, ull nodesLimit_, ull nodesH_) {
+        maxDepth = maxDepth_;
+        softBound = softBound_;
+        hardBound = hardBound_;
+        nodesLimit = nodesLimit_;
+        nodesH = nodesH_;
+        iterativeDeepeningSearch();
+    }
+
+    void startListening() {
+        while (true) {
+            unique_lock<mutex> lock(searchListenerMutex);
+            searchListenerCondVar.wait(lock, [&]{ return needsSearch; });
+
+            iterativeDeepeningSearch();
+
+            needsSearch = false;
         }
     }
 
