@@ -10,9 +10,11 @@ def parse_file(filename):
     tunespsa = open('../code/tunablesSPSAmode.h', 'w')
 
 
-    ucispsaOut = '#pragma once\n\nvoid printSPSAparams() {\n    cout <<\n'
+    ucispsaOut = '#pragma once\n\n#include "declars.h"\n\nvoid printSPSAparams() {\n    cout <<\n'
 
     ucispsaIn = ''
+
+    minc=100
 
     with open('../code/tunables.h', 'r') as file:
         for line in file:
@@ -38,6 +40,9 @@ def parse_file(filename):
             except:
                 pass
 
+            if minc>Cend:
+                minc=Cend
+
             ucispsaOut+=f'    "option name {name} type spin default {value} min {lb} max {rb}\\n\"\n'
             ucispsaIn +=f'    if (name == \"{name}\") {name} = value;\n';
 
@@ -53,12 +58,14 @@ def parse_file(filename):
             #print(tokens)
     ucispsaOut+=';\n}\n\nvoid setParam(string name, int value) {\n'
     ucispsaOut += ucispsaIn
+    ucispsaOut += '    if (name == "lmrDivisor") initLmrTable();\n'
     ucispsaOut += '}\n'
 
     ucispsa.write(ucispsaOut)
 
     print('Total number of params:', count)
     print('Total number of stc params:', stcCount)
+    print(minc)
 
     return results
 
@@ -66,3 +73,4 @@ def parse_file(filename):
 parsed_data = parse_file('a.txt')
 for item in parsed_data:
     print(item)
+    

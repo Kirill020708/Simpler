@@ -1,5 +1,7 @@
 #pragma once
 
+#include "declars.h"
+
 void printSPSAparams() {
     cout <<
     "option name qsFPmargin type spin default 100 min 0 max 300\n"
@@ -237,10 +239,7 @@ void setParam(string name, int value) {
     if (name == "seeNHistoryD1") seeNHistoryD1 = value;
     if (name == "seeNBaseD2") seeNBaseD2 = value;
     if (name == "seeNHistoryD2") seeNHistoryD2 = value;
-    if (name == "lmrDivisor") {
-        lmrDivisor = value;
-        initLmrTable();
-    }
+    if (name == "lmrDivisor") lmrDivisor = value;
     if (name == "lmrBase") lmrBase = value;
     if (name == "lmrPv") lmrPv = value;
     if (name == "lmrHistory") lmrHistory = value;
@@ -297,4 +296,5 @@ void setParam(string name, int value) {
     if (name == "matScaleRook") matScaleRook = value;
     if (name == "matScaleQueen") matScaleQueen = value;
     if (name == "matScaleBase") matScaleBase = value;
+    if (name == "lmrDivisor") initLmrTable();
 }
