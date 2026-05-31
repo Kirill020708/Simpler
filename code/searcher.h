@@ -478,7 +478,7 @@ struct Worker {
             board.makeNullMove();
             board.enPassantColumn = prevEnPassColumn;
             if (score >= beta)
-                return score;
+                return (score + beta) / 2;
         }
 
         if (!isRoot &&
