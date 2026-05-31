@@ -4,6 +4,7 @@ void printSPSAparams() {
     cout <<
     "option name qsFPmargin type spin default 100 min 0 max 300\n"
     "option name qsFPseeMargin type spin default 0 min -100 max 100\n"
+    "option name qsBetaFail type spin default 512 min 0 max 1024\n"
     "option name corrplexityMargin type spin default 100 min 0 max 300\n"
     "option name rfpBaseD2 type spin default 30 min 0 max 70\n"
     "option name rfpImprovingD2 type spin default 15 min 0 max 40\n"
@@ -76,20 +77,28 @@ void printSPSAparams() {
     "option name fpImprovingD0 type spin default 0 min 0 max 200\n"
     "option name fpTTcaptureD0 type spin default 0 min 0 max 200\n"
     "option name fpHistoryD0 type spin default 0 min 0 max 200\n"
-    "option name seeBaseD0 type spin default 0 min 0 max 500\n"
-    "option name seeHistoryD0 type spin default 0 min 0 max 200\n"
-    "option name seeBaseD1 type spin default 100 min 0 max 500\n"
-    "option name seeHistoryD1 type spin default 70 min 0 max 200\n"
-    "option name seeBaseD2 type spin default 0 min 0 max 500\n"
-    "option name seeHistoryD2 type spin default 0 min 0 max 200\n"
+    "option name seeQBaseD0 type spin default 0 min 0 max 500\n"
+    "option name seeQHistoryD0 type spin default 0 min 0 max 200\n"
+    "option name seeQBaseD1 type spin default 100 min 0 max 500\n"
+    "option name seeQHistoryD1 type spin default 70 min 0 max 200\n"
+    "option name seeQBaseD2 type spin default 0 min 0 max 500\n"
+    "option name seeQHistoryD2 type spin default 0 min 0 max 200\n"
+    "option name seeNBaseD0 type spin default 0 min 0 max 500\n"
+    "option name seeNHistoryD0 type spin default 0 min 0 max 200\n"
+    "option name seeNBaseD1 type spin default 100 min 0 max 500\n"
+    "option name seeNHistoryD1 type spin default 70 min 0 max 200\n"
+    "option name seeNBaseD2 type spin default 0 min 0 max 500\n"
+    "option name seeNHistoryD2 type spin default 0 min 0 max 200\n"
     "option name lmrDivisor type spin default 341 min 0 max 2048\n"
     "option name lmrBase type spin default 512 min 0 max 4096\n"
     "option name lmrPv type spin default 1024 min 0 max 4096\n"
     "option name lmrHistory type spin default 1536 min 0 max 4096\n"
     "option name lmrImproving type spin default 512 min 0 max 4096\n"
     "option name lmrTTcapture type spin default 1024 min 0 max 4096\n"
+    "option name lmrExact type spin default 1024 min 0 max 4096\n"
     "option name lmrCutnode type spin default 1024 min 0 max 4096\n"
     "option name lmrTtpv type spin default 1024 min 0 max 4096\n"
+    "option name lmrCorrplex type spin default 0 min 0 max 4096\n"
     "option name lmrCapture type spin default 1024 min 0 max 4096\n"
     "option name lmrSee type spin default 2097 min 0 max 4096\n"
     "option name lmrKiller type spin default 1024 min 0 max 4096\n"
@@ -131,12 +140,19 @@ void printSPSAparams() {
     "option name moveOrderBishop type spin default 300 min 0 max 800\n"
     "option name moveOrderRook type spin default 500 min 0 max 1200\n"
     "option name moveOrderQueen type spin default 900 min 0 max 2500\n"
+    "option name matScalePawn type spin default 100 min 0 max 200\n"
+    "option name matScaleKnight type spin default 300 min 100 max 500\n"
+    "option name matScaleBishop type spin default 300 min 100 max 500\n"
+    "option name matScaleRook type spin default 500 min 300 max 800\n"
+    "option name matScaleQueen type spin default 900 min 500 max 1400\n"
+    "option name matScaleBase type spin default 25000 min 10000 max 40000\n"
 ;
 }
 
 void setParam(string name, int value) {
     if (name == "qsFPmargin") qsFPmargin = value;
     if (name == "qsFPseeMargin") qsFPseeMargin = value;
+    if (name == "qsBetaFail") qsBetaFail = value;
     if (name == "corrplexityMargin") corrplexityMargin = value;
     if (name == "rfpBaseD2") rfpBaseD2 = value;
     if (name == "rfpImprovingD2") rfpImprovingD2 = value;
@@ -209,20 +225,31 @@ void setParam(string name, int value) {
     if (name == "fpImprovingD0") fpImprovingD0 = value;
     if (name == "fpTTcaptureD0") fpTTcaptureD0 = value;
     if (name == "fpHistoryD0") fpHistoryD0 = value;
-    if (name == "seeBaseD0") seeBaseD0 = value;
-    if (name == "seeHistoryD0") seeHistoryD0 = value;
-    if (name == "seeBaseD1") seeBaseD1 = value;
-    if (name == "seeHistoryD1") seeHistoryD1 = value;
-    if (name == "seeBaseD2") seeBaseD2 = value;
-    if (name == "seeHistoryD2") seeHistoryD2 = value;
-    if (name == "lmrDivisor") lmrDivisor = value;
+    if (name == "seeQBaseD0") seeQBaseD0 = value;
+    if (name == "seeQHistoryD0") seeQHistoryD0 = value;
+    if (name == "seeQBaseD1") seeQBaseD1 = value;
+    if (name == "seeQHistoryD1") seeQHistoryD1 = value;
+    if (name == "seeQBaseD2") seeQBaseD2 = value;
+    if (name == "seeQHistoryD2") seeQHistoryD2 = value;
+    if (name == "seeNBaseD0") seeNBaseD0 = value;
+    if (name == "seeNHistoryD0") seeNHistoryD0 = value;
+    if (name == "seeNBaseD1") seeNBaseD1 = value;
+    if (name == "seeNHistoryD1") seeNHistoryD1 = value;
+    if (name == "seeNBaseD2") seeNBaseD2 = value;
+    if (name == "seeNHistoryD2") seeNHistoryD2 = value;
+    if (name == "lmrDivisor") {
+        lmrDivisor = value;
+        initLmrTable();
+    }
     if (name == "lmrBase") lmrBase = value;
     if (name == "lmrPv") lmrPv = value;
     if (name == "lmrHistory") lmrHistory = value;
     if (name == "lmrImproving") lmrImproving = value;
     if (name == "lmrTTcapture") lmrTTcapture = value;
+    if (name == "lmrExact") lmrExact = value;
     if (name == "lmrCutnode") lmrCutnode = value;
     if (name == "lmrTtpv") lmrTtpv = value;
+    if (name == "lmrCorrplex") lmrCorrplex = value;
     if (name == "lmrCapture") lmrCapture = value;
     if (name == "lmrSee") lmrSee = value;
     if (name == "lmrKiller") lmrKiller = value;
@@ -264,4 +291,10 @@ void setParam(string name, int value) {
     if (name == "moveOrderBishop") moveOrderBishop = value;
     if (name == "moveOrderRook") moveOrderRook = value;
     if (name == "moveOrderQueen") moveOrderQueen = value;
+    if (name == "matScalePawn") matScalePawn = value;
+    if (name == "matScaleKnight") matScaleKnight = value;
+    if (name == "matScaleBishop") matScaleBishop = value;
+    if (name == "matScaleRook") matScaleRook = value;
+    if (name == "matScaleQueen") matScaleQueen = value;
+    if (name == "matScaleBase") matScaleBase = value;
 }

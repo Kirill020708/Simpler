@@ -298,7 +298,7 @@ struct Worker {
                         !isPvNode &&
                         bestScore >= beta)
 
-                        bestScore = (beta + bestScore) / 2;
+                        bestScore = (beta * (1024 - qsBetaFail) + bestScore * qsBetaFail) / 1024;
                     
                     transpositionTable.write(board, currentZobristKey, bestScore, rawStaticEval, 0, LOWER_BOUND,
                                                       boardCurrentAge, move, ply, ttpv);
@@ -803,9 +803,9 @@ struct Worker {
                     + lmrImproving * (!improving)
                     + lmrTTcapture * (isTTCapture)
                     + lmrCutnode * cutNode
-                    + 1024 * (nodeType == EXACT)
+                    + lmrExact * (nodeType == EXACT)
                     - lmrTtpv * ttpv
-                    - 0 * corrplexScore / 256
+                    - lmrCorrplex * corrplexScore / 256
                     - lmrCapture * (isCapture)
                     - lmrKiller * (isKiller)) / 1024; // reduction of depth
 

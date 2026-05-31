@@ -4,6 +4,8 @@
 #define qsFPmargin 100 // 0 300
 #define qsFPseeMargin 0 // -100 100
 
+#define qsBetaFail 512 // 0 1024
+
 #define corrplexityMargin 100 // 0 300
 
 #define rfpBaseD2 30 // 0 70
@@ -105,8 +107,10 @@
 #define lmrHistory 1536 // 0 4096
 #define lmrImproving 512 // 0 4096
 #define lmrTTcapture 1024 // 0 4096
+#define lmrExact 1024 // 0 4096
 #define lmrCutnode 1024 // 0 4096
 #define lmrTtpv 1024 // 0 4096
+#define lmrCorrplex 0 // 0 4096
 #define lmrCapture 1024 // 0 4096
 #define lmrSee 2097 // 0 4096
 #define lmrKiller 1024 // 0 4096
@@ -157,4 +161,9 @@
 #define moveOrderRook 500 // 0 1200
 #define moveOrderQueen 900 // 0 2500
 
-
+#define matScalePawn 100 // 0 200
+#define matScaleKnight 300 // 100 500
+#define matScaleBishop 300 // 100 500
+#define matScaleRook 500 // 300 800
+#define matScaleQueen 900 // 500 1400
+#define matScaleBase 25000 // 10000 40000
