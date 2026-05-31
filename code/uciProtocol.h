@@ -118,7 +118,7 @@ struct UCIcommunicationHepler {
             cout << "option name HardNodesLimit type spin default 1000000000000000000 min 1 max 1000000000000000000" << endl;
             cout << "option name Normalize type check default true" << endl;
             cout << "option name Threads type spin default 1 min 1 max 1024" << endl;
-            cout << "option name Hash type spin default 256 min 1 max 33554432" << endl;
+            cout << "option name Hash type spin default 16 min 1 max 33554432" << endl;
             cout << "option name Minimal type check default false" << endl;
 
             #if defined TUNE_MODE
